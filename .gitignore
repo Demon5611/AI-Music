@@ -1,0 +1,30 @@
+# dependencies
+node_modules
+.pnpm-store
+
+# build
+.next
+out
+dist
+build
+.turbo
+
+# env
+.env
+.env.local
+.env.*.local
+
+# debug
+npm-debug.log*
+pnpm-debug.log*
+
+# misc
+.DS_Store
+*.pem
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# prisma
+packages/db/prisma/migrations/**/migration_lock.toml

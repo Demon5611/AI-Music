@@ -1,0 +1,32 @@
+{
+  "name": "@ai-music/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "generate": "prisma generate",
+    "push": "prisma db push",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0"
+  },
+  "devDependencies": {
+    "@ai-music/config": "workspace:*",
+    "eslint": "^9.28.0",
+    "prisma": "^6.9.0",
+    "typescript": "^5.8.3"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  }
+}

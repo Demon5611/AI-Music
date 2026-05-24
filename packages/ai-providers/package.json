@@ -1,0 +1,23 @@
+{
+  "name": "@ai-music/ai-providers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@ai-music/config": "workspace:*",
+    "eslint": "^9.28.0",
+    "typescript": "^5.8.3"
+  }
+}

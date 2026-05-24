@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  voiceSamples       VoiceSample[]
+  tracks             Track[]
+  generationJobs     GenerationJob[]
+  creditTransactions CreditTransaction[]
+
+  @@map("users")
+}
+
+model VoiceSample {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  r2Key            String   @map("r2_key")
+  durationSec      Int      @map("duration_sec")
+  status           String   @default("pending")
+  consentConfirmed Boolean  @default(false) @map("consent_confirmed")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationJobs GenerationJob[]
+
+  @@map("voice_samples")
+}
+
+model Track {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  title       String
+  prompt      String
+  style       String
+  durationSec Int      @map("duration_sec")
+  audioR2Key  String   @map("audio_r2_key")
+  coverR2Key  String?  @map("cover_r2_key")
+  shareSlug   String   @unique @map("share_slug")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationJobs GenerationJob[]
+
+  @@map("tracks")
+}
+
+model GenerationJob {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  voiceSampleId String   @map("voice_sample_id")
+  trackId       String?  @map("track_id")
+  status        String   @default("pending")
+  errorMessage  String?  @map("error_message")
+  providerJobId String?  @map("provider_job_id")
+  creditsCost   Int      @map("credits_cost")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voiceSample VoiceSample @relation(fields: [voiceSampleId], references: [id])
+  track       Track?      @relation(fields: [trackId], references: [id])
+
+  @@map("generation_jobs")
+}
+
+model CreditTransaction {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  type            String
+  amount          Int
+  reason          String
+  stripePaymentId String?  @map("stripe_payment_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_transactions")
+}

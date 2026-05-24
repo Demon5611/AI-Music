@@ -1,0 +1,25 @@
+{
+  "name": "ai-music",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "turbo dev --filter=@ai-music/web",
+    "dev:api": "turbo dev --filter=@ai-music/api",
+    "dev:worker": "turbo dev --filter=@ai-music/worker",
+    "build": "turbo build",
+    "build:packages": "turbo build --filter=@ai-music/shared --filter=@ai-music/api-client --filter=@ai-music/ai-providers --filter=@ai-music/db",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "db:generate": "pnpm --filter @ai-music/db generate",
+    "db:push": "pnpm --filter @ai-music/db push"
+  },
+  "devDependencies": {
+    "eslint": "^9.28.0",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@10.32.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

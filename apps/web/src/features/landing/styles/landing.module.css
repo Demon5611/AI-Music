@@ -1,0 +1,65 @@
+.hero {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1.25rem;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--foreground);
+}
+
+.subtitle {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.primaryAction,
+.secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.primaryAction {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.secondaryAction {
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+.note {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
