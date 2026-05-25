@@ -11,7 +11,9 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "db:generate": "pnpm --filter @ai-music/db generate",
-    "db:push": "pnpm --filter @ai-music/db push"
+    "db:push": "pnpm --filter @ai-music/db push",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
   },
   "devDependencies": {
     "eslint": "^9.28.0",

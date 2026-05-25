@@ -15,7 +15,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "generate": "prisma generate",
-    "push": "prisma db push",
+    "push": "dotenv -e ../../.env -- prisma db push",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
@@ -25,6 +25,7 @@
   "devDependencies": {
     "@ai-music/config": "workspace:*",
     "@types/node": "^25.9.1",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9.28.0",
     "prisma": "^6.9.0",
     "typescript": "^5.8.3"

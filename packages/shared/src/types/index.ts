@@ -78,3 +78,5 @@ export interface GenerationJobPayload {
   userId: string;
   voiceSampleId: string;
 }
+
+export type { KitsInferenceJob, KitsJobStatus } from "./kits.js";

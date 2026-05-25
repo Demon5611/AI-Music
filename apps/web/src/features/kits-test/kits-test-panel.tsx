@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { KitsInferenceJob } from "@ai-music/ai-providers";
+import type { KitsInferenceJob } from "@ai-music/shared";
 import { env } from "@/shared/config/env";
 import { readKitsApiError } from "@/features/kits-test/parse-api-error";
 import styles from "./styles/kits-test.module.css";
