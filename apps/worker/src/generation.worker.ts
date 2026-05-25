@@ -1,19 +1,28 @@
-import type { GenerationStatus } from "@ai-music/shared";
+import { prisma } from "@ai-music/db";
+import { GENERATION_QUEUE_NAME, type GenerationJobPayload } from "@ai-music/shared";
+import { Worker } from "bullmq";
+import { processGenerationJob } from "./processors/generate-song.js";
 
-export interface GenerationJobPayload {
-  jobId: string;
-  userId: string;
-  voiceSampleId: string;
+function getRedisConnection() {
+  const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
+
+  return {
+    url: redisUrl,
+    maxRetriesPerRequest: null,
+  };
 }
 
-export const GENERATION_QUEUE_NAME = "generation";
+export function createGenerationWorker() {
+  return new Worker<GenerationJobPayload>(
+    GENERATION_QUEUE_NAME,
+    async (job) => {
+      await processGenerationJob(job.data);
+    },
+    { connection: getRedisConnection() },
+  );
+}
 
-export const GENERATION_STATUS_FLOW: GenerationStatus[] = [
-  "pending",
-  "preprocessing_voice",
-  "generating_lyrics",
-  "generating_song",
-  "converting_voice",
-  "uploading_result",
-  "completed",
-];
+export async function closeGenerationWorker(worker: Worker) {
+  await worker.close();
+  await prisma.$disconnect();
+}

@@ -25,3 +25,5 @@ export const VOICE_CONSENT_PHRASE =
 export const MIN_VOICE_SAMPLE_DURATION_SEC = 10;
 
 export const MAX_VOICE_SAMPLE_DURATION_SEC = 120;
+
+export const GENERATION_QUEUE_NAME = "generation";

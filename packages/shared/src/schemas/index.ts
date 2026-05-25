@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  MAX_VOICE_SAMPLE_DURATION_SEC,
+  MIN_VOICE_SAMPLE_DURATION_SEC,
+  VOICE_CONSENT_PHRASE,
+} from "../constants/index.js";
 
 export const musicStyleSchema = z.enum([
   "pop",
@@ -12,15 +17,21 @@ export const musicStyleSchema = z.enum([
 export const createGenerationSchema = z.object({
   prompt: z.string().min(3).max(500),
   style: musicStyleSchema,
-  voiceSampleId: z.string().uuid(),
+  voiceSampleId: z.string().min(1),
   duration: z.number().int().min(30).max(180).default(60),
 });
 
 export const voiceConsentSchema = z.object({
   confirmed: z.literal(true),
-  consentPhrase: z.literal(
-    "Я подтверждаю, что использую свой голос для создания музыкального трека.",
-  ),
+  consentPhrase: z.literal(VOICE_CONSENT_PHRASE),
+});
+
+export const uploadVoiceSampleFieldsSchema = voiceConsentSchema.extend({
+  durationSec: z.coerce
+    .number()
+    .int()
+    .min(MIN_VOICE_SAMPLE_DURATION_SEC)
+    .max(MAX_VOICE_SAMPLE_DURATION_SEC),
 });
 
 export const createCheckoutSessionSchema = z.object({
@@ -29,6 +40,9 @@ export const createCheckoutSessionSchema = z.object({
 
 export type CreateGenerationInput = z.infer<typeof createGenerationSchema>;
 export type VoiceConsentInput = z.infer<typeof voiceConsentSchema>;
+export type UploadVoiceSampleFields = z.infer<
+  typeof uploadVoiceSampleFieldsSchema
+>;
 export type CreateCheckoutSessionInput = z.infer<
   typeof createCheckoutSessionSchema
 >;

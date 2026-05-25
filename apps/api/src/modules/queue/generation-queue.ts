@@ -1,0 +1,42 @@
+import { Queue } from "bullmq";
+import {
+  GENERATION_QUEUE_NAME,
+  type GenerationJobPayload,
+} from "@ai-music/shared";
+
+let queue: Queue<GenerationJobPayload> | null = null;
+
+function getRedisConnection() {
+  const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
+
+  return {
+    url: redisUrl,
+    maxRetriesPerRequest: null,
+  };
+}
+
+export function getGenerationQueue(): Queue<GenerationJobPayload> {
+  if (!queue) {
+    queue = new Queue<GenerationJobPayload>(GENERATION_QUEUE_NAME, {
+      connection: getRedisConnection(),
+    });
+  }
+
+  return queue;
+}
+
+export async function enqueueGenerationJob(payload: GenerationJobPayload) {
+  await getGenerationQueue().add("generate", payload, {
+    attempts: 3,
+    backoff: { type: "exponential", delay: 5000 },
+    removeOnComplete: 100,
+    removeOnFail: 100,
+  });
+}
+
+export async function closeGenerationQueue() {
+  if (queue) {
+    await queue.close();
+    queue = null;
+  }
+}

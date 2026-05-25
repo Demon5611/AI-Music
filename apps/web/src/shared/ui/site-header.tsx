@@ -4,6 +4,7 @@ import styles from "./site-header.module.css";
 const NAV_ITEMS = [
   { href: "/create", label: "Create" },
   { href: "/voice", label: "Voice" },
+  { href: "/kits-test", label: "Kits Test" },
   { href: "/profile", label: "Profile" },
   { href: "/pricing", label: "Pricing" },
 ] as const;

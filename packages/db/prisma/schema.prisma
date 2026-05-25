@@ -60,6 +60,9 @@ model GenerationJob {
   userId        String   @map("user_id")
   voiceSampleId String   @map("voice_sample_id")
   trackId       String?  @map("track_id")
+  prompt        String
+  style         String
+  durationSec   Int      @map("duration_sec")
   status        String   @default("pending")
   errorMessage  String?  @map("error_message")
   providerJobId String?  @map("provider_job_id")

@@ -15,6 +15,7 @@
     "@ai-music/db": "workspace:*",
     "@ai-music/shared": "workspace:*",
     "bullmq": "^5.53.2",
+    "dotenv": "^16.6.1",
     "ioredis": "^5.6.1"
   },
   "devDependencies": {

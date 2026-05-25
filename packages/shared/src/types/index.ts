@@ -48,6 +48,9 @@ export interface GenerationJob {
   userId: string;
   voiceSampleId: string;
   trackId: string | null;
+  prompt: string;
+  style: string;
+  durationSec: number;
   status: GenerationStatus;
   errorMessage: string | null;
   providerJobId: string | null;
@@ -68,4 +71,10 @@ export interface CreditTransaction {
 
 export interface CreditsBalance {
   balance: number;
+}
+
+export interface GenerationJobPayload {
+  jobId: string;
+  userId: string;
+  voiceSampleId: string;
 }

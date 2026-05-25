@@ -1,8 +1,20 @@
-/**
- * Database client stub. Run `pnpm db:generate` before wiring PrismaClient.
- */
-export function createDatabaseClient(): never {
-  throw new Error(
-    "Database client is not initialized. Run pnpm db:generate first.",
-  );
+import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
 }
+
+export { PrismaClient };
+export type {
+  CreditTransaction,
+  GenerationJob,
+  Track,
+  User,
+  VoiceSample,
+} from "@prisma/client";
