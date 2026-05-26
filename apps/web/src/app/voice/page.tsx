@@ -1,12 +1,5 @@
-import { PlaceholderPage } from "@/shared/ui/placeholder-page";
+import { VoiceUploadPanel } from "@/features/voice/voice-upload-panel";
 
 export default function VoicePage() {
-  return (
-    <PlaceholderPage
-      title="Запись голоса"
-      description="Запишите или загрузите образец голоса для voice transfer."
-      actionHref="/consent"
-      actionLabel="Далее: согласие"
-    />
-  );
+  return <VoiceUploadPanel />;
 }

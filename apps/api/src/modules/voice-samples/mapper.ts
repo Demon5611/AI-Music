@@ -9,6 +9,7 @@ export function toVoiceSampleDto(sample: VoiceSample): VoiceSampleDto {
     durationSec: sample.durationSec,
     status: sample.status as VoiceSampleDto["status"],
     consentConfirmed: sample.consentConfirmed,
+    kitsVoiceModelId: sample.kitsVoiceModelId,
     createdAt: sample.createdAt.toISOString(),
   };
 }

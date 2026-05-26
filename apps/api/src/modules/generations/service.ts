@@ -24,6 +24,10 @@ export async function createGenerationJob(
     throw new ForbiddenError("Voice sample is not ready");
   }
 
+  if (!voiceSample.kitsVoiceModelId) {
+    throw new ForbiddenError("Kits voice model is not linked");
+  }
+
   await spendCredits(userId, GENERATION_CREDIT_COST, "generation_start");
 
   const job = await prisma.generationJob.create({

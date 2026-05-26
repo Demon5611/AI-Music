@@ -4,6 +4,7 @@ import { sendAppError } from "../../common/errors.js";
 import {
   createVoiceSample,
   deleteVoiceSample,
+  linkKitsVoiceModel,
   listVoiceSamples,
 } from "./service.js";
 
@@ -69,6 +70,23 @@ export async function registerVoiceSampleRoutes(app: FastifyInstance) {
       try {
         await deleteVoiceSample(request.userId!, request.params.id);
         return reply.status(204).send();
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.patch<{ Params: { id: string }; Body: { kitsVoiceModelId: number } }>(
+    "/api/voice-samples/:id",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const sample = await linkKitsVoiceModel(
+          request.userId!,
+          request.params.id,
+          request.body.kitsVoiceModelId,
+        );
+        return reply.send(sample);
       } catch (error) {
         return sendAppError(reply, error);
       }

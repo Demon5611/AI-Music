@@ -1,8 +1,11 @@
 import { prisma } from "@ai-music/db";
 import type { GenerationJobPayload, GenerationStatus } from "@ai-music/shared";
-
-const PIPELINE_STUB_MESSAGE =
-  "AI pipeline is not configured yet (ElevenLabs + Kits)";
+import {
+  convertVoiceWithKits,
+  generateBaseSong,
+} from "./convert-voice.js";
+import { preprocessVoice } from "./preprocess-voice.js";
+import { uploadGenerationResult } from "./upload-result.js";
 
 async function updateJobStatus(
   jobId: string,
@@ -38,17 +41,27 @@ export async function processGenerationJob(
 ): Promise<void> {
   const job = await prisma.generationJob.findUnique({
     where: { id: payload.jobId },
+    include: { voiceSample: true },
   });
 
   if (!job || job.status === "completed" || job.status === "failed") {
     return;
   }
 
-  await updateJobStatus(payload.jobId, "preprocessing_voice");
-
   try {
+    await updateJobStatus(payload.jobId, "preprocessing_voice");
+    const { voiceSample } = await preprocessVoice(job.voiceSample);
+
     await updateJobStatus(payload.jobId, "generating_song");
-    throw new Error(PIPELINE_STUB_MESSAGE);
+    const songBuffer = await generateBaseSong(job, voiceSample);
+
+    await updateJobStatus(payload.jobId, "converting_voice");
+    const resultBuffer = await convertVoiceWithKits(voiceSample, songBuffer);
+
+    await updateJobStatus(payload.jobId, "uploading_result");
+    await uploadGenerationResult(job, resultBuffer);
+
+    await updateJobStatus(payload.jobId, "completed");
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Generation failed";

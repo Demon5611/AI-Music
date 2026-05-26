@@ -29,6 +29,7 @@ model VoiceSample {
   durationSec      Int      @map("duration_sec")
   status           String   @default("pending")
   consentConfirmed Boolean  @default(false) @map("consent_confirmed")
+  kitsVoiceModelId Int?     @map("kits_voice_model_id")
   createdAt        DateTime @default(now()) @map("created_at")
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)

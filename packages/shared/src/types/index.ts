@@ -27,6 +27,7 @@ export interface VoiceSample {
   durationSec: number;
   status: VoiceSampleStatus;
   consentConfirmed: boolean;
+  kitsVoiceModelId: number | null;
   createdAt: string;
 }
 
@@ -79,4 +80,12 @@ export interface GenerationJobPayload {
   voiceSampleId: string;
 }
 
-export type { KitsInferenceJob, KitsJobStatus } from "./kits.js";
+export type {
+  KitsInferenceJob,
+  KitsJobStatus,
+  KitsPaginationMeta,
+  KitsStemFileUrl,
+  KitsVocalSeparationJob,
+  KitsVoiceModel,
+  KitsVoiceModelsResponse,
+} from "./kits.js";

@@ -5,3 +5,9 @@ export type { VoiceSample };
 export function isVoiceSampleReady(sample: VoiceSample): boolean {
   return sample.consentConfirmed && sample.status === "ready";
 }
+
+export function isVoiceSampleReadyForGeneration(
+  sample: VoiceSample,
+): boolean {
+  return isVoiceSampleReady(sample) && sample.kitsVoiceModelId != null;
+}

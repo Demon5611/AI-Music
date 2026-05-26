@@ -38,5 +38,19 @@ export class KitsVoiceConversionProvider implements VoiceConversionProvider {
 
 export { KitsClient, createKitsClient };
 export { KitsApiError } from "./kits/kits-api-error.js";
-export type { CreateKitsVoiceConversionInput, KitsInferenceJob } from "./kits/types.js";
+export {
+  downloadUrl,
+  isKitsJobFailed,
+  isKitsJobRunning,
+  isKitsJobSuccess,
+  pollUntilComplete,
+} from "./kits/poll.js";
+export type {
+  CreateKitsVoiceConversionInput,
+  CreateKitsVocalSeparationInput,
+  KitsInferenceJob,
+  KitsVoiceModel,
+  KitsVocalSeparationJob,
+  ListKitsVoiceModelsParams,
+} from "./kits/types.js";
 export * from "./types.js";

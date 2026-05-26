@@ -1,4 +1,4 @@
-import { PlaceholderPage } from "@/shared/ui/placeholder-page";
+import { GenerationStatusPanel } from "@/features/generation/generation-status-panel";
 
 interface GenerationPageProps {
   params: Promise<{ id: string }>;
@@ -7,12 +7,5 @@ interface GenerationPageProps {
 export default async function GenerationPage({ params }: GenerationPageProps) {
   const { id } = await params;
 
-  return (
-    <PlaceholderPage
-      title="Генерация"
-      description={`Статус генерации job ${id}. Progress UI будет в Sprint 3.`}
-      actionHref="/profile"
-      actionLabel="Профиль"
-    />
-  );
+  return <GenerationStatusPanel jobId={id} />;
 }

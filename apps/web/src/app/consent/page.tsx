@@ -1,12 +1,10 @@
-import { PlaceholderPage } from "@/shared/ui/placeholder-page";
+import { Suspense } from "react";
+import { KitsModelLinkPanel } from "@/features/voice/kits-model-link-panel";
 
 export default function ConsentPage() {
   return (
-    <PlaceholderPage
-      title="Согласие на использование голоса"
-      description="Подтвердите, что используете свой голос для создания трека."
-      actionHref="/create"
-      actionLabel="К созданию"
-    />
+    <Suspense fallback={<p>Загрузка...</p>}>
+      <KitsModelLinkPanel />
+    </Suspense>
   );
 }

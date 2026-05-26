@@ -1,5 +1,9 @@
 import { prisma } from "@ai-music/db";
-import { uploadVoiceSampleFieldsSchema } from "@ai-music/shared";
+import {
+  linkKitsVoiceModelSchema,
+  uploadVoiceSampleFieldsSchema,
+} from "@ai-music/shared";
+import { createKitsClient } from "@ai-music/ai-providers";
 import { ForbiddenError, NotFoundError } from "../../common/errors.js";
 import {
   buildVoiceSampleKey,
@@ -89,4 +93,42 @@ export async function deleteVoiceSample(userId: string, sampleId: string) {
 
   await getStorageService().delete(sample.r2Key);
   await prisma.voiceSample.delete({ where: { id: sample.id } });
+}
+
+export async function linkKitsVoiceModel(
+  userId: string,
+  sampleId: string,
+  kitsVoiceModelId: number,
+) {
+  const parsed = linkKitsVoiceModelSchema.safeParse({ kitsVoiceModelId });
+
+  if (!parsed.success) {
+    throw new ForbiddenError("Invalid Kits voice model id");
+  }
+
+  const sample = await prisma.voiceSample.findFirst({
+    where: { id: sampleId, userId },
+  });
+
+  if (!sample) {
+    throw new NotFoundError("Voice sample not found");
+  }
+
+  if (!sample.consentConfirmed || sample.status !== "ready") {
+    throw new ForbiddenError("Voice sample is not ready");
+  }
+
+  try {
+    const kits = createKitsClient();
+    await kits.getVoiceModel(parsed.data.kitsVoiceModelId);
+  } catch {
+    throw new NotFoundError("Kits voice model not found");
+  }
+
+  const updated = await prisma.voiceSample.update({
+    where: { id: sample.id },
+    data: { kitsVoiceModelId: parsed.data.kitsVoiceModelId },
+  });
+
+  return toVoiceSampleDto(updated);
 }

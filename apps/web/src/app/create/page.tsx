@@ -1,12 +1,5 @@
-import { PlaceholderPage } from "@/shared/ui/placeholder-page";
+import { CreateTrackPanel } from "@/features/create/create-track-panel";
 
 export default function CreatePage() {
-  return (
-    <PlaceholderPage
-      title="Создать трек"
-      description="Введите prompt и выберите музыкальный стиль."
-      actionHref="/voice"
-      actionLabel="Далее: голос"
-    />
-  );
+  return <CreateTrackPanel />;
 }

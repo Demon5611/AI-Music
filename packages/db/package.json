@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
     "generate": "prisma generate",
     "push": "dotenv -e ../../.env -- prisma db push",
     "typecheck": "tsc --noEmit",

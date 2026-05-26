@@ -1,5 +1,6 @@
 import { createKitsClient } from "@ai-music/ai-providers";
 import type { FastifyInstance } from "fastify";
+import { requireAuth } from "../../common/require-auth.js";
 import { sendKitsError } from "./handle-kits-error.js";
 
 const DEFAULT_VOICE_MODEL_ID = Number(
@@ -65,4 +66,45 @@ export async function registerKitsRoutes(app: FastifyInstance) {
       return sendKitsError(reply, error);
     }
   });
+
+  app.get<{ Querystring: { myModels?: string; page?: string; perPage?: string } }>(
+    "/api/kits/voice-models",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const client = createKitsClient();
+        const models = await client.listVoiceModels({
+          myModels: request.query.myModels === "true",
+          instruments: false,
+          page: request.query.page ? Number(request.query.page) : 1,
+          perPage: request.query.perPage ? Number(request.query.perPage) : 20,
+        });
+        return reply.send(models);
+      } catch (error) {
+        request.log.error(error);
+        return sendKitsError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: { id: string } }>(
+    "/api/kits/voice-models/:id",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const modelId = Number(request.params.id);
+
+      if (!Number.isFinite(modelId)) {
+        return reply.status(400).send({ error: "Invalid voice model id" });
+      }
+
+      try {
+        const client = createKitsClient();
+        const model = await client.getVoiceModel(modelId);
+        return reply.send(model);
+      } catch (error) {
+        request.log.error(error);
+        return sendKitsError(reply, error);
+      }
+    },
+  );
 }
