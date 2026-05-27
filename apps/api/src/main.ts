@@ -13,8 +13,8 @@ import { registerTrackRoutes } from "./modules/tracks/routes.js";
 import { registerCreditsRoutes } from "./modules/credits/routes.js";
 import { registerBillingRoutes } from "./modules/billing/routes.js";
 import { registerStorageRoutes } from "./modules/storage/routes.js";
-import { registerElevenLabsRoutes } from "./modules/elevenlabs/routes.js";
 import { registerKitsRoutes } from "./modules/kits/routes.js";
+import { registerMusicRoutes } from "./modules/music/routes.js";
 import { closeGenerationQueue } from "./modules/queue/generation-queue.js";
 
 const port = Number(process.env.API_PORT ?? 3001);
@@ -43,7 +43,7 @@ export async function buildApp() {
   await registerCreditsRoutes(app);
   await registerBillingRoutes(app);
   await registerStorageRoutes(app);
-  await registerElevenLabsRoutes(app);
+  await registerMusicRoutes(app);
   await registerKitsRoutes(app);
 
   app.setErrorHandler((error, _request, reply) => {

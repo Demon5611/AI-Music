@@ -14,8 +14,8 @@ import styles from "./site-header.module.css";
 const NAV_ITEMS = [
   { href: "/create", label: "Create" },
   { href: "/voice", label: "Voice" },
+  { href: "/music-test", label: "Music Test" },
   { href: "/kits-test", label: "Kits Test" },
-  { href: "/elevenlabs-test", label: "ElevenLabs Test" },
   { href: "/profile", label: "Profile" },
   { href: "/pricing", label: "Pricing" },
 ] as const;

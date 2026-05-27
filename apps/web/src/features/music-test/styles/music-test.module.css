@@ -15,7 +15,6 @@
 }
 
 .description,
-.hint,
 .meta,
 .warning {
   line-height: 1.6;
@@ -86,6 +85,14 @@
 
 .player {
   width: 100%;
+}
+
+.lyrics {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted);
 }
 
 .error {

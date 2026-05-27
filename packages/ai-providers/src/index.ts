@@ -3,7 +3,6 @@ import type {
   ConvertedVoiceResult,
   VoiceConversionProvider,
 } from "./types.js";
-import { ElevenLabsMusicProvider } from "./elevenlabs/elevenlabs-music-provider.js";
 import { createKitsClient } from "./kits/create-kits-client.js";
 import type { CreateKitsVoiceConversionInput } from "./kits/types.js";
 import { KitsClient } from "./kits/kits-client.js";
@@ -27,11 +26,7 @@ export class KitsVoiceConversionProvider implements VoiceConversionProvider {
   }
 }
 
-export { ElevenLabsMusicProvider };
 export { KitsClient, createKitsClient };
-export { ElevenLabsClient } from "./elevenlabs/elevenlabs-client.js";
-export { createElevenLabsClient } from "./elevenlabs/create-elevenlabs-client.js";
-export { ElevenLabsApiError } from "./elevenlabs/elevenlabs-api-error.js";
 export { KitsApiError } from "./kits/kits-api-error.js";
 export {
   downloadUrl,
@@ -41,13 +36,6 @@ export {
   pollUntilComplete,
 } from "./kits/poll.js";
 export type {
-  ComposeMusicInput,
-  ComposeMusicResult,
-  ElevenLabsTtsModelId,
-  TextToSpeechInput,
-  TextToSpeechResult,
-} from "./elevenlabs/types.js";
-export type {
   CreateKitsVoiceConversionInput,
   CreateKitsVocalSeparationInput,
   KitsInferenceJob,
@@ -56,3 +44,4 @@ export type {
   ListKitsVoiceModelsParams,
 } from "./kits/types.js";
 export * from "./types.js";
+export * from "./music/index.js";
