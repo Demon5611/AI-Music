@@ -21,7 +21,7 @@ export async function generateBaseSong(
       durationSec: job.durationSec,
     });
 
-    return downloadUrl(result.audioUrl);
+    return result.audioBuffer;
   }
 
   if (process.env.AUTH_DEV_MODE === "true") {

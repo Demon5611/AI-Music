@@ -1,21 +1,12 @@
 import type {
   ConvertVoiceInput,
   ConvertedVoiceResult,
-  GenerateSongInput,
-  GeneratedSongResult,
-  MusicGenerationProvider,
   VoiceConversionProvider,
 } from "./types.js";
+import { ElevenLabsMusicProvider } from "./elevenlabs/elevenlabs-music-provider.js";
 import { createKitsClient } from "./kits/create-kits-client.js";
 import type { CreateKitsVoiceConversionInput } from "./kits/types.js";
 import { KitsClient } from "./kits/kits-client.js";
-
-export class ElevenLabsMusicProvider implements MusicGenerationProvider {
-  async generateSong(input: GenerateSongInput): Promise<GeneratedSongResult> {
-    void input;
-    throw new Error("ElevenLabsMusicProvider: not implemented");
-  }
-}
 
 export class KitsVoiceConversionProvider implements VoiceConversionProvider {
   constructor(private readonly client: KitsClient = createKitsClient()) {}
@@ -36,7 +27,11 @@ export class KitsVoiceConversionProvider implements VoiceConversionProvider {
   }
 }
 
+export { ElevenLabsMusicProvider };
 export { KitsClient, createKitsClient };
+export { ElevenLabsClient } from "./elevenlabs/elevenlabs-client.js";
+export { createElevenLabsClient } from "./elevenlabs/create-elevenlabs-client.js";
+export { ElevenLabsApiError } from "./elevenlabs/elevenlabs-api-error.js";
 export { KitsApiError } from "./kits/kits-api-error.js";
 export {
   downloadUrl,
@@ -45,6 +40,13 @@ export {
   isKitsJobSuccess,
   pollUntilComplete,
 } from "./kits/poll.js";
+export type {
+  ComposeMusicInput,
+  ComposeMusicResult,
+  ElevenLabsTtsModelId,
+  TextToSpeechInput,
+  TextToSpeechResult,
+} from "./elevenlabs/types.js";
 export type {
   CreateKitsVoiceConversionInput,
   CreateKitsVocalSeparationInput,

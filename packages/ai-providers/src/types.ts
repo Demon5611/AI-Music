@@ -5,8 +5,8 @@ export interface GenerateSongInput {
 }
 
 export interface GeneratedSongResult {
-  audioUrl: string;
-  providerJobId: string;
+  audioBuffer: Buffer;
+  providerJobId: string | null;
 }
 
 export interface ConvertVoiceInput {
