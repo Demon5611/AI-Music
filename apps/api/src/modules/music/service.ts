@@ -4,6 +4,18 @@ import {
   resolveMusicProviderId,
 } from "@ai-music/ai-providers";
 import type { GenerateSongInput } from "@ai-music/ai-providers";
+import {
+  buildLyricsRecordInput,
+  buildSongRecordInput,
+  createMusicGenerationRecord,
+  listMusicGenerationHistory,
+  resolveApiBaseUrl,
+  syncMusicGenerationRecord,
+} from "./music-record.service.js";
+import {
+  toMusicGenerationRecordDto,
+  toMusicStatusResponse,
+} from "./music-record.mapper.js";
 
 const musicService = createMusicService();
 
@@ -16,16 +28,50 @@ export function getMusicTestStatus() {
   };
 }
 
-export function generateMusic(input: GenerateSongInput) {
-  return musicService.generateSong(input);
+export async function generateMusicForUser(
+  userId: string,
+  input: GenerateSongInput,
+) {
+  const result = await musicService.generateSong(input);
+  const record = await createMusicGenerationRecord(
+    buildSongRecordInput(userId, input, result.taskId),
+  );
+
+  return {
+    recordId: record.id,
+    provider: result.provider,
+    taskId: result.taskId,
+    status: result.status,
+  };
 }
 
-export function getMusicGenerationStatus(taskId: string) {
-  return musicService.getGenerationStatus(taskId);
+export async function generateLyricsForUser(userId: string, prompt: string) {
+  const result = await musicService.getLyrics({ prompt });
+  const record = await createMusicGenerationRecord(
+    buildLyricsRecordInput(userId, prompt, result.taskId),
+  );
+
+  return {
+    recordId: record.id,
+    provider: result.provider,
+    taskId: result.taskId,
+    status: result.status,
+  };
 }
 
-export function generateLyrics(prompt: string) {
-  return musicService.getLyrics({ prompt });
+export async function getMusicGenerationStatusForUser(
+  taskId: string,
+  userId?: string,
+) {
+  const status = await musicService.getGenerationStatus(taskId);
+  const record = await syncMusicGenerationRecord(taskId, status, userId);
+  const apiBaseUrl = resolveApiBaseUrl();
+
+  return toMusicStatusResponse(status, record, apiBaseUrl);
+}
+
+export async function getMusicHistory(userId: string) {
+  return listMusicGenerationHistory(userId);
 }
 
 export function extendMusic(input: {
@@ -37,3 +83,5 @@ export function extendMusic(input: {
 }) {
   return musicService.extendSong(input);
 }
+
+export { toMusicGenerationRecordDto };

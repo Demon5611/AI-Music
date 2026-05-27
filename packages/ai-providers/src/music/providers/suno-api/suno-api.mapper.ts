@@ -21,7 +21,11 @@ export function mapSunoMusicStatus(status: string): MusicGenerationStatus {
     return "pending";
   }
 
-  if (status === "TEXT_SUCCESS" || status === "FIRST_SUCCESS") {
+  if (
+    status === "TEXT_SUCCESS" ||
+    status === "FIRST_SUCCESS" ||
+    status === "GENERATING"
+  ) {
     return "processing";
   }
 
@@ -79,6 +83,28 @@ export function mapSunoLyricsItems(
     }));
 }
 
+function resolvePlayableTracks(
+  task: SunoMusicTaskRaw,
+  status: MusicGenerationStatus,
+): GeneratedTrack[] | undefined {
+  if (status !== "processing" && status !== "completed") {
+    return undefined;
+  }
+
+  const tracks = extractSunoTracks(task).filter(
+    (track) => track.audioUrl.length > 0 || Boolean(track.streamAudioUrl),
+  );
+
+  if (tracks.length === 0) {
+    return undefined;
+  }
+
+  return tracks.map((track) => ({
+    ...track,
+    audioUrl: track.audioUrl || track.streamAudioUrl || "",
+  }));
+}
+
 export function mapSunoMusicTaskToStatus(
   task: SunoMusicTaskRaw,
 ): GenerationStatusResult {
@@ -89,7 +115,7 @@ export function mapSunoMusicTaskToStatus(
     taskId: task.taskId,
     status,
     provider: PROVIDER_ID,
-    tracks: status === "completed" ? extractSunoTracks(task) : undefined,
+    tracks: resolvePlayableTracks(task, status),
     errorMessage: taskError?.message ?? task.errorMessage ?? undefined,
     rawStatus: task.status,
   };

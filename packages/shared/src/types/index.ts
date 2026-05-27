@@ -89,3 +89,12 @@ export type {
   KitsVoiceModel,
   KitsVoiceModelsResponse,
 } from "./kits.js";
+
+export type {
+  MusicGenerationRecordDto,
+  MusicGenerationRecordStatus,
+  MusicGenerationTrackDto,
+  MusicGenerationType,
+  MusicGenerateResponseDto,
+  MusicStatusResponseDto,
+} from "./music-generation.js";

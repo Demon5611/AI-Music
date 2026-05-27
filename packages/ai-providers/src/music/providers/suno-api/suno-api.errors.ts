@@ -52,7 +52,12 @@ export function mapSunoMusicTaskStatusToError(
     return null;
   }
 
-  if (status === "PENDING" || status === "TEXT_SUCCESS" || status === "FIRST_SUCCESS") {
+  if (
+    status === "PENDING" ||
+    status === "TEXT_SUCCESS" ||
+    status === "FIRST_SUCCESS" ||
+    status === "GENERATING"
+  ) {
     return null;
   }
 

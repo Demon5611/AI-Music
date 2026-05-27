@@ -1,23 +1,52 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { env } from "@/shared/config/env";
-import {
-  readMusicApiError,
-  type MusicGenerateDto,
-  type MusicStatusDto,
-} from "@/features/music-test/parse-api-error";
+import { ApiError } from "@ai-music/api-client";
+import type { MusicStatusResponseDto } from "@ai-music/shared";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { MusicHistoryPanel } from "@/features/music-test/music-history-panel";
+import { useAuthReady } from "@/shared/hooks/use-auth-ready";
+import { useApi } from "@/shared/providers/api-provider";
+import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
 import styles from "./styles/music-test.module.css";
 
 const DEFAULT_PROMPT =
-  "A short upbeat pop song about summer and friends on Russian with male vocals";
+  "Upbeat pop song about summer and friends, male vocals in Russian";
 const DEFAULT_STYLE = "electro house vocal";
 const DEFAULT_TITLE = "Summer Friends";
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 12_000;
+
+const RAW_STATUS_LABELS: Record<string, string> = {
+  PENDING: "В очереди у Suno",
+  GENERATING: "Генерация",
+  TEXT_SUCCESS: "Текст готов",
+  FIRST_SUCCESS: "Первый трек готов",
+  SUCCESS: "Готово",
+};
+
+function resolveErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.body && typeof error.body === "object") {
+    const body = error.body as { error?: string };
+    if (body.error) {
+      return body.error;
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Music API error";
+}
 
 export function MusicTestPanel() {
+  const api = useApi();
+  const authReady = useAuthReady();
+  const queryClient = useQueryClient();
+
+  const [provider, setProvider] = useState("sunoapi");
   const [configured, setConfigured] = useState<boolean | null>(null);
-  const [provider, setProvider] = useState<string>("sunoapi");
+  const [customMode, setCustomMode] = useState(false);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [style, setStyle] = useState(DEFAULT_STYLE);
   const [title, setTitle] = useState(DEFAULT_TITLE);
@@ -25,109 +54,112 @@ export function MusicTestPanel() {
     "A song about summer, friendship and freedom",
   );
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [status, setStatus] = useState<MusicStatusDto | null>(null);
+  const [status, setStatus] = useState<MusicStatusResponseDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLyricsLoading, setIsLyricsLoading] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const historyQuery = useQuery({
+    queryKey: ["music-history"],
+    queryFn: () => api.music.history(),
+    enabled: authReady,
+  });
+
   useEffect(() => {
-    void fetch(`${env.apiUrl}/api/music/test/status`)
-      .then((response) => response.json())
-      .then((body: { configured?: boolean; provider?: string }) => {
+    void api.music
+      .getTestStatus()
+      .then((body) => {
         setConfigured(Boolean(body.configured));
         setProvider(body.provider ?? "sunoapi");
       })
       .catch(() => setConfigured(false));
+  }, [api]);
+
+  const stopPolling = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+    setIsPolling(false);
   }, []);
 
   useEffect(
     () => () => {
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-      }
+      stopPolling();
     },
-    [],
+    [stopPolling],
   );
 
-  async function pollStatus(id: string) {
-    const response = await fetch(`${env.apiUrl}/api/music/status/${id}`);
+  const refreshHistory = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["music-history"] });
+  }, [queryClient]);
 
-    if (!response.ok) {
-      throw new Error(await readMusicApiError(response));
-    }
+  const pollStatus = useCallback(
+    async (id: string) => {
+      const body = await api.music.status(id);
+      setStatus(body);
 
-    const body = (await response.json()) as MusicStatusDto;
-    setStatus(body);
+      if (body.status === "completed" || body.status === "failed") {
+        stopPolling();
+        await refreshHistory();
 
-    if (body.status === "completed" || body.status === "failed") {
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
+        if (body.status === "failed") {
+          setError(body.errorMessage ?? "Music generation failed");
+        }
       }
+    },
+    [api, refreshHistory, stopPolling],
+  );
 
-      if (body.status === "failed") {
-        setError(body.errorMessage ?? "Music generation failed");
-      }
-    }
-  }
+  const startPolling = useCallback(
+    (id: string) => {
+      stopPolling();
+      setIsPolling(true);
+      setError(null);
 
-  function startPolling(id: string) {
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-    }
-
-    void pollStatus(id).catch((pollError) => {
-      setError(
-        pollError instanceof Error ? pollError.message : "Status polling failed",
-      );
-    });
-
-    pollTimerRef.current = setInterval(() => {
       void pollStatus(id).catch((pollError) => {
-        setError(
-          pollError instanceof Error ? pollError.message : "Status polling failed",
-        );
+        setError(resolveErrorMessage(pollError));
+        stopPolling();
       });
-    }, POLL_INTERVAL_MS);
-  }
+
+      pollTimerRef.current = setInterval(() => {
+        void pollStatus(id).catch((pollError) => {
+          setError(resolveErrorMessage(pollError));
+          stopPolling();
+        });
+      }, POLL_INTERVAL_MS);
+    },
+    [pollStatus, stopPolling],
+  );
 
   async function handleGenerate() {
     setError(null);
     setIsGenerating(true);
     setStatus(null);
+    setTaskId(null);
 
     try {
-      const response = await fetch(`${env.apiUrl}/api/music/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          style,
-          title,
-          customMode: true,
-          instrumental: false,
-        }),
+      const body = await api.music.generate({
+        prompt,
+        style: customMode ? style : undefined,
+        title: customMode ? title : undefined,
+        customMode,
+        instrumental: false,
       });
 
-      if (!response.ok) {
-        throw new Error(await readMusicApiError(response));
-      }
-
-      const body = (await response.json()) as MusicGenerateDto;
       setTaskId(body.taskId);
       setStatus({
+        recordId: body.recordId,
         taskId: body.taskId,
         status: "pending",
         provider: body.provider,
+        rawStatus: "PENDING",
       });
       startPolling(body.taskId);
     } catch (generateError) {
-      setError(
-        generateError instanceof Error
-          ? generateError.message
-          : "Generate failed",
-      );
+      setError(resolveErrorMessage(generateError));
     } finally {
       setIsGenerating(false);
     }
@@ -137,28 +169,26 @@ export function MusicTestPanel() {
     setError(null);
     setIsLyricsLoading(true);
     setStatus(null);
+    setTaskId(null);
 
     try {
-      const response = await fetch(`${env.apiUrl}/api/music/lyrics`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: lyricsPrompt }),
-      });
-
-      if (!response.ok) {
-        throw new Error(await readMusicApiError(response));
-      }
-
-      const body = (await response.json()) as MusicGenerateDto;
+      const body = await api.music.lyrics(lyricsPrompt);
       setTaskId(body.taskId);
       startPolling(body.taskId);
     } catch (lyricsError) {
-      setError(
-        lyricsError instanceof Error ? lyricsError.message : "Lyrics test failed",
-      );
+      setError(resolveErrorMessage(lyricsError));
     } finally {
       setIsLyricsLoading(false);
     }
+  }
+
+  const isBusy = isGenerating || isLyricsLoading || isPolling;
+  const rawStatusLabel = status?.rawStatus
+    ? (RAW_STATUS_LABELS[status.rawStatus] ?? status.rawStatus)
+    : null;
+
+  if (!authReady) {
+    return <p className={styles.meta}>Загрузка сессии...</p>;
   }
 
   return (
@@ -166,7 +196,7 @@ export function MusicTestPanel() {
       <h1 className={styles.title}>Music API Test (Suno)</h1>
       <p className={styles.description}>
         Генерация музыки через abstraction layer (`MUSIC_PROVIDER={provider}`).
-        Voice transfer остаётся на Kits.
+        Результаты сохраняются в вашей истории.
       </p>
 
       {configured === false ? (
@@ -177,34 +207,50 @@ export function MusicTestPanel() {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>1. Generate Song</h2>
+        <label className={styles.checkboxField}>
+          <input
+            checked={customMode}
+            type="checkbox"
+            onChange={(event) => setCustomMode(event.target.checked)}
+          />
+          <span className={styles.label}>
+            Custom mode (prompt = текст песни, нужны style и title)
+          </span>
+        </label>
         <label className={styles.field}>
-          <span className={styles.label}>Prompt</span>
+          <span className={styles.label}>
+            {customMode ? "Lyrics (текст песни)" : "Prompt (описание идеи)"}
+          </span>
           <textarea
             className={styles.textarea}
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
           />
         </label>
-        <label className={styles.field}>
-          <span className={styles.label}>Style</span>
-          <input
-            className={styles.input}
-            value={style}
-            onChange={(event) => setStyle(event.target.value)}
-          />
-        </label>
-        <label className={styles.field}>
-          <span className={styles.label}>Title</span>
-          <input
-            className={styles.input}
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-        </label>
+        {customMode ? (
+          <>
+            <label className={styles.field}>
+              <span className={styles.label}>Style</span>
+              <input
+                className={styles.input}
+                value={style}
+                onChange={(event) => setStyle(event.target.value)}
+              />
+            </label>
+            <label className={styles.field}>
+              <span className={styles.label}>Title</span>
+              <input
+                className={styles.input}
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </label>
+          </>
+        ) : null}
         <button
           className={styles.submit}
           type="button"
-          disabled={isGenerating || configured === false}
+          disabled={isBusy || configured === false}
           onClick={() => void handleGenerate()}
         >
           {isGenerating ? "Запуск..." : "Тест Generate"}
@@ -212,9 +258,9 @@ export function MusicTestPanel() {
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>2. Generate Lyrics</h2>
+        <h2 className={styles.cardTitle}>2. Generate text for music track</h2>
         <label className={styles.field}>
-          <span className={styles.label}>Prompt</span>
+          <span className={styles.label}>Prompt (описание темы текста)</span>
           <textarea
             className={styles.textarea}
             value={lyricsPrompt}
@@ -224,16 +270,32 @@ export function MusicTestPanel() {
         <button
           className={styles.submit}
           type="button"
-          disabled={isLyricsLoading || configured === false}
+          disabled={isBusy || configured === false}
           onClick={() => void handleLyricsTest()}
         >
-          {isLyricsLoading ? "Запуск..." : "Тест Lyrics"}
+          {isLyricsLoading ? "Запуск..." : "Generate text"}
         </button>
       </div>
 
-      {taskId ? (
+      {isPolling ? (
+        <div className={styles.progressCard}>
+          <p className={styles.progressTitle}>Генерация...</p>
+          <p className={styles.progressHint}>
+            Обычно занимает 2–3 минуты. Не закрывайте страницу.
+          </p>
+          {rawStatusLabel ? (
+            <p className={styles.meta}>
+              Статус Suno: {rawStatusLabel}
+              {taskId ? ` · taskId=${taskId}` : ""}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {taskId && !isPolling ? (
         <p className={styles.meta}>
           taskId={taskId}, status={status?.status ?? "pending"}
+          {status?.rawStatus ? `, raw=${status.rawStatus}` : ""}
         </p>
       ) : null}
 
@@ -244,7 +306,7 @@ export function MusicTestPanel() {
             <pre className={styles.lyrics}>{track.lyricsText}</pre>
           ) : null}
           {track.audioUrl ? (
-            <audio className={styles.player} controls src={track.audioUrl} />
+            <AuthenticatedAudio className={styles.player} src={track.audioUrl} />
           ) : null}
         </div>
       ))}
@@ -257,6 +319,14 @@ export function MusicTestPanel() {
       ))}
 
       {error ? <p className={styles.error}>{error}</p> : null}
+
+      <div className={styles.card}>
+        <h2 className={styles.cardTitle}>История генераций</h2>
+        <MusicHistoryPanel
+          isLoading={historyQuery.isLoading}
+          items={historyQuery.data ?? []}
+        />
+      </div>
     </section>
   );
 }

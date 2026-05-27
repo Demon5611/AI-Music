@@ -10,10 +10,12 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-export { PrismaClient };
+export { PrismaClient, Prisma } from "@prisma/client";
 export type {
   CreditTransaction,
   GenerationJob,
+  MusicGeneration,
+  MusicGenerationTrack,
   Track,
   User,
   VoiceSample,

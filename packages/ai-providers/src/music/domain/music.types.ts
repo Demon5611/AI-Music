@@ -6,7 +6,7 @@ export interface GenerateSongInput {
   style?: string;
   title?: string;
   instrumental?: boolean;
-  /** When false, provider may auto-generate lyrics from prompt (Suno non-custom mode). */
+  /** When false, provider may auto-generate text from prompt (Suno non-custom mode). */
   customMode?: boolean;
   durationSec?: number;
   /** Public URL for reference-audio flows (upload-cover). Phase 2+. */

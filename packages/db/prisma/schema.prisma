@@ -17,6 +17,7 @@ model User {
   voiceSamples       VoiceSample[]
   tracks             Track[]
   generationJobs     GenerationJob[]
+  musicGenerations   MusicGeneration[]
   creditTransactions CreditTransaction[]
 
   @@map("users")
@@ -76,6 +77,48 @@ model GenerationJob {
   track       Track?      @relation(fields: [trackId], references: [id])
 
   @@map("generation_jobs")
+}
+
+model MusicGeneration {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  type           String
+  providerTaskId String   @unique @map("provider_task_id")
+  prompt         String
+  style          String?
+  title          String?
+  customMode     Boolean  @default(false) @map("custom_mode")
+  instrumental   Boolean  @default(false)
+  status         String   @default("pending")
+  rawStatus      String?  @map("raw_status")
+  errorMessage   String?  @map("error_message")
+  lyricsResult   Json?    @map("lyrics_result")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tracks MusicGenerationTrack[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("music_generations")
+}
+
+model MusicGenerationTrack {
+  id                String   @id @default(cuid())
+  musicGenerationId String   @map("music_generation_id")
+  providerTrackId   String   @map("provider_track_id")
+  title             String
+  durationSec       Int?     @map("duration_sec")
+  audioStorageKey   String?  @map("audio_storage_key")
+  audioSourceUrl    String?  @map("audio_source_url")
+  imageSourceUrl    String?  @map("image_source_url")
+  lyricsText        String?  @map("lyrics_text")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  musicGeneration MusicGeneration @relation(fields: [musicGenerationId], references: [id], onDelete: Cascade)
+
+  @@unique([musicGenerationId, providerTrackId])
+  @@map("music_generation_tracks")
 }
 
 model CreditTransaction {

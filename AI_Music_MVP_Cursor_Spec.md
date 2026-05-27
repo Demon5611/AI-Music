@@ -168,7 +168,7 @@ Voice consent + verification
 ↓
 Clean vocal / normalize
 ↓
-Generate lyrics + music prompt
+Generate text + music prompt
 ↓
 Generate base song через Eleven Music
 ↓

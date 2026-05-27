@@ -1,10 +1,14 @@
 import type { FastifyInstance } from "fastify";
+import { requireAuth } from "../../common/require-auth.js";
+import { sendAppError } from "../../common/errors.js";
 import { sendMusicError } from "./handle-music-error.js";
+import { getMusicGenerationTrackAudio } from "./music-record.service.js";
 import {
   extendMusic,
-  generateLyrics,
-  generateMusic,
-  getMusicGenerationStatus,
+  generateLyricsForUser,
+  generateMusicForUser,
+  getMusicGenerationStatusForUser,
+  getMusicHistory,
   getMusicTestStatus,
 } from "./service.js";
 
@@ -34,8 +38,42 @@ export async function registerMusicRoutes(app: FastifyInstance) {
     return reply.send(getMusicTestStatus());
   });
 
+  app.get(
+    "/api/music/history",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const history = await getMusicHistory(request.userId!);
+        return reply.send(history);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: { trackId: string } }>(
+    "/api/music/tracks/:trackId/audio",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const { buffer, contentType } = await getMusicGenerationTrackAudio(
+          request.userId!,
+          request.params.trackId,
+        );
+
+        return reply
+          .header("Content-Type", contentType)
+          .header("Cache-Control", "private, max-age=3600")
+          .send(buffer);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
   app.post<{ Body: GenerateBody }>(
     "/api/music/generate",
+    { preHandler: requireAuth },
     async (request, reply) => {
       const prompt = request.body.prompt?.trim();
 
@@ -44,7 +82,7 @@ export async function registerMusicRoutes(app: FastifyInstance) {
       }
 
       try {
-        const result = await generateMusic({
+        const result = await generateMusicForUser(request.userId!, {
           prompt,
           style: request.body.style?.trim(),
           title: request.body.title?.trim(),
@@ -63,6 +101,7 @@ export async function registerMusicRoutes(app: FastifyInstance) {
 
   app.get<{ Params: { taskId: string } }>(
     "/api/music/status/:taskId",
+    { preHandler: requireAuth },
     async (request, reply) => {
       const taskId = request.params.taskId.trim();
 
@@ -71,17 +110,21 @@ export async function registerMusicRoutes(app: FastifyInstance) {
       }
 
       try {
-        const result = await getMusicGenerationStatus(taskId);
+        const result = await getMusicGenerationStatusForUser(
+          taskId,
+          request.userId!,
+        );
         return reply.send(result);
       } catch (error) {
         request.log.error(error);
-        return sendMusicError(reply, error);
+        return sendAppError(reply, error);
       }
     },
   );
 
   app.post<{ Body: LyricsBody }>(
     "/api/music/lyrics",
+    { preHandler: requireAuth },
     async (request, reply) => {
       const prompt = request.body.prompt?.trim();
 
@@ -90,7 +133,7 @@ export async function registerMusicRoutes(app: FastifyInstance) {
       }
 
       try {
-        const result = await generateLyrics(prompt);
+        const result = await generateLyricsForUser(request.userId!, prompt);
         return reply.send(result);
       } catch (error) {
         request.log.error(error);
@@ -101,6 +144,7 @@ export async function registerMusicRoutes(app: FastifyInstance) {
 
   app.post<{ Body: ExtendBody }>(
     "/api/music/extend",
+    { preHandler: requireAuth },
     async (request, reply) => {
       const { audioId, prompt, continueAtSec } = request.body;
 
