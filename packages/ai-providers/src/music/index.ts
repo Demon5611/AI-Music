@@ -59,3 +59,19 @@ export {
   resolveMusicProviderConfig,
   type MusicProviderConfig,
 } from "./music-config.js";
+export type {
+  AddInstrumentalInput,
+  AddVocalsInput,
+  AudioResult,
+  SeparateStemsInput,
+  StemResult,
+} from "./domain/music.types.js";
+export type {
+  VoiceTransferInput,
+  VoiceTransferProvider,
+  VoiceTransferResult,
+} from "../voice-transfer/voice-transfer.types.js";
+export {
+  KitsVoiceTransferProvider,
+  createKitsVoiceTransferProvider,
+} from "../voice-transfer/kits-voice-transfer.provider.js";

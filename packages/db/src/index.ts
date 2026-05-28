@@ -13,9 +13,15 @@ if (process.env.NODE_ENV !== "production") {
 export { PrismaClient, Prisma } from "@prisma/client";
 export type {
   CreditTransaction,
+  EditOperation,
   GenerationJob,
   MusicGeneration,
   MusicGenerationTrack,
+  RenderJob,
+  Song,
+  SongRegion,
+  SongStem,
+  SongVersion,
   Track,
   User,
   VoiceSample,

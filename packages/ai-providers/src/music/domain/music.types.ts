@@ -68,3 +68,34 @@ export interface GenerationStatusResult {
   errorMessage?: string;
   rawStatus?: string;
 }
+
+export interface SeparateStemsInput {
+  providerTaskId: string;
+  providerTrackId: string;
+  separationType?: "separate_vocal" | "split_stem";
+}
+
+export interface StemResult {
+  taskId: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  vocalUrl?: string;
+  instrumentalUrl?: string;
+  errorMessage?: string;
+}
+
+export interface AudioResult {
+  audioUrl: string;
+  durationSec?: number;
+}
+
+export interface AddVocalsInput {
+  prompt: string;
+  style?: string;
+  referenceAudioUrl: string;
+}
+
+export interface AddInstrumentalInput {
+  prompt: string;
+  style?: string;
+  referenceAudioUrl: string;
+}

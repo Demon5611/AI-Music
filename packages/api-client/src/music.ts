@@ -11,6 +11,7 @@ export interface GenerateSongBody {
   title?: string;
   instrumental?: boolean;
   customMode?: boolean;
+  durationSec?: number;
   referenceAudioUrl?: string;
 }
 
@@ -27,5 +28,11 @@ export function createMusicApi(client: ApiClient) {
       client.post<MusicGenerateResponseDto>("/api/music/lyrics", { prompt }),
     status: (taskId: string) =>
       client.get<MusicStatusResponseDto>(`/api/music/status/${taskId}`),
+    deleteHistory: (ids: string[]) =>
+      client.post<{ deletedCount: number }>("/api/music/history/delete", {
+        ids,
+      }),
+    deleteTrack: (trackId: string) =>
+      client.delete<{ deleted: boolean }>(`/api/music/tracks/${trackId}`),
   };
 }

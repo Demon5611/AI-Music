@@ -8,6 +8,8 @@ import {
   buildLyricsRecordInput,
   buildSongRecordInput,
   createMusicGenerationRecord,
+  deleteMusicGenerationTrack,
+  deleteMusicGenerations,
   listMusicGenerationHistory,
   resolveApiBaseUrl,
   syncMusicGenerationRecord,
@@ -72,6 +74,14 @@ export async function getMusicGenerationStatusForUser(
 
 export async function getMusicHistory(userId: string) {
   return listMusicGenerationHistory(userId);
+}
+
+export async function removeMusicGenerations(userId: string, ids: string[]) {
+  return deleteMusicGenerations(userId, ids);
+}
+
+export async function removeMusicGenerationTrack(userId: string, trackId: string) {
+  return deleteMusicGenerationTrack(userId, trackId);
 }
 
 export function extendMusic(input: {

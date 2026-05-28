@@ -19,6 +19,7 @@ model User {
   generationJobs     GenerationJob[]
   musicGenerations   MusicGeneration[]
   creditTransactions CreditTransaction[]
+  songs              Song[]
 
   @@map("users")
 }
@@ -116,9 +117,111 @@ model MusicGenerationTrack {
   createdAt         DateTime @default(now()) @map("created_at")
 
   musicGeneration MusicGeneration @relation(fields: [musicGenerationId], references: [id], onDelete: Cascade)
+  song            Song?
 
   @@unique([musicGenerationId, providerTrackId])
   @@map("music_generation_tracks")
+}
+
+model Song {
+  id                   String   @id @default(cuid())
+  userId               String   @map("user_id")
+  sourceTrackId        String   @unique @map("source_track_id")
+  provider             String   @default("sunoapi")
+  providerTaskId       String   @map("provider_task_id")
+  providerTrackId      String   @map("provider_track_id")
+  prompt               String
+  title                String
+  status               String   @default("pending_stems")
+  audioStorageKey      String?  @map("audio_storage_key")
+  durationMs           Int?     @map("duration_ms")
+  stemSeparationTaskId String?  @map("stem_separation_task_id")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceTrack  MusicGenerationTrack  @relation(fields: [sourceTrackId], references: [id], onDelete: Cascade)
+  stems        SongStem[]
+  regions      SongRegion[]
+  versions     SongVersion[]
+  renderJobs   RenderJob[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("songs")
+}
+
+model SongStem {
+  id              String   @id @default(cuid())
+  songId          String   @map("song_id")
+  type            String
+  audioStorageKey String   @map("audio_storage_key")
+  durationMs      Int?     @map("duration_ms")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, type])
+  @@map("song_stems")
+}
+
+model SongRegion {
+  id         String   @id @default(cuid())
+  songId     String   @map("song_id")
+  label      String
+  startMs    Int      @map("start_ms")
+  endMs      Int      @map("end_ms")
+  orderIndex Int      @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([songId, orderIndex])
+  @@map("song_regions")
+}
+
+model SongVersion {
+  id               String   @id @default(cuid())
+  songId           String   @map("song_id")
+  versionNumber    Int      @map("version_number")
+  renderedAudioKey String?  @map("rendered_audio_key")
+  status           String   @default("draft")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  song       Song            @relation(fields: [songId], references: [id], onDelete: Cascade)
+  operations EditOperation[]
+  renderJobs RenderJob[]
+
+  @@unique([songId, versionNumber])
+  @@map("song_versions")
+}
+
+model EditOperation {
+  id            String   @id @default(cuid())
+  songVersionId String   @map("song_version_id")
+  operationType String   @map("operation_type")
+  payloadJson   Json     @map("payload_json")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+
+  @@index([songVersionId, createdAt])
+  @@map("edit_operations")
+}
+
+model RenderJob {
+  id            String   @id @default(cuid())
+  songId        String   @map("song_id")
+  songVersionId String   @map("song_version_id")
+  status        String   @default("pending")
+  errorMessage  String?  @map("error_message")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  song        Song        @relation(fields: [songId], references: [id], onDelete: Cascade)
+  songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+
+  @@index([songId, createdAt(sort: Desc)])
+  @@map("render_jobs")
 }
 
 model CreditTransaction {

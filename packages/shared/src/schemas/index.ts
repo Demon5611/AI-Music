@@ -51,3 +51,23 @@ export type LinkKitsVoiceModelInput = z.infer<typeof linkKitsVoiceModelSchema>;
 export type CreateCheckoutSessionInput = z.infer<
   typeof createCheckoutSessionSchema
 >;
+
+export {
+  AiEditCommandSchema,
+  ApplyOperationBodySchema,
+  CutRegionOperationSchema,
+  DuplicateRegionOperationSchema,
+  EditOperationSchema,
+  FadeOperationSchema,
+  MoveRegionOperationSchema,
+  MuteTrackOperationSchema,
+  RegenerateRegionOperationSchema,
+  ReplaceVocalOperationSchema,
+  SetVolumeOperationSchema,
+  SplitRegionOperationSchema,
+  VoiceTransferBodySchema,
+} from "./music-editor.js";
+export type {
+  ParsedApplyOperationBody,
+  ParsedEditOperation,
+} from "./music-editor.js";

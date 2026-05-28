@@ -233,4 +233,61 @@ async function upsertTrackRow(
   });
 }
 
+export async function deleteMusicGenerationTrack(userId: string, trackId: string) {
+  const track = await prisma.musicGenerationTrack.findUnique({
+    where: { id: trackId },
+    include: { musicGeneration: true },
+  });
+
+  if (!track || track.musicGeneration.userId !== userId) {
+    throw new NotFoundError("Track not found");
+  }
+
+  if (track.audioStorageKey) {
+    await getStorageService().delete(track.audioStorageKey);
+  }
+
+  await prisma.musicGenerationTrack.delete({
+    where: { id: trackId },
+  });
+
+  return { deleted: true };
+}
+
+export async function deleteMusicGenerations(userId: string, ids: string[]) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+
+  if (uniqueIds.length === 0) {
+    return { deletedCount: 0 };
+  }
+
+  const records = await prisma.musicGeneration.findMany({
+    where: { userId, id: { in: uniqueIds } },
+    include: { tracks: true },
+  });
+
+  if (records.length === 0) {
+    throw new NotFoundError("Music generation not found");
+  }
+
+  const storage = getStorageService();
+
+  await Promise.all(
+    records.flatMap((record) =>
+      record.tracks
+        .filter((track) => Boolean(track.audioStorageKey))
+        .map((track) => storage.delete(track.audioStorageKey!)),
+    ),
+  );
+
+  await prisma.musicGeneration.deleteMany({
+    where: {
+      userId,
+      id: { in: records.map((record) => record.id) },
+    },
+  });
+
+  return { deletedCount: records.length };
+}
+
 export { resolveApiBaseUrl };

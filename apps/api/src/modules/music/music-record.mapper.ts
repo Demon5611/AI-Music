@@ -49,14 +49,22 @@ export function toMusicStatusResponse(
     status: status.status,
     provider: status.provider,
     rawStatus: status.rawStatus,
-    tracks: status.tracks?.map((track) => ({
-      id: track.id,
-      title: track.title,
-      audioUrl: resolveTrackPlaybackUrl(record, track, apiBaseUrl),
-      imageUrl: track.imageUrl,
-      durationSec: track.durationSec,
-      lyricsText: track.lyricsText,
-    })),
+    tracks: status.tracks?.map((track) => {
+      const stored = record?.tracks.find(
+        (item) => item.providerTrackId === track.id,
+      );
+
+      return {
+        id: stored?.id ?? track.id,
+        providerTrackId: track.id,
+        canDelete: Boolean(stored?.id),
+        title: track.title,
+        audioUrl: resolveTrackPlaybackUrl(record, track, apiBaseUrl),
+        imageUrl: track.imageUrl,
+        durationSec: track.durationSec,
+        lyricsText: track.lyricsText,
+      };
+    }),
     lyrics: status.lyrics,
     errorMessage: status.errorMessage,
   };

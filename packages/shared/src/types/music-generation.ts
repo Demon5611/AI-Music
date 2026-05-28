@@ -49,6 +49,8 @@ export interface MusicStatusResponseDto {
   rawStatus?: string;
   tracks?: Array<{
     id: string;
+    providerTrackId?: string;
+    canDelete?: boolean;
     title: string;
     audioUrl: string;
     imageUrl?: string;

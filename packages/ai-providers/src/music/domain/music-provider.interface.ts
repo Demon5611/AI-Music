@@ -1,5 +1,8 @@
 import type { MusicProviderId } from "./music-provider-id.js";
 import type {
+  AddInstrumentalInput,
+  AddVocalsInput,
+  AudioResult,
   ExtendSongInput,
   ExtendSongResult,
   GenerateSongInput,
@@ -7,6 +10,8 @@ import type {
   GenerationStatusResult,
   GetLyricsInput,
   GetLyricsResult,
+  SeparateStemsInput,
+  StemResult,
 } from "./music.types.js";
 
 /**
@@ -16,7 +21,7 @@ import type {
  * can switch providers via MUSIC_PROVIDER without rewriting business logic.
  *
  * Voice transfer (Kits, ElevenLabs IVC) is intentionally out of scope — see
- * VoiceConversionProvider in the root types module.
+ * VoiceTransferProvider in the voice-transfer module.
  */
 export interface MusicProvider {
   readonly id: MusicProviderId;
@@ -28,4 +33,12 @@ export interface MusicProvider {
   getLyrics(input: GetLyricsInput): Promise<GetLyricsResult>;
 
   getGenerationStatus(taskId: string): Promise<GenerationStatusResult>;
+
+  separateStems?(input: SeparateStemsInput): Promise<StemResult>;
+
+  getStemSeparationStatus?(taskId: string): Promise<StemResult>;
+
+  addVocals?(input: AddVocalsInput): Promise<AudioResult>;
+
+  addInstrumental?(input: AddInstrumentalInput): Promise<AudioResult>;
 }

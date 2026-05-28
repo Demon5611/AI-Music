@@ -1,0 +1,76 @@
+"use client";
+
+import { CollapsibleLyrics } from "@/features/music-test/collapsible-lyrics";
+import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
+import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
+import styles from "./styles/music-test.module.css";
+
+interface SongTrackResultProps {
+  trackId?: string;
+  title: string;
+  audioUrl: string;
+  lyricsText?: string;
+  durationSec?: number;
+  canDelete: boolean;
+  isDeleting: boolean;
+  onDelete?: () => void;
+  onOpenEditor?: (trackId: string) => void;
+  isOpeningEditor?: boolean;
+}
+
+function formatDuration(durationSec?: number): string | null {
+  if (!durationSec) {
+    return null;
+  }
+
+  const minutes = Math.floor(durationSec / 60);
+  const seconds = Math.round(durationSec % 60);
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+export function SongTrackResult({
+  trackId,
+  title,
+  audioUrl,
+  lyricsText,
+  durationSec,
+  canDelete,
+  isDeleting,
+  onDelete,
+  onOpenEditor,
+  isOpeningEditor,
+}: SongTrackResultProps) {
+  const durationLabel = formatDuration(durationSec);
+
+  return (
+    <div className={styles.resultPlayer}>
+      <div className={styles.resultPlayerHeader}>
+        <div className={styles.resultPlayerMeta}>
+          <p className={styles.resultPlayerTitle}>{title}</p>
+          {durationLabel ? (
+            <span className={styles.resultDuration}>{durationLabel}</span>
+          ) : null}
+        </div>
+        {canDelete && onDelete ? (
+          <DeleteIconButton
+            disabled={isDeleting}
+            label="Удалить трек"
+            onClick={onDelete}
+          />
+        ) : null}
+      </div>
+      <AuthenticatedAudio className={styles.player} src={audioUrl} />
+      {trackId && onOpenEditor ? (
+        <button
+          className={styles.editorLink}
+          disabled={isOpeningEditor}
+          type="button"
+          onClick={() => onOpenEditor(trackId)}
+        >
+          {isOpeningEditor ? "Открываем редактор..." : "Open Editor"}
+        </button>
+      ) : null}
+      {lyricsText ? <CollapsibleLyrics text={lyricsText} /> : null}
+    </div>
+  );
+}

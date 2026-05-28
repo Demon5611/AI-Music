@@ -98,3 +98,25 @@ export type {
   MusicGenerateResponseDto,
   MusicStatusResponseDto,
 } from "./music-generation.js";
+
+export type {
+  AiEditCommand,
+  ApplyOperationBody,
+  AudioTrackDto,
+  EditOperation,
+  EditorStateDto,
+  EditorTrackId,
+  FadeOperation,
+  InitEditorResponse,
+  PreviewOperationBody,
+  RenderSongResponse,
+  SetVolumeOperation,
+  SongDto,
+  SongEditorStatus,
+  SongRegionDto,
+  SongRegionLabel,
+  SongStemDto,
+  SongStemType,
+  SongVersionDto,
+  VoiceTransferBody,
+} from "./music-editor.js";

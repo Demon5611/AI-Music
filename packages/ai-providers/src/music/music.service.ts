@@ -6,6 +6,8 @@ import type {
   GenerationStatusResult,
   GetLyricsInput,
   GetLyricsResult,
+  SeparateStemsInput,
+  StemResult,
 } from "./domain/music.types.js";
 import {
   createMusicProviderFactory,
@@ -39,6 +41,28 @@ export class MusicService {
   getGenerationStatus(taskId: string): Promise<GenerationStatusResult> {
     const provider = this.providerFactory.getProvider();
     return provider.getGenerationStatus(taskId);
+  }
+
+  separateStems(input: SeparateStemsInput): Promise<StemResult> {
+    const provider = this.providerFactory.getProvider();
+
+    if (!provider.separateStems) {
+      throw new Error("Active music provider does not support stem separation");
+    }
+
+    return provider.separateStems(input);
+  }
+
+  getStemSeparationStatus(taskId: string): Promise<StemResult> {
+    const provider = this.providerFactory.getProvider();
+
+    if (!provider.getStemSeparationStatus) {
+      throw new Error(
+        "Active music provider does not support stem separation status",
+      );
+    }
+
+    return provider.getStemSeparationStatus(taskId);
   }
 }
 

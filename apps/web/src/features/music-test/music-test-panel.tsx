@@ -3,11 +3,13 @@
 import { ApiError } from "@ai-music/api-client";
 import type { MusicStatusResponseDto } from "@ai-music/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CollapsibleLyrics } from "@/features/music-test/collapsible-lyrics";
 import { MusicHistoryPanel } from "@/features/music-test/music-history-panel";
+import { SongTrackResult } from "@/features/music-test/song-track-result";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
-import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
 import styles from "./styles/music-test.module.css";
 
 const DEFAULT_PROMPT =
@@ -15,6 +17,15 @@ const DEFAULT_PROMPT =
 const DEFAULT_STYLE = "electro house vocal";
 const DEFAULT_TITLE = "Summer Friends";
 const POLL_INTERVAL_MS = 12_000;
+
+const DURATION_OPTIONS = [
+  { value: 0, label: "Auto (~2–3 мин)" },
+  { value: 30, label: "~30 сек" },
+  { value: 60, label: "~1 мин" },
+  { value: 120, label: "~2 мин" },
+] as const;
+
+type ActiveGenerationKind = "song" | "text" | null;
 
 const RAW_STATUS_LABELS: Record<string, string> = {
   PENDING: "В очереди у Suno",
@@ -47,19 +58,28 @@ export function MusicTestPanel() {
   const [provider, setProvider] = useState("sunoapi");
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [customMode, setCustomMode] = useState(false);
+  const [durationSec, setDurationSec] = useState(0);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [style, setStyle] = useState(DEFAULT_STYLE);
   const [title, setTitle] = useState(DEFAULT_TITLE);
   const [lyricsPrompt, setLyricsPrompt] = useState(
     "A song about summer, friendship and freedom",
   );
+  const [activeKind, setActiveKind] = useState<ActiveGenerationKind>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<MusicStatusResponseDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLyricsLoading, setIsLyricsLoading] = useState(false);
+  const [isDeletingHistory, setIsDeletingHistory] = useState(false);
+  const [isDeletingTrack, setIsDeletingTrack] = useState(false);
+  const [isOpeningEditor, setIsOpeningEditor] = useState(false);
+  const [openingEditorTrackId, setOpeningEditorTrackId] = useState<string | null>(
+    null,
+  );
   const [isPolling, setIsPolling] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const router = useRouter();
 
   const historyQuery = useQuery({
     queryKey: ["music-history"],
@@ -114,8 +134,9 @@ export function MusicTestPanel() {
   );
 
   const startPolling = useCallback(
-    (id: string) => {
+    (id: string, kind: ActiveGenerationKind) => {
       stopPolling();
+      setActiveKind(kind);
       setIsPolling(true);
       setError(null);
 
@@ -139,6 +160,7 @@ export function MusicTestPanel() {
     setIsGenerating(true);
     setStatus(null);
     setTaskId(null);
+    setActiveKind(null);
 
     try {
       const body = await api.music.generate({
@@ -147,6 +169,7 @@ export function MusicTestPanel() {
         title: customMode ? title : undefined,
         customMode,
         instrumental: false,
+        durationSec: durationSec > 0 ? durationSec : undefined,
       });
 
       setTaskId(body.taskId);
@@ -157,7 +180,7 @@ export function MusicTestPanel() {
         provider: body.provider,
         rawStatus: "PENDING",
       });
-      startPolling(body.taskId);
+      startPolling(body.taskId, "song");
     } catch (generateError) {
       setError(resolveErrorMessage(generateError));
     } finally {
@@ -170,11 +193,12 @@ export function MusicTestPanel() {
     setIsLyricsLoading(true);
     setStatus(null);
     setTaskId(null);
+    setActiveKind(null);
 
     try {
       const body = await api.music.lyrics(lyricsPrompt);
       setTaskId(body.taskId);
-      startPolling(body.taskId);
+      startPolling(body.taskId, "text");
     } catch (lyricsError) {
       setError(resolveErrorMessage(lyricsError));
     } finally {
@@ -182,10 +206,64 @@ export function MusicTestPanel() {
     }
   }
 
+  async function handleDeleteHistory(ids: string[]) {
+    setIsDeletingHistory(true);
+    setError(null);
+
+    try {
+      await api.music.deleteHistory(ids);
+      await refreshHistory();
+    } catch (deleteError) {
+      setError(resolveErrorMessage(deleteError));
+    } finally {
+      setIsDeletingHistory(false);
+    }
+  }
+
+  async function handleOpenEditor(trackId: string) {
+    setIsOpeningEditor(true);
+    setOpeningEditorTrackId(trackId);
+    setError(null);
+
+    try {
+      const result = await api.musicEditor.initEditor(trackId);
+      router.push(`/music-editor/${result.songId}`);
+    } catch (editorError) {
+      setError(resolveErrorMessage(editorError));
+    } finally {
+      setIsOpeningEditor(false);
+      setOpeningEditorTrackId(null);
+    }
+  }
+
+  async function handleDeleteTrack(trackId: string) {
+    setIsDeletingTrack(true);
+    setError(null);
+
+    try {
+      await api.music.deleteTrack(trackId);
+      setStatus((current) =>
+        current
+          ? {
+              ...current,
+              tracks: current.tracks?.filter((track) => track.id !== trackId),
+            }
+          : current,
+      );
+      await refreshHistory();
+    } catch (deleteError) {
+      setError(resolveErrorMessage(deleteError));
+    } finally {
+      setIsDeletingTrack(false);
+    }
+  }
+
   const isBusy = isGenerating || isLyricsLoading || isPolling;
   const rawStatusLabel = status?.rawStatus
     ? (RAW_STATUS_LABELS[status.rawStatus] ?? status.rawStatus)
     : null;
+  const songTracks = activeKind === "song" ? (status?.tracks ?? []) : [];
+  const textResults = activeKind === "text" ? (status?.lyrics ?? []) : [];
 
   if (!authReady) {
     return <p className={styles.meta}>Загрузка сессии...</p>;
@@ -193,7 +271,7 @@ export function MusicTestPanel() {
 
   return (
     <section className={styles.section}>
-      <h1 className={styles.title}>Music API Test (Suno)</h1>
+      <h1 className={styles.title}>Magic Music</h1>
       <p className={styles.description}>
         Генерация музыки через abstraction layer (`MUSIC_PROVIDER={provider}`).
         Результаты сохраняются в вашей истории.
@@ -206,7 +284,7 @@ export function MusicTestPanel() {
       ) : null}
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>1. Generate Song</h2>
+        <h2 className={styles.cardTitle}>Generate Song</h2>
         <label className={styles.checkboxField}>
           <input
             checked={customMode}
@@ -247,18 +325,81 @@ export function MusicTestPanel() {
             </label>
           </>
         ) : null}
+        <label className={styles.field}>
+          <span className={styles.label}>Target duration</span>
+          <select
+            className={styles.select}
+            value={durationSec}
+            onChange={(event) => setDurationSec(Number(event.target.value))}
+          >
+            {DURATION_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {durationSec > 0 ? (
+          <p className={styles.meta}>
+            Suno не гарантирует точную длительность — значение добавляется в
+            prompt/style как подсказка модели. Для ~30 сек лучше короткий prompt
+            и без длинного текста в custom mode.
+          </p>
+        ) : null}
         <button
           className={styles.submit}
           type="button"
           disabled={isBusy || configured === false}
           onClick={() => void handleGenerate()}
         >
-          {isGenerating ? "Запуск..." : "Тест Generate"}
+          {isGenerating ? "Запуск..." : "Generate Song"}
         </button>
+
+        {activeKind === "song" && isPolling ? (
+          <div className={styles.progressCard}>
+            <p className={styles.progressTitle}>Генерация...</p>
+            <p className={styles.progressHint}>
+              Обычно занимает 2–3 минуты. Не закрывайте страницу.
+            </p>
+            {rawStatusLabel ? (
+              <p className={styles.meta}>
+                Статус: {rawStatusLabel}
+                {taskId ? ` · taskId=${taskId}` : ""}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {songTracks.map((track) =>
+          track.audioUrl ? (
+            <SongTrackResult
+              key={track.id}
+              audioUrl={track.audioUrl}
+              canDelete={Boolean(track.canDelete)}
+              durationSec={track.durationSec}
+              isDeleting={isDeletingTrack}
+              isOpeningEditor={
+                isOpeningEditor && openingEditorTrackId === track.id
+              }
+              lyricsText={track.lyricsText}
+              title={track.title}
+              trackId={track.id}
+              onDelete={() => void handleDeleteTrack(track.id)}
+              onOpenEditor={(id) => void handleOpenEditor(id)}
+            />
+          ) : null,
+        )}
+
+        {activeKind === "song" && taskId && !isPolling ? (
+          <p className={styles.meta}>
+            taskId={taskId}, status={status?.status ?? "pending"}
+            {status?.rawStatus ? `, raw=${status.rawStatus}` : ""}
+          </p>
+        ) : null}
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>2. Generate text for music track</h2>
+        <h2 className={styles.cardTitle}>Generate text for music track</h2>
         <label className={styles.field}>
           <span className={styles.label}>Prompt (описание темы текста)</span>
           <textarea
@@ -275,56 +416,44 @@ export function MusicTestPanel() {
         >
           {isLyricsLoading ? "Запуск..." : "Generate text"}
         </button>
-      </div>
 
-      {isPolling ? (
-        <div className={styles.progressCard}>
-          <p className={styles.progressTitle}>Генерация...</p>
-          <p className={styles.progressHint}>
-            Обычно занимает 2–3 минуты. Не закрывайте страницу.
+        {activeKind === "text" && isPolling ? (
+          <div className={styles.progressCard}>
+            <p className={styles.progressTitle}>Генерация текста...</p>
+            {rawStatusLabel ? (
+              <p className={styles.meta}>
+                Статус: {rawStatusLabel}
+                {taskId ? ` · taskId=${taskId}` : ""}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {textResults.map((item, index) => (
+          <div className={styles.textResult} key={`${item.title}-${index}`}>
+            <h3 className={styles.resultSubtitle}>{item.title}</h3>
+            <CollapsibleLyrics text={item.text} />
+          </div>
+        ))}
+
+        {activeKind === "text" && taskId && !isPolling ? (
+          <p className={styles.meta}>
+            taskId={taskId}, status={status?.status ?? "pending"}
+            {status?.rawStatus ? `, raw=${status.rawStatus}` : ""}
           </p>
-          {rawStatusLabel ? (
-            <p className={styles.meta}>
-              Статус Suno: {rawStatusLabel}
-              {taskId ? ` · taskId=${taskId}` : ""}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {taskId && !isPolling ? (
-        <p className={styles.meta}>
-          taskId={taskId}, status={status?.status ?? "pending"}
-          {status?.rawStatus ? `, raw=${status.rawStatus}` : ""}
-        </p>
-      ) : null}
-
-      {status?.tracks?.map((track) => (
-        <div className={styles.card} key={track.id}>
-          <h3 className={styles.cardTitle}>{track.title}</h3>
-          {track.lyricsText ? (
-            <pre className={styles.lyrics}>{track.lyricsText}</pre>
-          ) : null}
-          {track.audioUrl ? (
-            <AuthenticatedAudio className={styles.player} src={track.audioUrl} />
-          ) : null}
-        </div>
-      ))}
-
-      {status?.lyrics?.map((item, index) => (
-        <div className={styles.card} key={`${item.title}-${index}`}>
-          <h3 className={styles.cardTitle}>{item.title}</h3>
-          <pre className={styles.lyrics}>{item.text}</pre>
-        </div>
-      ))}
+        ) : null}
+      </div>
 
       {error ? <p className={styles.error}>{error}</p> : null}
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>История генераций</h2>
         <MusicHistoryPanel
+          isDeleting={isDeletingHistory || isDeletingTrack}
           isLoading={historyQuery.isLoading}
           items={historyQuery.data ?? []}
+          onDelete={handleDeleteHistory}
+          onDeleteTrack={handleDeleteTrack}
         />
       </div>
     </section>

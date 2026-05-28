@@ -10,6 +10,8 @@ import {
   getMusicGenerationStatusForUser,
   getMusicHistory,
   getMusicTestStatus,
+  removeMusicGenerationTrack,
+  removeMusicGenerations,
 } from "./service.js";
 
 interface GenerateBody {
@@ -18,6 +20,7 @@ interface GenerateBody {
   title?: string;
   instrumental?: boolean;
   customMode?: boolean;
+  durationSec?: number;
   referenceAudioUrl?: string;
 }
 
@@ -33,6 +36,10 @@ interface ExtendBody {
   title?: string;
 }
 
+interface DeleteHistoryBody {
+  ids: string[];
+}
+
 export async function registerMusicRoutes(app: FastifyInstance) {
   app.get("/api/music/test/status", async (_request, reply) => {
     return reply.send(getMusicTestStatus());
@@ -45,6 +52,41 @@ export async function registerMusicRoutes(app: FastifyInstance) {
       try {
         const history = await getMusicHistory(request.userId!);
         return reply.send(history);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Body: DeleteHistoryBody }>(
+    "/api/music/history/delete",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const ids = request.body.ids ?? [];
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return reply.status(400).send({ error: "ids array is required" });
+      }
+
+      try {
+        const result = await removeMusicGenerations(request.userId!, ids);
+        return reply.send(result);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.delete<{ Params: { trackId: string } }>(
+    "/api/music/tracks/:trackId",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const result = await removeMusicGenerationTrack(
+          request.userId!,
+          request.params.trackId,
+        );
+        return reply.send(result);
       } catch (error) {
         return sendAppError(reply, error);
       }
@@ -88,6 +130,7 @@ export async function registerMusicRoutes(app: FastifyInstance) {
           title: request.body.title?.trim(),
           instrumental: request.body.instrumental,
           customMode: request.body.customMode,
+          durationSec: request.body.durationSec,
           referenceAudioUrl: request.body.referenceAudioUrl?.trim(),
         });
 

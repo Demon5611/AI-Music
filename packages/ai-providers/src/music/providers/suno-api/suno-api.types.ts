@@ -109,3 +109,26 @@ export interface SunoGenerateLyricsRequest {
   prompt: string;
   callBackUrl: string;
 }
+
+export interface SunoVocalRemovalRequest {
+  taskId: string;
+  audioId: string;
+  type: "separate_vocal" | "split_stem";
+  callBackUrl: string;
+}
+
+export interface SunoVocalRemovalResponseRaw {
+  vocalUrl?: string;
+  vocal_url?: string;
+  instrumentalUrl?: string;
+  instrumental_url?: string;
+  originUrl?: string;
+  origin_url?: string;
+}
+
+export interface SunoVocalRemovalTaskRaw {
+  taskId: string;
+  successFlag?: string;
+  errorMessage?: string | null;
+  response?: SunoVocalRemovalResponseRaw | null;
+}

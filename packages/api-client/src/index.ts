@@ -9,6 +9,7 @@ export { createUsersApi } from "./users.js";
 export { createCreditsApi } from "./credits.js";
 export { createMusicApi } from "./music.js";
 export type { GenerateSongBody } from "./music.js";
+export { createMusicEditorApi } from "./music-editor.js";
 
 import type { ApiClientOptions } from "./client.js";
 import { createApiClient } from "./client.js";
@@ -19,6 +20,7 @@ import { createTracksApi } from "./tracks.js";
 import { createUsersApi } from "./users.js";
 import { createKitsApi } from "./kits.js";
 import { createMusicApi } from "./music.js";
+import { createMusicEditorApi } from "./music-editor.js";
 import { createVoiceSamplesApi } from "./voice-samples.js";
 
 export function createApi(options: ApiClientOptions) {
@@ -30,6 +32,7 @@ export function createApi(options: ApiClientOptions) {
     generations: createGenerationsApi(client),
     tracks: createTracksApi(client),
     music: createMusicApi(client),
+    musicEditor: createMusicEditorApi(client),
     billing: createBillingApi(client),
     users: createUsersApi(client),
     credits: createCreditsApi(client),

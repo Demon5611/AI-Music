@@ -10,7 +10,7 @@ interface AuthenticatedAudioProps {
 }
 
 function needsAuthenticatedFetch(src: string): boolean {
-  return src.includes("/api/music/tracks/") && src.includes("/audio");
+  return src.includes("/api/music/") && src.includes("/audio");
 }
 
 interface AuthenticatedAudioLoaderProps extends AuthenticatedAudioProps {

@@ -16,6 +16,8 @@ import type {
   SunoMusicTaskRaw,
   SunoTaskIdData,
   SunoUploadCoverRequest,
+  SunoVocalRemovalRequest,
+  SunoVocalRemovalTaskRaw,
 } from "./suno-api.types.js";
 
 const API_PREFIX = "/api/v1";
@@ -50,6 +52,16 @@ export class SunoApiClient {
 
   generateLyrics(body: SunoGenerateLyricsRequest): Promise<string> {
     return this.createTask("/lyrics", body);
+  }
+
+  separateVocals(body: SunoVocalRemovalRequest): Promise<string> {
+    return this.createTask("/vocal-removal/generate", body);
+  }
+
+  getVocalRemovalDetails(taskId: string): Promise<SunoVocalRemovalTaskRaw> {
+    return this.fetchTask(
+      `/vocal-removal/record-info?taskId=${encodeURIComponent(taskId)}`,
+    );
   }
 
   getMusicGenerationDetails(taskId: string): Promise<SunoMusicTaskRaw> {

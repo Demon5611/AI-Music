@@ -8,6 +8,8 @@ import type {
   GenerationStatusResult,
   GetLyricsInput,
   GetLyricsResult,
+  SeparateStemsInput,
+  StemResult,
 } from "../../domain/music.types.js";
 import {
   resolveMusicProviderConfig,
@@ -24,6 +26,7 @@ import type {
   SunoGenerateMusicRequest,
   SunoUploadCoverRequest,
 } from "./suno-api.types.js";
+import { applySunoDurationHints } from "./suno-duration-hints.js";
 
 const PROVIDER_ID = "sunoapi" as const;
 
@@ -102,6 +105,25 @@ export class SunoApiProvider implements MusicProvider {
     return mapSunoLyricsTaskToStatus(lyricsTask);
   }
 
+  async separateStems(input: SeparateStemsInput): Promise<StemResult> {
+    const taskId = await this.getClient().separateVocals({
+      taskId: input.providerTaskId,
+      audioId: input.providerTrackId,
+      type: input.separationType ?? "separate_vocal",
+      callBackUrl: this.config.sunoCallbackUrl,
+    });
+
+    return {
+      taskId,
+      status: "pending",
+    };
+  }
+
+  async getStemSeparationStatus(taskId: string): Promise<StemResult> {
+    const task = await this.getClient().getVocalRemovalDetails(taskId);
+    return mapSunoVocalRemovalTaskToStemResult(task);
+  }
+
   private getClient(): SunoApiClient {
     this.clientInstance ??= createSunoApiClient({
       sunoApiBaseUrl: this.config.sunoApiBaseUrl,
@@ -115,13 +137,14 @@ export class SunoApiProvider implements MusicProvider {
   private buildGenerateRequest(input: GenerateSongInput): SunoGenerateMusicRequest {
     const customMode = this.resolveCustomMode(input);
     const instrumental = input.instrumental ?? false;
+    const withDuration = applySunoDurationHints(input, customMode);
 
     if (customMode) {
       return {
         customMode: true,
         instrumental,
-        prompt: instrumental ? undefined : input.prompt,
-        style: input.style ?? "Pop",
+        prompt: instrumental ? undefined : withDuration.prompt,
+        style: withDuration.style ?? "Pop",
         title: input.title ?? "Untitled",
         model: toSunoModelId(this.config.sunoModel),
         callBackUrl: this.config.sunoCallbackUrl,
@@ -131,7 +154,7 @@ export class SunoApiProvider implements MusicProvider {
     return {
       customMode: false,
       instrumental,
-      prompt: input.prompt,
+      prompt: withDuration.prompt,
       model: toSunoModelId(this.config.sunoModel),
       callBackUrl: this.config.sunoCallbackUrl,
     };
@@ -187,4 +210,33 @@ function shouldFallbackToLyricsLookup(error: unknown): boolean {
   }
 
   return !NON_LYRICS_LOOKUP_CODES.has(error.code);
+}
+
+function mapSunoVocalRemovalTaskToStemResult(
+  task: import("./suno-api.types.js").SunoVocalRemovalTaskRaw,
+): StemResult {
+  const flag = task.successFlag?.toUpperCase();
+
+  if (flag === "SUCCESS") {
+    const response = task.response;
+    return {
+      taskId: task.taskId,
+      status: "completed",
+      vocalUrl: response?.vocalUrl ?? response?.vocal_url,
+      instrumentalUrl: response?.instrumentalUrl ?? response?.instrumental_url,
+    };
+  }
+
+  if (flag === "FAILED" || flag === "CREATE_TASK_FAILED") {
+    return {
+      taskId: task.taskId,
+      status: "failed",
+      errorMessage: task.errorMessage ?? "Stem separation failed",
+    };
+  }
+
+  return {
+    taskId: task.taskId,
+    status: "processing",
+  };
 }

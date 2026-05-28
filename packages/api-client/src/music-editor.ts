@@ -1,0 +1,40 @@
+import type {
+  ApplyOperationBody,
+  EditorStateDto,
+  InitEditorResponse,
+  RenderSongResponse,
+} from "@ai-music/shared";
+import type { ApiClient } from "./client.js";
+
+export function createMusicEditorApi(client: ApiClient) {
+  return {
+    initEditor: (trackId: string) =>
+      client.post<InitEditorResponse>(
+        `/api/music/tracks/${trackId}/editor`,
+        {},
+      ),
+    getSong: (songId: string) =>
+      client.get<EditorStateDto>(`/api/music/${songId}`),
+    getEditorState: (songId: string) =>
+      client.get<EditorStateDto>(`/api/music/${songId}/editor-state`),
+    separateStems: (songId: string) =>
+      client.post<EditorStateDto>(`/api/music/${songId}/separate-stems`, {}),
+    applyOperation: (songId: string, body: ApplyOperationBody) =>
+      client.post<EditorStateDto>(`/api/music/${songId}/operations`, body),
+    previewOperation: (songId: string, body: ApplyOperationBody) =>
+      client.post<{ valid: boolean; operation: ApplyOperationBody["operation"] }>(
+        `/api/music/${songId}/preview-operation`,
+        body,
+      ),
+    render: (songId: string) =>
+      client.post<RenderSongResponse>(`/api/music/${songId}/render`, {}),
+    voiceTransfer: (
+      songId: string,
+      body: { regionId: string; voiceModelId: number },
+    ) =>
+      client.post<EditorStateDto>(
+        `/api/music/${songId}/voice-transfer`,
+        body,
+      ),
+  };
+}

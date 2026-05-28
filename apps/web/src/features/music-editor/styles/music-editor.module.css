@@ -1,0 +1,175 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem 0 2rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.description {
+  color: #475569;
+  max-width: 52rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 1rem;
+}
+
+.mainColumn,
+.sideColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 1rem;
+}
+
+.panelTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.panelHint {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.timelineBlock {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 1rem;
+}
+
+.blockLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.waveform {
+  width: 100%;
+  min-height: 96px;
+}
+
+.trackList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.trackLane,
+.trackLaneSelected,
+.mixerTrack,
+.mixerTrackSelected {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.trackLaneSelected,
+.mixerTrackSelected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.trackLaneLabel {
+  font-weight: 600;
+}
+
+.trackLaneMeta {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.toolbarGrid,
+.toolbarRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.toolButton,
+.primaryButton {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.toolButton:disabled,
+.primaryButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.primaryButton {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.historyItem {
+  font-size: 0.875rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.375rem;
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
+.statusCard {
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #f8fafc;
+}
+
+.player {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.renderResult {
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
