@@ -11,9 +11,6 @@ import {
 } from "../storage/storage.service.js";
 import { buildDefaultRegions } from "./song-editor.mapper.js";
 
-const STEM_POLL_INTERVAL_MS = 5_000;
-const STEM_POLL_MAX_ATTEMPTS = 60;
-
 export async function ensureSongForTrack(userId: string, trackId: string) {
   const track = await prisma.musicGenerationTrack.findUnique({
     where: { id: trackId },
@@ -96,6 +93,11 @@ export async function getCurrentVersion(songId: string) {
 }
 
 export async function startStemSeparation(userId: string, songId: string) {
+  await kickoffStemSeparation(userId, songId);
+  return tickStemSeparation(userId, songId);
+}
+
+export async function kickoffStemSeparation(userId: string, songId: string) {
   const song = await getSongForUser(userId, songId);
 
   if (song.status === "ready" && song.stems.length >= 2) {
@@ -103,7 +105,7 @@ export async function startStemSeparation(userId: string, songId: string) {
   }
 
   if (song.status === "separating_stems" && song.stemSeparationTaskId) {
-    return pollAndPersistStems(userId, song.id, song.stemSeparationTaskId);
+    return song;
   }
 
   const musicService = createMusicService();
@@ -113,52 +115,57 @@ export async function startStemSeparation(userId: string, songId: string) {
     separationType: "separate_vocal",
   });
 
-  await prisma.song.update({
+  return prisma.song.update({
     where: { id: song.id },
     data: {
       status: "separating_stems",
       stemSeparationTaskId: started.taskId,
     },
   });
-
-  return pollAndPersistStems(userId, song.id, started.taskId);
 }
 
-async function pollAndPersistStems(
-  userId: string,
-  songId: string,
-  taskId: string,
-) {
+export async function tickStemSeparation(userId: string, songId: string) {
+  const song = await getSongForUser(userId, songId);
+
+  if (song.status === "ready" && song.stems.length >= 2) {
+    return song;
+  }
+
+  if (!song.stemSeparationTaskId) {
+    await kickoffStemSeparation(userId, songId);
+    return getSongForUser(userId, songId);
+  }
+
   const musicService = createMusicService();
-  let result: StemResult = {
-    taskId,
-    status: "processing",
-  };
+  const result = await musicService.getStemSeparationStatus(
+    song.stemSeparationTaskId,
+  );
 
-  for (let attempt = 0; attempt < STEM_POLL_MAX_ATTEMPTS; attempt += 1) {
-    result = await musicService.getStemSeparationStatus(taskId);
-
-    if (result.status === "completed" || result.status === "failed") {
-      break;
-    }
-
-    await sleep(STEM_POLL_INTERVAL_MS);
+  if (result.status === "processing" || result.status === "pending") {
+    return song;
   }
 
   if (result.status === "failed") {
     await prisma.song.update({
       where: { id: songId },
-      data: {
-        status: "failed",
-      },
+      data: { status: "failed" },
     });
     throw new BadRequestError(result.errorMessage ?? "Stem separation failed");
   }
 
   if (result.status !== "completed") {
-    throw new BadRequestError("Stem separation timed out");
+    return song;
   }
 
+  await persistStemResult(userId, songId, result);
+  return getSongForUser(userId, songId);
+}
+
+async function persistStemResult(
+  userId: string,
+  songId: string,
+  result: StemResult,
+) {
   const storage = getStorageService();
   const stemPairs: Array<{ type: "vocal" | "instrumental"; url?: string }> = [
     { type: "vocal", url: result.vocalUrl },
@@ -197,14 +204,21 @@ async function pollAndPersistStems(
     where: { id: songId },
     data: { status: "ready" },
   });
-
-  return getSongForUser(userId, songId);
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
+export async function refreshEditorProgress(userId: string, songId: string) {
+  const song = await getSongForUser(userId, songId);
+
+  if (song.pendingAction && song.pendingTaskId) {
+    const { tickPendingAiAction } = await import("./ai-actions.service.js");
+    return tickPendingAiAction(userId, songId);
+  }
+
+  if (song.status === "separating_stems") {
+    return tickStemSeparation(userId, songId);
+  }
+
+  return song;
 }
 
 export async function getSongStemAudio(

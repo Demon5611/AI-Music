@@ -136,6 +136,10 @@ model Song {
   audioStorageKey      String?  @map("audio_storage_key")
   durationMs           Int?     @map("duration_ms")
   stemSeparationTaskId String?  @map("stem_separation_task_id")
+  pendingAction        String?  @map("pending_action")
+  pendingTaskId        String?  @map("pending_task_id")
+  pendingRegionId      String?  @map("pending_region_id")
+  pendingPrompt        String?  @map("pending_prompt")
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
@@ -165,13 +169,14 @@ model SongStem {
 }
 
 model SongRegion {
-  id         String   @id @default(cuid())
-  songId     String   @map("song_id")
-  label      String
-  startMs    Int      @map("start_ms")
-  endMs      Int      @map("end_ms")
-  orderIndex Int      @map("order_index")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id                  String   @id @default(cuid())
+  songId              String   @map("song_id")
+  label               String
+  startMs             Int      @map("start_ms")
+  endMs               Int      @map("end_ms")
+  orderIndex          Int      @map("order_index")
+  replacementAudioKey String?  @map("replacement_audio_key")
+  createdAt           DateTime @default(now()) @map("created_at")
 
   song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
 

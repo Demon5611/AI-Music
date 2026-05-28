@@ -102,6 +102,15 @@ export interface SongRegionDto {
   startMs: number;
   endMs: number;
   orderIndex: number;
+  hasReplacement: boolean;
+}
+
+export interface SongPendingActionDto {
+  action: "extend" | "regenerate" | null;
+  taskId: string | null;
+  regionId: string | null;
+  status: "idle" | "processing" | "failed";
+  message?: string | null;
 }
 
 export interface SongVersionDto {
@@ -141,6 +150,7 @@ export interface EditorStateDto {
   operations: EditOperation[];
   currentVersionId: string;
   versions: SongVersionDto[];
+  pendingAction: SongPendingActionDto;
 }
 
 export interface ApplyOperationBody {
@@ -165,4 +175,27 @@ export interface RenderSongResponse {
 export interface InitEditorResponse {
   songId: string;
   status: SongEditorStatus;
+}
+
+export interface AiCommandBody {
+  prompt: string;
+  selectedRegionId?: string | null;
+  selectedTrackId?: EditorTrackId | null;
+  apply?: boolean;
+}
+
+export interface AiCommandResponse {
+  command: AiEditCommand;
+  applied: boolean;
+  editorState?: EditorStateDto;
+}
+
+export interface ExtendSongBody {
+  regionId: string;
+  prompt?: string;
+}
+
+export interface RegenerateRegionBody {
+  regionId: string;
+  prompt: string;
 }

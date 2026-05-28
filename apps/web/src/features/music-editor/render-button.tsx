@@ -2,11 +2,13 @@
 
 import type { SongVersionDto } from "@ai-music/shared";
 import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
+import { DownloadAudioButton } from "@/features/music-editor/download-audio-button";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 
 interface RenderButtonProps {
   disabled: boolean;
   isRendering: boolean;
+  songTitle: string;
   versions: SongVersionDto[];
   onRender: () => void;
 }
@@ -14,6 +16,7 @@ interface RenderButtonProps {
 export function RenderButton({
   disabled,
   isRendering,
+  songTitle,
   versions,
   onRender,
 }: RenderButtonProps) {
@@ -40,6 +43,11 @@ export function RenderButton({
           <AuthenticatedAudio
             className={styles.player}
             src={latestRendered.renderedAudioUrl}
+          />
+          <DownloadAudioButton
+            audioUrl={latestRendered.renderedAudioUrl}
+            filename={`${songTitle}-v${latestRendered.versionNumber}.mp3`}
+            label="Скачать версию"
           />
         </div>
       ) : null}

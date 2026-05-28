@@ -15,6 +15,7 @@ interface RegionSlice {
   id: string;
   startMs: number;
   endMs: number;
+  replacementAudioKey: string | null;
 }
 
 function resolveRegionGainDb(
@@ -230,10 +231,10 @@ export async function renderSongVersion(userId: string, songId: string) {
         id: region.id,
         startMs: region.startMs,
         endMs: region.endMs,
+        replacementAudioKey: region.replacementAudioKey,
       }));
 
-    const vocalSegments: string[] = [];
-    const instrumentalSegments: string[] = [];
+    const mixedSegments: string[] = [];
 
     for (let index = 0; index < regions.length; index += 1) {
       const region = regions[index];
@@ -241,6 +242,33 @@ export async function renderSongVersion(userId: string, songId: string) {
       const durationSec = (region.endMs - region.startMs) / 1000;
 
       if (durationSec <= 0) {
+        continue;
+      }
+
+      const mixedSegment = join(workDir, `mixed-${index}.mp3`);
+
+      if (region.replacementAudioKey) {
+        const replacementBuffer = await storage.get(region.replacementAudioKey);
+        const replacementInput = join(workDir, `replacement-${index}.mp3`);
+        await writeFile(replacementInput, replacementBuffer);
+
+        const gainDb = Math.max(
+          resolveRegionGainDb("vocal", region.id, operations),
+          resolveRegionGainDb("instrumental", region.id, operations),
+        );
+        const filters = [
+          `volume=${gainDb}dB`,
+          ...resolveFadeFilters("vocal", region.id, durationSec, operations),
+        ];
+
+        await extractSegment(
+          replacementInput,
+          mixedSegment,
+          0,
+          durationSec,
+          filters,
+        );
+        mixedSegments.push(mixedSegment);
         continue;
       }
 
@@ -283,21 +311,17 @@ export async function renderSongVersion(userId: string, songId: string) {
         instrumentalFilters,
       );
 
-      vocalSegments.push(vocalSegment);
-      instrumentalSegments.push(instrumentalSegment);
+      await mixTracks(vocalSegment, instrumentalSegment, mixedSegment);
+      mixedSegments.push(mixedSegment);
     }
 
-    const vocalMerged = join(workDir, "vocal-merged.mp3");
-    const instrumentalMerged = join(workDir, "instrumental-merged.mp3");
     const finalOutput = join(workDir, "final.mp3");
 
-    if (vocalSegments.length === 0) {
+    if (mixedSegments.length === 0) {
       throw new BadRequestError("No regions available for render");
     }
 
-    await concatSegments(vocalSegments, vocalMerged);
-    await concatSegments(instrumentalSegments, instrumentalMerged);
-    await mixTracks(vocalMerged, instrumentalMerged, finalOutput);
+    await concatSegments(mixedSegments, finalOutput);
 
     const renderedBuffer = await readFile(finalOutput);
     const renderKey = buildSongRenderKey(userId, songId, newVersion.versionNumber);

@@ -101,6 +101,10 @@ export type {
 
 export type {
   AiEditCommand,
+  AiCommandBody,
+  AiCommandResponse,
+  ExtendSongBody,
+  RegenerateRegionBody,
   ApplyOperationBody,
   AudioTrackDto,
   EditOperation,
@@ -115,6 +119,7 @@ export type {
   SongEditorStatus,
   SongRegionDto,
   SongRegionLabel,
+  SongPendingActionDto,
   SongStemDto,
   SongStemType,
   SongVersionDto,

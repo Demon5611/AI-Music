@@ -1,9 +1,20 @@
 import type { FastifyInstance } from "fastify";
-import { ApplyOperationBodySchema, VoiceTransferBodySchema } from "@ai-music/shared";
+import {
+  AiCommandBodySchema,
+  ApplyOperationBodySchema,
+  ExtendSongBodySchema,
+  RegenerateRegionBodySchema,
+  VoiceTransferBodySchema,
+} from "@ai-music/shared";
 import { requireAuth } from "../../common/require-auth.js";
 import { sendAppError } from "../../common/errors.js";
+import {
+  startExtendSong,
+  startRegenerateRegion,
+} from "./ai-actions.service.js";
+import { executeAiCommand } from "./ai-command.service.js";
 import { applyOperation, previewOperation } from "./operation.service.js";
-import { renderSongVersion } from "./render.service.js";
+import { renderSongVersion, getRenderJob } from "./render.service.js";
 import {
   ensureSongForTrack,
   getCurrentVersion,
@@ -11,10 +22,17 @@ import {
   getSongOriginalAudio,
   getSongStemAudio,
   getSongVersionAudio,
-  startStemSeparation,
+  kickoffStemSeparation,
+  refreshEditorProgress,
 } from "./song-editor.service.js";
-import { toEditorStateDto } from "./song-editor.mapper.js";
+import { toEditorStateDto, toRenderJobDto } from "./song-editor.mapper.js";
 import { transferVoiceForRegion } from "./voice-transfer.service.js";
+
+async function buildEditorResponse(userId: string, songId: string) {
+  const song = await refreshEditorProgress(userId, songId);
+  const version = await getCurrentVersion(song.id);
+  return toEditorStateDto(song, version);
+}
 
 export async function registerMusicEditorRoutes(app: FastifyInstance) {
   app.post<{ Params: { trackId: string } }>(
@@ -42,9 +60,9 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
     { preHandler: requireAuth },
     async (request, reply) => {
       try {
-        const song = await getSongForUser(request.userId!, request.params.songId);
-        const version = await getCurrentVersion(song.id);
-        return reply.send(toEditorStateDto(song, version));
+        return reply.send(
+          await buildEditorResponse(request.userId!, request.params.songId),
+        );
       } catch (error) {
         return sendAppError(reply, error);
       }
@@ -56,9 +74,9 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
     { preHandler: requireAuth },
     async (request, reply) => {
       try {
-        const song = await getSongForUser(request.userId!, request.params.songId);
-        const version = await getCurrentVersion(song.id);
-        return reply.send(toEditorStateDto(song, version));
+        return reply.send(
+          await buildEditorResponse(request.userId!, request.params.songId),
+        );
       } catch (error) {
         return sendAppError(reply, error);
       }
@@ -70,12 +88,10 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
     { preHandler: requireAuth },
     async (request, reply) => {
       try {
-        const song = await startStemSeparation(
-          request.userId!,
-          request.params.songId,
+        await kickoffStemSeparation(request.userId!, request.params.songId);
+        return reply.send(
+          await buildEditorResponse(request.userId!, request.params.songId),
         );
-        const version = await getCurrentVersion(song.id);
-        return reply.send(toEditorStateDto(song, version));
       } catch (error) {
         return sendAppError(reply, error);
       }
@@ -131,6 +147,98 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
           },
         );
         return reply.send(result);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { songId: string }; Body: unknown }>(
+    "/api/music/:songId/ai-command",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const parsed = AiCommandBodySchema.safeParse(request.body);
+
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.flatten() });
+      }
+
+      try {
+        const result = await executeAiCommand(
+          request.userId!,
+          request.params.songId,
+          parsed.data,
+        );
+        return reply.send(result);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { songId: string }; Body: unknown }>(
+    "/api/music/:songId/extend",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const parsed = ExtendSongBodySchema.safeParse(request.body);
+
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.flatten() });
+      }
+
+      try {
+        await startExtendSong(
+          request.userId!,
+          request.params.songId,
+          parsed.data.regionId,
+          parsed.data.prompt,
+        );
+        return reply.send(
+          await buildEditorResponse(request.userId!, request.params.songId),
+        );
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { songId: string }; Body: unknown }>(
+    "/api/music/:songId/regenerate-region",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const parsed = RegenerateRegionBodySchema.safeParse(request.body);
+
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.flatten() });
+      }
+
+      try {
+        await startRegenerateRegion(
+          request.userId!,
+          request.params.songId,
+          parsed.data.regionId,
+          parsed.data.prompt,
+        );
+        return reply.send(
+          await buildEditorResponse(request.userId!, request.params.songId),
+        );
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: { songId: string; jobId: string } }>(
+    "/api/music/:songId/render/:jobId",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const job = await getRenderJob(
+          request.userId!,
+          request.params.songId,
+          request.params.jobId,
+        );
+        return reply.send(toRenderJobDto(job));
       } catch (error) {
         return sendAppError(reply, error);
       }

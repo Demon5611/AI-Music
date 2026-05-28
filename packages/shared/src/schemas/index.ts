@@ -54,7 +54,10 @@ export type CreateCheckoutSessionInput = z.infer<
 
 export {
   AiEditCommandSchema,
+  AiCommandBodySchema,
   ApplyOperationBodySchema,
+  ExtendSongBodySchema,
+  RegenerateRegionBodySchema,
   CutRegionOperationSchema,
   DuplicateRegionOperationSchema,
   EditOperationSchema,

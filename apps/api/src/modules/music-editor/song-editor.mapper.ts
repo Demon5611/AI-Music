@@ -3,6 +3,7 @@ import type {
   EditorStateDto,
   EditorTrackId,
   SongDto,
+  SongPendingActionDto,
   SongRegionDto,
   SongRegionLabel,
   SongStemDto,
@@ -110,7 +111,23 @@ function toRegionDtos(regions: SongRegion[]): SongRegionDto[] {
       startMs: region.startMs,
       endMs: region.endMs,
       orderIndex: region.orderIndex,
+      hasReplacement: Boolean(region.replacementAudioKey),
     }));
+}
+
+function toPendingActionDto(song: Song): SongPendingActionDto {
+  const action =
+    song.pendingAction === "extend" || song.pendingAction === "regenerate"
+      ? song.pendingAction
+      : null;
+
+  return {
+    action,
+    taskId: song.pendingTaskId,
+    regionId: song.pendingRegionId,
+    status: action ? "processing" : "idle",
+    message: null,
+  };
 }
 
 function toVersionDtos(
@@ -192,6 +209,7 @@ export function toEditorStateDto(
     operations,
     currentVersionId: currentVersion.id,
     versions: toVersionDtos(song.id, song.versions, apiBaseUrl),
+    pendingAction: toPendingActionDto(song),
   };
 }
 

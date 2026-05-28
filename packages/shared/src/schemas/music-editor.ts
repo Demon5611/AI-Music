@@ -87,5 +87,22 @@ export const VoiceTransferBodySchema = z.object({
   voiceModelId: z.number().int().positive(),
 });
 
+export const AiCommandBodySchema = z.object({
+  prompt: z.string().min(1).max(500),
+  selectedRegionId: z.string().nullable().optional(),
+  selectedTrackId: editorTrackIdSchema.nullable().optional(),
+  apply: z.boolean().optional(),
+});
+
+export const ExtendSongBodySchema = z.object({
+  regionId: z.string().min(1),
+  prompt: z.string().max(500).optional(),
+});
+
+export const RegenerateRegionBodySchema = z.object({
+  regionId: z.string().min(1),
+  prompt: z.string().min(1).max(500),
+});
+
 export type ParsedEditOperation = z.infer<typeof EditOperationSchema>;
 export type ParsedApplyOperationBody = z.infer<typeof ApplyOperationBodySchema>;

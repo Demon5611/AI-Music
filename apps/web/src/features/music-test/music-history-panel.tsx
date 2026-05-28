@@ -13,6 +13,8 @@ interface MusicHistoryPanelProps {
   isDeleting: boolean;
   onDelete: (ids: string[]) => Promise<void>;
   onDeleteTrack: (trackId: string) => Promise<void>;
+  onOpenEditor?: (trackId: string) => void;
+  openingEditorTrackId?: string | null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -45,6 +47,8 @@ export function MusicHistoryPanel({
   isDeleting,
   onDelete,
   onDeleteTrack,
+  onOpenEditor,
+  openingEditorTrackId,
 }: MusicHistoryPanelProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -168,6 +172,18 @@ export function MusicHistoryPanel({
                   className={styles.player}
                   src={track.audioUrl}
                 />
+              ) : null}
+              {item.type === "song" && track.audioUrl && onOpenEditor ? (
+                <button
+                  className={styles.editorLink}
+                  disabled={openingEditorTrackId === track.id}
+                  type="button"
+                  onClick={() => onOpenEditor(track.id)}
+                >
+                  {openingEditorTrackId === track.id
+                    ? "Открываем редактор..."
+                    : "Open Editor"}
+                </button>
               ) : null}
               {track.lyricsText ? (
                 <CollapsibleLyrics text={track.lyricsText} />

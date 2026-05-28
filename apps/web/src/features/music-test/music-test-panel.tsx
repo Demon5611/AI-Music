@@ -452,8 +452,10 @@ export function MusicTestPanel() {
           isDeleting={isDeletingHistory || isDeletingTrack}
           isLoading={historyQuery.isLoading}
           items={historyQuery.data ?? []}
+          openingEditorTrackId={openingEditorTrackId}
           onDelete={handleDeleteHistory}
           onDeleteTrack={handleDeleteTrack}
+          onOpenEditor={(id) => void handleOpenEditor(id)}
         />
       </div>
     </section>
