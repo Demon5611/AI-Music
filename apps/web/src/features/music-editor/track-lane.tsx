@@ -132,7 +132,7 @@ export function TrackLane({
             <input
               className={styles.trackVolumeSlider}
               disabled={disabled}
-              max={6}
+              max={12}
               min={-12}
               step={1}
               type="range"

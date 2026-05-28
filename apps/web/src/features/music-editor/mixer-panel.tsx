@@ -101,7 +101,7 @@ export function MixerPanel({
                     <input
                       className={styles.mixerSlider}
                       disabled={disabled}
-                      max={6}
+                      max={12}
                       min={-12}
                       step={1}
                       type="range"
