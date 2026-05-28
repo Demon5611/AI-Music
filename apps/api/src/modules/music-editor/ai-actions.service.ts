@@ -7,7 +7,6 @@ import { BadRequestError, NotFoundError } from "../../common/errors.js";
 import {
   buildMusicTrackAudioKey,
   buildSongRegionReplacementKey,
-  buildSongStemKey,
   getStorageService,
 } from "../storage/storage.service.js";
 import { applyOperation } from "./operation.service.js";

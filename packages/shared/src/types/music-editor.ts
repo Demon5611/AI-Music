@@ -159,7 +159,7 @@ export interface ApplyOperationBody {
   selectedTrackId?: EditorTrackId | null;
 }
 
-export interface PreviewOperationBody extends ApplyOperationBody {}
+export type PreviewOperationBody = ApplyOperationBody;
 
 export interface VoiceTransferBody {
   regionId: string;

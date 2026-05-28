@@ -1,7 +1,7 @@
 "use client";
 
 import { ApiError } from "@ai-music/api-client";
-import { useCallback, useEffect, useState } from "react";
+import {  useState } from "react";
 import { AiCommandPanel } from "@/features/music-editor/ai-command-panel";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
 import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
@@ -20,6 +20,8 @@ import { WaveformTimeline } from "@/features/music-editor/waveform-timeline";
 import { AuthenticatedBlobUrl } from "@/shared/ui/authenticated-blob-url";
 import { useApi } from "@/shared/providers/api-provider";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { useEditorTransportShortcuts } from "./hooks/use-editor-transport-shortcuts";
+import { useEditorInitialLoad } from "./hooks/use-editor-initial-load";
 
 interface AudioEditorProps {
   songId: string;
@@ -90,36 +92,10 @@ export function AudioEditor({ songId }: AudioEditorProps) {
   } = useEditorAiActions();
 
   const { isProcessing } = useEditorPolling(songId);
-
+  const { title } = useEditorInitialLoad(songId);
   const [isRendering, setIsRendering] = useState(false);
-  const [title, setTitle] = useState("");
   const [regeneratePrompt, setRegeneratePrompt] = useState("");
   const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
-
-  const loadEditor = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-
-    try {
-      let state = await api.musicEditor.getEditorState(songId);
-
-      if (state.song.status !== "ready") {
-        await api.musicEditor.separateStems(songId);
-        state = await api.musicEditor.getEditorState(songId);
-      }
-
-      hydrate(state);
-      setTitle(state.song.title);
-    } catch (loadError) {
-      setError(resolveErrorMessage(loadError));
-    } finally {
-      setBusy(false);
-    }
-  }, [api, hydrate, setBusy, setError, songId]);
-
-  useEffect(() => {
-    void loadEditor();
-  }, [loadEditor]);
 
   async function handleRender() {
     setIsRendering(true);
@@ -152,6 +128,7 @@ export function AudioEditor({ songId }: AudioEditorProps) {
   const editorReady = songStatus === "ready" && !isProcessing;
   const stemsReady = editorReady && Boolean(vocalTrack?.audioUrl || instrumentalTrack?.audioUrl);
   const controlsDisabled = isBusy || !editorReady;
+  useEditorTransportShortcuts(controlsDisabled);
   const trackControlsDisabled = controlsDisabled || !stemsReady;
 
   const statusMessage = (() => {

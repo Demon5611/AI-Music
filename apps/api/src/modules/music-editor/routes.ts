@@ -18,7 +18,6 @@ import { renderSongVersion, getRenderJob } from "./render.service.js";
 import {
   ensureSongForTrack,
   getCurrentVersion,
-  getSongForUser,
   getSongOriginalAudio,
   getSongStemAudio,
   getSongVersionAudio,

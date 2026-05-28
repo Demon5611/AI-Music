@@ -30,23 +30,40 @@ export function VoiceTransferDialog({
     if (!open) {
       return;
     }
-
-    setIsLoading(true);
-    setError(null);
-
-    void api.kits
-      .listVoiceModels({ myModels: true, perPage: 20 })
-      .then((response) => {
+  
+    let cancelled = false;
+  
+    void Promise.resolve().then(async () => {
+      if (cancelled) return;
+  
+      setIsLoading(true);
+      setError(null);
+  
+      try {
+        const response = await api.kits.listVoiceModels({
+          myModels: true,
+          perPage: 20,
+        });
+        if (cancelled) return;
         setModels(response.data ?? []);
-      })
-      .catch((loadError) => {
-        setError(
-          loadError instanceof Error
-            ? loadError.message
-            : "Не удалось загрузить voice models",
-        );
-      })
-      .finally(() => setIsLoading(false));
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "Не удалось загрузить voice models",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    });
+  
+    return () => {
+      cancelled = true;
+    };
   }, [api, open]);
 
   if (!open) {
