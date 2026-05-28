@@ -12,9 +12,12 @@ export function useEditorAiActions() {
   const hydrate = useAudioEditorStore((state) => state.hydrate);
   const setBusy = useAudioEditorStore((state) => state.setBusy);
   const setError = useAudioEditorStore((state) => state.setError);
+  const setAiCommandPreview = useAudioEditorStore((state) => state.setAiCommandPreview);
+  const setAiCommandText = useAudioEditorStore((state) => state.setAiCommandText);
+  const aiCommandPreview = useAudioEditorStore((state) => state.aiCommandPreview);
   const [lastExplanation, setLastExplanation] = useState<string | null>(null);
 
-  const runAiCommand = useCallback(
+  const previewAiCommand = useCallback(
     async (prompt: string) => {
       if (!songId) {
         return;
@@ -33,14 +36,11 @@ export function useEditorAiActions() {
           prompt,
           selectedRegionId,
           selectedTrackId,
-          apply: true,
+          apply: false,
         });
 
         setLastExplanation(result.command.explanation);
-
-        if (result.editorState) {
-          hydrate(result.editorState);
-        }
+        setAiCommandPreview(result.command.operation);
       } catch (error) {
         setError(error instanceof Error ? error.message : "AI command failed");
       } finally {
@@ -49,14 +49,56 @@ export function useEditorAiActions() {
     },
     [
       api,
-      hydrate,
       selectedRegionId,
       selectedTrackId,
+      setAiCommandPreview,
       setBusy,
       setError,
       songId,
     ],
   );
+
+  const confirmAiCommand = useCallback(async () => {
+    if (!songId || !aiCommandPreview) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+
+    try {
+      const result = await api.musicEditor.applyOperation(songId, {
+        operation: aiCommandPreview,
+        selectedRegionId,
+        selectedTrackId,
+      });
+
+      hydrate(result);
+      setAiCommandPreview(null);
+      setAiCommandText("");
+      setLastExplanation(null);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Apply operation failed");
+    } finally {
+      setBusy(false);
+    }
+  }, [
+    aiCommandPreview,
+    api,
+    hydrate,
+    selectedRegionId,
+    selectedTrackId,
+    setAiCommandPreview,
+    setAiCommandText,
+    setBusy,
+    setError,
+    songId,
+  ]);
+
+  const cancelAiPreview = useCallback(() => {
+    setAiCommandPreview(null);
+    setLastExplanation(null);
+  }, [setAiCommandPreview]);
 
   const extendSong = useCallback(
     async (prompt?: string) => {
@@ -135,7 +177,9 @@ export function useEditorAiActions() {
 
   return {
     lastExplanation,
-    runAiCommand,
+    previewAiCommand,
+    confirmAiCommand,
+    cancelAiPreview,
     extendSong,
     regenerateRegion,
     voiceTransfer,

@@ -155,6 +155,18 @@ export function useEditorOperations() {
     [applyOperation, setError],
   );
 
+  const cutRegion = useCallback(() => {
+    if (!selectedRegionId) {
+      setError("Выберите регион для cut");
+      return;
+    }
+
+    void applyOperation({
+      type: "CUT_REGION",
+      regionId: selectedRegionId,
+    });
+  }, [applyOperation, selectedRegionId, setError]);
+
   return {
     applyOperation,
     setVolume,
@@ -163,5 +175,6 @@ export function useEditorOperations() {
     duplicateRegion,
     fadeRegion,
     moveRegion,
+    cutRegion,
   };
 }

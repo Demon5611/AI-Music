@@ -4,21 +4,36 @@ import { ApiError } from "@ai-music/api-client";
 import { useCallback, useEffect, useState } from "react";
 import { AiCommandPanel } from "@/features/music-editor/ai-command-panel";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
+import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
 import { useEditorAiActions } from "@/features/music-editor/hooks/use-editor-ai-actions";
 import { useEditorOperations } from "@/features/music-editor/hooks/use-editor-operations";
 import { useEditorPolling } from "@/features/music-editor/hooks/use-editor-polling";
+import { useStemPlayback } from "@/features/music-editor/hooks/use-stem-playback";
 import { MixerPanel } from "@/features/music-editor/mixer-panel";
 import { RegionToolbar } from "@/features/music-editor/region-toolbar";
 import { RenderButton } from "@/features/music-editor/render-button";
+import { SelectedContextPanel } from "@/features/music-editor/selected-context-panel";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
 import { TrackLane } from "@/features/music-editor/track-lane";
 import { VoiceTransferDialog } from "@/features/music-editor/voice-transfer-dialog";
 import { WaveformTimeline } from "@/features/music-editor/waveform-timeline";
+import { AuthenticatedBlobUrl } from "@/shared/ui/authenticated-blob-url";
 import { useApi } from "@/shared/providers/api-provider";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 
 interface AudioEditorProps {
   songId: string;
+}
+
+function StemPlaybackBridge({
+  vocalPlaybackUrl,
+  instrumentalPlaybackUrl,
+}: {
+  vocalPlaybackUrl: string | null;
+  instrumentalPlaybackUrl: string | null;
+}) {
+  useStemPlayback(vocalPlaybackUrl, instrumentalPlaybackUrl);
+  return null;
 }
 
 function resolveErrorMessage(error: unknown): string {
@@ -61,11 +76,14 @@ export function AudioEditor({ songId }: AudioEditorProps) {
     duplicateRegion,
     fadeRegion,
     moveRegion,
+    cutRegion,
   } = useEditorOperations();
 
   const {
     lastExplanation,
-    runAiCommand,
+    previewAiCommand,
+    confirmAiCommand,
+    cancelAiPreview,
     extendSong,
     regenerateRegion,
     voiceTransfer,
@@ -125,13 +143,16 @@ export function AudioEditor({ songId }: AudioEditorProps) {
     setRegeneratePrompt("");
   }
 
+  const vocalTrack = tracks.find((track) => track.id === "vocal");
+  const instrumentalTrack = tracks.find((track) => track.id === "instrumental");
+
   const masterAudioUrl =
-    tracks.find((track) => track.id === "instrumental")?.audioUrl ??
-    tracks.find((track) => track.id === "vocal")?.audioUrl ??
-    null;
+    instrumentalTrack?.audioUrl ?? vocalTrack?.audioUrl ?? null;
 
   const editorReady = songStatus === "ready" && !isProcessing;
+  const stemsReady = editorReady && Boolean(vocalTrack?.audioUrl || instrumentalTrack?.audioUrl);
   const controlsDisabled = isBusy || !editorReady;
+  const trackControlsDisabled = controlsDisabled || !stemsReady;
 
   const statusMessage = (() => {
     if (pendingAction?.status === "processing") {
@@ -145,7 +166,7 @@ export function AudioEditor({ songId }: AudioEditorProps) {
     }
 
     if (songStatus === "separating_stems") {
-      return "Stem separation через SunoAPI...";
+      return "Идет разделение трека на вокал и музыку...";
     }
 
     return "Подготовка редактора...";
@@ -156,10 +177,12 @@ export function AudioEditor({ songId }: AudioEditorProps) {
       <div>
         <h1 className={styles.title}>{title || "Audio Editor"}</h1>
         <p className={styles.description}>
-          Waveform-редактор с AI-командами (strict JSON), extend/regenerate через
-          SunoAPI и voice transfer через Kits.
+          Интерактивный waveform-редактор с AI-командами, extend/regenerate и
+          voice transfer.
         </p>
       </div>
+
+      <EditorHelpPanel />
 
       {!editorReady ? (
         <div className={styles.statusCard}>
@@ -167,10 +190,24 @@ export function AudioEditor({ songId }: AudioEditorProps) {
         </div>
       ) : null}
 
+      <AuthenticatedBlobUrl src={vocalTrack?.audioUrl ?? null}>
+        {(vocalPlaybackUrl) => (
+          <AuthenticatedBlobUrl src={instrumentalTrack?.audioUrl ?? null}>
+            {(instrumentalPlaybackUrl) => (
+              <StemPlaybackBridge
+                instrumentalPlaybackUrl={instrumentalPlaybackUrl}
+                vocalPlaybackUrl={vocalPlaybackUrl}
+              />
+            )}
+          </AuthenticatedBlobUrl>
+        )}
+      </AuthenticatedBlobUrl>
+
       <div className={styles.layout}>
         <div className={styles.mainColumn}>
           <WaveformTimeline
             audioUrl={masterAudioUrl}
+            disabled={controlsDisabled}
             regions={regions}
             selectedRegionId={selectedRegionId}
             onSelectRegion={setSelectedRegion}
@@ -178,10 +215,16 @@ export function AudioEditor({ songId }: AudioEditorProps) {
 
           <div className={styles.panel}>
             <h3 className={styles.panelTitle}>Tracks</h3>
+            {!stemsReady ? (
+              <p className={styles.panelHint}>
+                Идет разделение трека на вокал и музыку...
+              </p>
+            ) : null}
             <div className={styles.trackList}>
               {tracks.map((track) => (
                 <TrackLane
                   key={track.id}
+                  disabled={trackControlsDisabled}
                   selected={selectedTrackId === track.id}
                   track={track}
                   onSelect={() => setSelectedTrack(track.id)}
@@ -190,8 +233,12 @@ export function AudioEditor({ songId }: AudioEditorProps) {
             </div>
           </div>
 
+          <SelectedContextPanel />
+
           <RegionToolbar
             disabled={controlsDisabled}
+            regionSelected={Boolean(selectedRegionId)}
+            onCut={cutRegion}
             onDuplicate={duplicateRegion}
             onExtend={() => void extendSong()}
             onFadeIn={() => fadeRegion("in")}
@@ -207,7 +254,7 @@ export function AudioEditor({ songId }: AudioEditorProps) {
             <h3 className={styles.panelTitle}>Regenerate prompt</h3>
             <input
               className={styles.textInput}
-              disabled={controlsDisabled}
+              disabled={controlsDisabled || !selectedRegionId}
               placeholder="Новый prompt для выбранного региона"
               value={regeneratePrompt}
               onChange={(event) => setRegeneratePrompt(event.target.value)}
@@ -219,19 +266,20 @@ export function AudioEditor({ songId }: AudioEditorProps) {
           <AiCommandPanel
             disabled={controlsDisabled}
             lastExplanation={lastExplanation}
-            onSubmit={runAiCommand}
+            onCancelPreview={cancelAiPreview}
+            onConfirm={confirmAiCommand}
+            onPreview={previewAiCommand}
           />
 
           <MixerPanel
-            disabled={controlsDisabled}
+            disabled={trackControlsDisabled}
             operations={operations}
             selectedRegionId={selectedRegionId}
             selectedTrackId={selectedTrackId}
             tracks={tracks}
-            onInstrumentalQuieter={() => setVolume("instrumental", -3)}
-            onMuteVocal={() => muteTrack("vocal", true)}
+            onApplyGain={(trackId, gainDb) => setVolume(trackId, gainDb)}
+            onMuteTrack={(trackId) => muteTrack(trackId, true)}
             onSelectTrack={setSelectedTrack}
-            onVocalQuieter={() => setVolume("vocal", -3)}
           />
 
           <EditHistoryPanel operations={operations} />

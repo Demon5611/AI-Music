@@ -54,52 +54,298 @@
   padding: 1rem;
 }
 
-.blockLabel {
-  font-size: 0.875rem;
-  font-weight: 600;
+.timelineHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
 
-.waveform {
+.blockLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.transportBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.transportButton,
+.transportButtonActive {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.transportButtonActive {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.transportButton:disabled,
+.transportButtonActive:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.transportTime {
+  font-size: 0.8125rem;
+  color: #334155;
+  font-variant-numeric: tabular-nums;
+  min-width: 7rem;
+}
+
+.transportZoom {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.timelineSurface {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.timeRuler {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.25rem 0 0.5rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeRulerMark {
+  flex: 1;
+}
+
+.waveformWrap {
+  position: relative;
+}
+
+.waveform,
+.trackWaveform {
   width: 100%;
   min-height: 96px;
+}
+
+.trackWaveform {
+  min-height: 48px;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #2563eb;
+  pointer-events: none;
+  z-index: 3;
+  transform: translateX(-1px);
+}
+
+.regionSelectionBadge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border: 2px solid #2563eb;
+  border-radius: 0.25rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.regionHandleLeft,
+.regionHandleRight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: #2563eb;
+}
+
+.regionHandleLeft {
+  left: -3px;
+  cursor: ew-resize;
+}
+
+.regionHandleRight {
+  right: -3px;
+  cursor: ew-resize;
+}
+
+.timelineHint {
+  margin-top: 0.5rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.contextPanel {
+  border: 1px solid #bfdbfe;
+  border-radius: 0.75rem;
+  background: #eff6ff;
+  padding: 0.875rem 1rem;
+}
+
+.contextTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.375rem;
+}
+
+.contextGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  color: #1e3a8a;
 }
 
 .trackList {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 0.75rem;
 }
 
-.trackLane,
-.trackLaneSelected,
-.mixerTrack,
-.mixerTrackSelected {
-  display: flex;
-  justify-content: space-between;
+.trackLaneRow,
+.trackLaneRowSelected {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) auto minmax(0, 1fr);
+  gap: 0.75rem;
   align-items: center;
-  width: 100%;
-  border-radius: 0.5rem;
-  padding: 0.625rem 0.75rem;
   border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  padding: 0.625rem;
   background: #f8fafc;
-  cursor: pointer;
 }
 
-.trackLaneSelected,
-.mixerTrackSelected {
+.trackLaneRowSelected {
   border-color: #2563eb;
   background: #eff6ff;
+}
+
+.trackLaneHeader {
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
 }
 
 .trackLaneLabel {
   font-weight: 600;
 }
 
-.trackLaneMeta {
+.trackLaneControls {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.laneToggle,
+.laneToggleActive {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  background: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.laneToggleActive {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.trackVolumeLabel,
+.mixerSliderLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: #475569;
+  min-width: 6.5rem;
+}
+
+.trackVolumeSlider,
+.mixerSlider {
+  width: 5.5rem;
+}
+
+.trackWaveformWrap {
+  min-width: 0;
+}
+
+.mixerList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mixerRow,
+.mixerRowSelected {
+  display: grid;
+  grid-template-columns: minmax(90px, 110px) minmax(120px, 1fr) auto auto auto;
+  gap: 0.5rem;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  background: #f8fafc;
+}
+
+.mixerRowSelected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.mixerTrackButton {
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mixerSavedValue {
+  font-size: 0.8125rem;
   color: #64748b;
-  font-size: 0.875rem;
+  min-width: 3rem;
+}
+
+.mixerApplyButton {
+  border: 1px solid #2563eb;
+  border-radius: 0.375rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.toolbarSection {
+  margin-bottom: 0.875rem;
+}
+
+.toolbarSectionTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
 }
 
 .toolbarGrid,
@@ -119,7 +365,29 @@
   cursor: pointer;
 }
 
+.toolButtonDestructive {
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: #b91c1c;
+}
+
+.toolButtonAi {
+  border: 1px solid #c4b5fd;
+  border-radius: 0.5rem;
+  background: #f5f3ff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: #5b21b6;
+}
+
 .toolButton:disabled,
+.toolButtonDestructive:disabled,
+.toolButtonAi:disabled,
 .primaryButton:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -137,7 +405,7 @@
   gap: 0.375rem;
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0 0 0.75rem;
 }
 
 .historyItem {
@@ -145,6 +413,82 @@
   color: #334155;
   border-bottom: 1px solid #f1f5f9;
   padding-bottom: 0.375rem;
+}
+
+.historyButton {
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  width: 100%;
+}
+
+.historyButton:hover {
+  color: #2563eb;
+}
+
+.presetRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+}
+
+.presetChip {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.jsonPreviewBlock {
+  margin-top: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+}
+
+.jsonPreview {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  overflow-x: auto;
+}
+
+.helpPanel {
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+}
+
+.helpToggle {
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.helpList {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+.helpList li {
+  margin-bottom: 0.375rem;
 }
 
 .error {
@@ -182,20 +526,13 @@
   resize: vertical;
 }
 
-.fieldLabel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  font-size: 0.875rem;
-  margin-bottom: 0.75rem;
-}
-
 .textInput,
 .selectInput {
   border: 1px solid #cbd5e1;
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
+  width: 100%;
 }
 
 .dialogBackdrop {
@@ -226,6 +563,16 @@
 
 @media (max-width: 960px) {
   .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .trackLaneRow,
+  .trackLaneRowSelected {
+    grid-template-columns: 1fr;
+  }
+
+  .mixerRow,
+  .mixerRowSelected {
     grid-template-columns: 1fr;
   }
 }

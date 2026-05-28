@@ -1,0 +1,87 @@
+.root {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.rootBlock {
+  display: block;
+  width: 100%;
+}
+
+.trigger {
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.triggerBlock {
+  display: block;
+  width: 100%;
+}
+
+.content {
+  position: absolute;
+  z-index: 50;
+  max-width: 16rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #0f172a;
+  color: #f8fafc;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  white-space: normal;
+}
+
+.root:hover .content,
+.root:focus-within .content {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.top {
+  bottom: calc(100% + 0.375rem);
+  left: 50%;
+  transform: translate(-50%, 4px);
+}
+
+.root:hover .top,
+.root:focus-within .top {
+  transform: translate(-50%, 0);
+}
+
+.bottom {
+  top: calc(100% + 0.375rem);
+  left: 50%;
+  transform: translate(-50%, -4px);
+}
+
+.root:hover .bottom,
+.root:focus-within .bottom {
+  transform: translate(-50%, 0);
+}
+
+.left {
+  right: calc(100% + 0.375rem);
+  top: 50%;
+  transform: translate(4px, -50%);
+}
+
+.root:hover .left,
+.root:focus-within .left {
+  transform: translate(0, -50%);
+}
+
+.right {
+  left: calc(100% + 0.375rem);
+  top: 50%;
+  transform: translate(-4px, -50%);
+}
+
+.root:hover .right,
+.root:focus-within .right {
+  transform: translate(0, -50%);
+}
