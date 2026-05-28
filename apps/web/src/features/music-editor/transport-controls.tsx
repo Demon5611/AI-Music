@@ -23,7 +23,7 @@ export function TransportControls({ disabled = false }: TransportControlsProps) 
 
   return (
     <div className={styles.transportBar}>
-      <Tooltip content="Воспроизвести или поставить трек на паузу">
+      <Tooltip content="Воспроизвести или поставить трек на паузу (Space)">
         <button
           className={styles.transportButton}
           disabled={disabled}

@@ -6,6 +6,7 @@ import type { AudioTrackDto } from "@ai-music/shared";
 import { AuthenticatedBlobUrl } from "@/shared/ui/authenticated-blob-url";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
+import { seekTimeline } from "@/features/music-editor/utils/timeline-sync";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 
 interface TrackLaneProps {
@@ -30,7 +31,6 @@ function MiniWaveform({
   const containerRef = useRef<HTMLDivElement>(null);
   const currentTimeMs = useAudioEditorStore((state) => state.currentTimeMs);
   const durationMs = useAudioEditorStore((state) => state.durationMs);
-  const playbackController = useAudioEditorStore((state) => state.playbackController);
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -50,15 +50,15 @@ function MiniWaveform({
       interact: true,
     });
 
-    wavesurfer.on("click", (_relativeX, absoluteX) => {
+    wavesurfer.on("interaction", (newTimeSec) => {
       onSelect();
-      playbackController?.seek(Math.round(absoluteX * 1000));
+      seekTimeline(Math.round(newTimeSec * 1000));
     });
 
     return () => {
       wavesurfer.destroy();
     };
-  }, [onSelect, playbackController, playbackUrl]);
+  }, [onSelect, playbackUrl]);
 
   useEffect(() => {
     if (!containerRef.current || durationMs <= 0) {
@@ -127,7 +127,7 @@ export function TrackLane({
           </button>
         </Tooltip>
 
-        <Tooltip content="Изменить громкость дорожки без перегенерации трека">
+        <Tooltip content="Изменить громкость">
           <label className={styles.trackVolumeLabel}>
             <input
               className={styles.trackVolumeSlider}

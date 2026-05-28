@@ -32,16 +32,28 @@ function resolveTrackVolume(
   return dbToGain(track.gainDb);
 }
 
+function resolveDurationMs(
+  vocal: HTMLAudioElement | null,
+  instrumental: HTMLAudioElement | null,
+): number {
+  const durations = [vocal, instrumental]
+    .filter((element): element is HTMLAudioElement => element !== null)
+    .map((element) => element.duration)
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  if (durations.length === 0) {
+    return 0;
+  }
+
+  return Math.round(Math.max(...durations) * 1000);
+}
+
 export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string | null) {
   const previewTracks = useAudioEditorStore((state) => state.previewTracks);
-  const loopSelected = useAudioEditorStore((state) => state.loopSelected);
-  const selectedRegionId = useAudioEditorStore((state) => state.selectedRegionId);
-  const regions = useAudioEditorStore((state) => state.regions);
   const setCurrentTime = useAudioEditorStore((state) => state.setCurrentTime);
   const setDuration = useAudioEditorStore((state) => state.setDuration);
   const setIsPlaying = useAudioEditorStore((state) => state.setIsPlaying);
   const setPlaybackController = useAudioEditorStore((state) => state.setPlaybackController);
-  const zoom = useAudioEditorStore((state) => state.zoom);
 
   const vocalRef = useRef<HTMLAudioElement | null>(null);
   const instrumentalRef = useRef<HTMLAudioElement | null>(null);
@@ -50,22 +62,23 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
   const syncVolumes = useCallback(() => {
     const vocal = vocalRef.current;
     const instrumental = instrumentalRef.current;
+    const tracks = useAudioEditorStore.getState().previewTracks;
 
     if (vocal) {
-      vocal.volume = Math.min(1, resolveTrackVolume("vocal", previewTracks));
+      vocal.volume = Math.min(1, resolveTrackVolume("vocal", tracks));
     }
 
     if (instrumental) {
       instrumental.volume = Math.min(
         1,
-        resolveTrackVolume("instrumental", previewTracks),
+        resolveTrackVolume("instrumental", tracks),
       );
     }
-  }, [previewTracks]);
+  }, []);
 
   useEffect(() => {
     syncVolumes();
-  }, [syncVolumes]);
+  }, [previewTracks, syncVolumes]);
 
   useEffect(() => {
     if (!vocalUrl && !instrumentalUrl) {
@@ -78,17 +91,22 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
     vocalRef.current = vocal;
     instrumentalRef.current = instrumental;
 
-    const primary = instrumental ?? vocal;
+    function updateDuration() {
+      const nextDuration = resolveDurationMs(vocalRef.current, instrumentalRef.current);
 
-    if (primary) {
-      primary.addEventListener("loadedmetadata", () => {
-        setDuration(Math.round(primary.duration * 1000));
-      });
+      if (nextDuration > 0) {
+        setDuration(nextDuration);
+      }
     }
 
+    vocal?.addEventListener("loadedmetadata", updateDuration);
+    instrumental?.addEventListener("loadedmetadata", updateDuration);
+    updateDuration();
     syncVolumes();
 
     return () => {
+      vocal?.removeEventListener("loadedmetadata", updateDuration);
+      instrumental?.removeEventListener("loadedmetadata", updateDuration);
       vocal?.pause();
       instrumental?.pause();
       vocalRef.current = null;
@@ -97,29 +115,31 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
   }, [instrumentalUrl, setDuration, syncVolumes, vocalUrl]);
 
   useEffect(() => {
-    const selectedRegion = regions.find((region) => region.id === selectedRegionId);
-
     function tick() {
+      const state = useAudioEditorStore.getState();
       const primary = instrumentalRef.current ?? vocalRef.current;
 
-      if (!primary) {
-        return;
-      }
+      if (primary && state.isPlaying) {
+        const timeMs = Math.round(primary.currentTime * 1000);
+        setCurrentTime(timeMs);
 
-      const timeMs = Math.round(primary.currentTime * 1000);
-      setCurrentTime(timeMs);
+        if (state.loopSelected && state.selectedRegionId) {
+          const selectedRegion = state.regions.find(
+            (region) => region.id === state.selectedRegionId,
+          );
 
-      if (
-        loopSelected &&
-        selectedRegion &&
-        primary.currentTime * 1000 >= selectedRegion.endMs
-      ) {
-        const startSec = selectedRegion.startMs / 1000;
-        if (vocalRef.current) {
-          vocalRef.current.currentTime = startSec;
-        }
-        if (instrumentalRef.current) {
-          instrumentalRef.current.currentTime = startSec;
+          if (selectedRegion && timeMs >= selectedRegion.endMs) {
+            const startSec = selectedRegion.startMs / 1000;
+
+            if (vocalRef.current) {
+              vocalRef.current.currentTime = startSec;
+            }
+            if (instrumentalRef.current) {
+              instrumentalRef.current.currentTime = startSec;
+            }
+
+            setCurrentTime(selectedRegion.startMs);
+          }
         }
       }
 
@@ -133,11 +153,20 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [loopSelected, regions, selectedRegionId, setCurrentTime]);
+  }, [setCurrentTime]);
 
   useEffect(() => {
     const controller: PlaybackController = {
       play: () => {
+        const timeSec = useAudioEditorStore.getState().currentTimeMs / 1000;
+
+        if (vocalRef.current) {
+          vocalRef.current.currentTime = timeSec;
+        }
+        if (instrumentalRef.current) {
+          instrumentalRef.current.currentTime = timeSec;
+        }
+
         void vocalRef.current?.play();
         void instrumentalRef.current?.play();
         setIsPlaying(true);
@@ -160,7 +189,12 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
         setCurrentTime(0);
       },
       seek: (ms) => {
-        const seconds = ms / 1000;
+        const { durationMs } = useAudioEditorStore.getState();
+        const clamped = Math.min(
+          durationMs > 0 ? durationMs : Number.MAX_SAFE_INTEGER,
+          Math.max(0, ms),
+        );
+        const seconds = clamped / 1000;
 
         if (vocalRef.current) {
           vocalRef.current.currentTime = seconds;
@@ -169,10 +203,10 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
           instrumentalRef.current.currentTime = seconds;
         }
 
-        setCurrentTime(ms);
+        setCurrentTime(clamped);
       },
       setZoom: () => {
-        // Zoom handled by WaveSurfer timeline surface.
+        // Zoom is handled by WaveSurfer in the timeline component.
       },
     };
 
@@ -182,6 +216,4 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
       setPlaybackController(null);
     };
   }, [setCurrentTime, setIsPlaying, setPlaybackController]);
-
-  return { zoom };
 }

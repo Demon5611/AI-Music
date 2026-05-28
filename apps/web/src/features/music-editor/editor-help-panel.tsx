@@ -19,10 +19,10 @@ export function EditorHelpPanel() {
         </button>
         {open ? (
           <ol className={styles.helpList}>
-            <li>Выберите фрагмент на timeline</li>
+            <li>Кликните по timeline, чтобы переместить playhead</li>
+            <li>Кликните по цветному фрагменту, чтобы выбрать его</li>
             <li>Выберите дорожку Vocal или Instrumental</li>
             <li>Примените действие: volume, fade, split, duplicate</li>
-            <li>Проверьте preview</li>
             <li>Нажмите Render version</li>
           </ol>
         ) : null}

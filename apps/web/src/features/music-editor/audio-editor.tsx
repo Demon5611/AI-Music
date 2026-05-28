@@ -56,7 +56,6 @@ function resolveErrorMessage(error: unknown): string {
 export function AudioEditor({ songId }: AudioEditorProps) {
   const api = useApi();
   const hydrate = useAudioEditorStore((state) => state.hydrate);
-  const setBusy = useAudioEditorStore((state) => state.setBusy);
   const setError = useAudioEditorStore((state) => state.setError);
   const regions = useAudioEditorStore((state) => state.regions);
   const tracks = useAudioEditorStore((state) => state.tracks);

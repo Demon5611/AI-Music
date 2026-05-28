@@ -59,18 +59,15 @@ export function AiCommandPanel({
   }
 
   return (
-    <Tooltip
-      block
-      content="Опишите изменение простыми словами. AI не меняет трек напрямую, а создает безопасную команду"
-    >
+
       <div className={styles.panel}>
-        <h3 className={styles.panelTitle}>AI action assistant</h3>
+      <Tooltip content="Опишите изменение простыми словами. AI не меняет трек напрямую, а создает безопасную команду">
+          <h3 className={styles.panelTitle}>AI action assistant</h3>
+          </Tooltip>
         <p className={styles.panelHint}>
           AI преобразует ваш запрос в безопасную JSON-операцию для выбранного
           фрагмента
         </p>
-
-        <Tooltip content="Быстрые команды для частых операций">
           <div className={styles.presetRow}>
             {AI_PRESETS.map((preset) => (
               <button
@@ -84,7 +81,6 @@ export function AiCommandPanel({
               </button>
             ))}
           </div>
-        </Tooltip>
 
         <textarea
           className={styles.aiPrompt}
@@ -94,7 +90,6 @@ export function AiCommandPanel({
           onChange={(event) => setAiCommandText(event.target.value)}
         />
 
-        <Tooltip content="Создать JSON-операцию из текстовой команды">
           <button
             className={styles.primaryButton}
             disabled={disabled || isSubmitting || !aiCommandText.trim()}
@@ -105,7 +100,6 @@ export function AiCommandPanel({
               ? "Анализируем..."
               : "Применить AI-команду"}
           </button>
-        </Tooltip>
 
         {lastExplanation ? (
           <p className={styles.panelHint}>{lastExplanation}</p>
@@ -140,6 +134,5 @@ export function AiCommandPanel({
           </Tooltip>
         ) : null}
       </div>
-    </Tooltip>
   );
 }

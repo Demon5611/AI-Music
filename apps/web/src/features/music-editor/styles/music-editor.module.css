@@ -125,12 +125,35 @@
   font-variant-numeric: tabular-nums;
 }
 
+.timeRulerInteractive {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.25rem 0 0.5rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  user-select: none;
+}
+
+.timeRulerInteractive:hover {
+  color: #334155;
+}
+
 .timeRulerMark {
   flex: 1;
 }
 
-.waveformWrap {
+.waveformWrap,
+.waveformScroll {
   position: relative;
+  width: 100%;
+}
+
+.waveformScroll {
+  border-radius: 0.375rem;
+  overflow: hidden;
 }
 
 .waveform,
@@ -141,46 +164,6 @@
 
 .trackWaveform {
   min-height: 48px;
-}
-
-.playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: #2563eb;
-  pointer-events: none;
-  z-index: 3;
-  transform: translateX(-1px);
-}
-
-.regionSelectionBadge {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border: 2px solid #2563eb;
-  border-radius: 0.25rem;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.regionHandleLeft,
-.regionHandleRight {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  background: #2563eb;
-}
-
-.regionHandleLeft {
-  left: -3px;
-  cursor: ew-resize;
-}
-
-.regionHandleRight {
-  right: -3px;
-  cursor: ew-resize;
 }
 
 .timelineHint {
