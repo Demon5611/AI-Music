@@ -90,6 +90,14 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
     const vocal = vocalUrl ? new Audio(vocalUrl) : null;
     const instrumental = instrumentalUrl ? new Audio(instrumentalUrl) : null;
 
+    if (vocal) {
+      vocal.preload = "auto";
+    }
+
+    if (instrumental) {
+      instrumental.preload = "auto";
+    }
+
     vocalRef.current = vocal;
     instrumentalRef.current = instrumental;
     setStemMedia({ vocal, instrumental });
@@ -171,9 +179,16 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
           instrumentalRef.current.currentTime = timeSec;
         }
 
-        void vocalRef.current?.play();
-        void instrumentalRef.current?.play();
-        setIsPlaying(true);
+        syncVolumes();
+
+        const playPromises = [
+          vocalRef.current?.play(),
+          instrumentalRef.current?.play(),
+        ].filter((promise): promise is Promise<void> => promise !== undefined);
+
+        void Promise.all(playPromises).then(() => {
+          setIsPlaying(true);
+        });
       },
       pause: () => {
         vocalRef.current?.pause();
@@ -219,5 +234,5 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
     return () => {
       setPlaybackController(null);
     };
-  }, [setCurrentTime, setIsPlaying, setPlaybackController]);
+  }, [setCurrentTime, setIsPlaying, setPlaybackController, syncVolumes]);
 }

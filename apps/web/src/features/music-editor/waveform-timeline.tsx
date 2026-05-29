@@ -58,14 +58,14 @@ function buildRulerMarks(durationMs: number, count = 5): number[] {
 }
 
 function WaveformSurface({
-  mediaElement,
+  waveformUrl,
   regions,
   selectedRegionId,
   onSelectRegion,
   onResizeRegion,
   disabled,
 }: {
-  mediaElement: HTMLAudioElement;
+  waveformUrl: string;
   regions: SongRegionDto[];
   selectedRegionId: string | null;
   onSelectRegion: (regionId: string) => void;
@@ -131,7 +131,7 @@ function WaveformSurface({
 
     const wavesurfer = WaveSurfer.create({
       container: containerRef.current,
-      media: mediaElement,
+      url: waveformUrl,
       height: 96,
       waveColor: "#64748b",
       progressColor: "#94a3b8",
@@ -146,9 +146,11 @@ function WaveformSurface({
 
     wavesurferRef.current = wavesurfer;
     isWaveformReadyRef.current = false;
+    wavesurfer.setMuted(true);
 
     wavesurfer.on("ready", () => {
       isWaveformReadyRef.current = true;
+      wavesurfer.setMuted(true);
       const waveformDurationMs = Math.round(wavesurfer.getDuration() * 1000);
       const storeDuration = useAudioEditorStore.getState().durationMs;
 
@@ -213,7 +215,7 @@ function WaveformSurface({
       wavesurferRef.current = null;
       regionsPluginRef.current = null;
     };
-  }, [disabled, mediaElement, setDuration]);
+  }, [disabled, setDuration, waveformUrl]);
 
   useEffect(() => {
     const wavesurfer = wavesurferRef.current;
@@ -319,7 +321,8 @@ export function WaveformTimeline({
   disabled,
 }: WaveformTimelineProps) {
   const stemMedia = useAudioEditorStore((state) => state.stemMedia);
-  const masterMedia = stemMedia.instrumental ?? stemMedia.vocal;
+  const waveformUrl =
+    stemMedia.instrumental?.src ?? stemMedia.vocal?.src ?? null;
 
   return (
     <div className={styles.timelineBlock}>
@@ -328,10 +331,10 @@ export function WaveformTimeline({
         <TransportControls disabled={disabled} />
       </div>
 
-      {masterMedia ? (
+      {waveformUrl ? (
         <WaveformSurface
           disabled={disabled}
-          mediaElement={masterMedia}
+          waveformUrl={waveformUrl}
           regions={regions}
           selectedRegionId={selectedRegionId}
           onResizeRegion={onResizeRegion}

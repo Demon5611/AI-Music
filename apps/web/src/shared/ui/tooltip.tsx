@@ -27,21 +27,21 @@ export function Tooltip({
           ? styles.right
           : styles.top;
 
+  const rootClass = block ? `${styles.root} ${styles.rootBlock}` : styles.root;
+  const triggerClass = block
+    ? `${styles.trigger} ${styles.triggerBlock}`
+    : styles.trigger;
+
+  const RootTag = block ? "div" : "span";
+  const TriggerTag = block ? "div" : "span";
+
   return (
-    <span
-      className={block ? `${styles.root} ${styles.rootBlock}` : styles.root}
-    >
-      <span
-        className={
-          block ? `${styles.trigger} ${styles.triggerBlock}` : styles.trigger
-        }
-      >
-        {children}
-      </span>
+    <RootTag className={rootClass}>
+      <TriggerTag className={triggerClass}>{children}</TriggerTag>
       <span className={`${styles.content} ${sideClass}`} role="tooltip">
         {content}
       </span>
-    </span>
+    </RootTag>
   );
 }
 

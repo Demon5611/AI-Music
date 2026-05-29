@@ -65,7 +65,6 @@ export function MixerPanel({
   const togglePreviewSolo = useAudioEditorStore((state) => state.togglePreviewSolo);
 
   return (
-    <Tooltip block content="Здесь можно быстро настроить баланс вокала и музыки">
       <div className={styles.panel}>
         <h3 className={styles.panelTitle}>Mixer</h3>
         <div className={styles.mixerList}>
@@ -157,6 +156,5 @@ export function MixerPanel({
           })}
         </div>
       </div>
-    </Tooltip>
   );
 }
