@@ -3,33 +3,35 @@ import { prisma, Prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
 import {
   clearUndoneOperations,
+  countActiveOperations,
   findLastActiveOperation,
   findLastUndoneOperation,
   markOperationUndone,
   restoreUndoneOperation,
 } from "./edit-operation.repository.js";
 import { getCurrentVersion, getSongForUser } from "./song-editor.service.js";
+import {
+  resolveDuplicatedRegionId,
+  resolveMovePreviousIndex,
+  resolveResizeBounds,
+  resolveSplitPreviousEndMs,
+  type OperationUndoMeta,
+  type StoredEditOperation,
+} from "./undo-meta.resolver.js";
 
 interface SelectionContext {
   selectedRegionId?: string | null;
   selectedTrackId?: EditorTrackId | null;
 }
 
-interface OperationUndoMeta {
-  previousStartMs?: number;
-  previousEndMs?: number;
-  duplicatedRegionId?: string;
-  cutRegionSnapshot?: {
-    label: string;
-    startMs: number;
-    endMs: number;
-    orderIndex: number;
-  };
-  previousIndex?: number;
+interface UndoLogContext {
+  info: (payload: Record<string, unknown>, message: string) => void;
+  warn: (payload: Record<string, unknown>, message: string) => void;
 }
 
-type StoredEditOperation = EditOperation & {
-  undoMeta?: OperationUndoMeta;
+const noopLogger: UndoLogContext = {
+  info: () => undefined,
+  warn: () => undefined,
 };
 
 const MIN_REGION_LENGTH_MS = 100;
@@ -304,13 +306,18 @@ export async function applyRegionMutation(
 export async function reverseRegionMutation(
   songId: string,
   operation: StoredEditOperation,
+  log: UndoLogContext = noopLogger,
 ): Promise<void> {
   const undoMeta = operation.undoMeta;
 
   switch (operation.type) {
     case "CUT_REGION": {
       if (!undoMeta?.cutRegionSnapshot) {
-        throw new BadRequestError("Cannot undo cut: missing snapshot");
+        log.warn(
+          { songId, operationType: operation.type, regionId: operation.regionId },
+          "undo: skipped region reversal, missing cut snapshot",
+        );
+        return;
       }
 
       await prisma.songRegion.create({
@@ -327,8 +334,18 @@ export async function reverseRegionMutation(
     }
 
     case "SPLIT_REGION": {
-      if (undoMeta?.previousEndMs === undefined) {
-        throw new BadRequestError("Cannot undo split: missing metadata");
+      const previousEndMs = await resolveSplitPreviousEndMs(
+        songId,
+        operation.splitAtMs,
+        undoMeta,
+      );
+
+      if (previousEndMs === undefined) {
+        log.warn(
+          { songId, operationType: operation.type, regionId: operation.regionId },
+          "undo: skipped region reversal, missing split metadata",
+        );
+        return;
       }
 
       const splitRegion = await prisma.songRegion.findFirst({
@@ -344,50 +361,77 @@ export async function reverseRegionMutation(
 
       await prisma.songRegion.update({
         where: { id: operation.regionId },
-        data: { endMs: undoMeta.previousEndMs },
+        data: { endMs: previousEndMs },
       });
       await reindexRegions(songId);
       return;
     }
 
     case "MOVE_REGION": {
-      if (undoMeta?.previousIndex === undefined) {
-        throw new BadRequestError("Cannot undo move: missing metadata");
+      const previousIndex = await resolveMovePreviousIndex(undoMeta);
+
+      if (previousIndex === undefined) {
+        log.warn(
+          {
+            songId,
+            operationType: operation.type,
+            regionId: operation.regionId,
+            targetIndex: operation.targetIndex,
+          },
+          "undo: skipped region reversal, missing move metadata",
+        );
+        return;
       }
 
       await applyRegionMutation(songId, {
         type: "MOVE_REGION",
         regionId: operation.regionId,
-        targetIndex: undoMeta.previousIndex,
+        targetIndex: previousIndex,
       });
       return;
     }
 
     case "DUPLICATE_REGION": {
-      if (!undoMeta?.duplicatedRegionId) {
-        throw new BadRequestError("Cannot undo duplicate: missing metadata");
+      const duplicatedRegionId = await resolveDuplicatedRegionId(
+        songId,
+        operation.regionId,
+        undoMeta,
+      );
+
+      if (!duplicatedRegionId) {
+        log.warn(
+          { songId, operationType: operation.type, regionId: operation.regionId },
+          "undo: skipped region reversal, duplicate region not found",
+        );
+        return;
       }
 
       await prisma.songRegion.delete({
-        where: { id: undoMeta.duplicatedRegionId },
+        where: { id: duplicatedRegionId },
       });
       await reindexRegions(songId);
       return;
     }
 
     case "RESIZE_REGION": {
-      if (
-        undoMeta?.previousStartMs === undefined ||
-        undoMeta.previousEndMs === undefined
-      ) {
-        throw new BadRequestError("Cannot undo resize: missing metadata");
+      const previousBounds = await resolveResizeBounds(
+        operation.regionId,
+        undoMeta,
+      );
+
+      if (!previousBounds) {
+        log.warn(
+          { songId, operationType: operation.type, regionId: operation.regionId },
+          "undo: skipped region reversal, missing resize metadata",
+        );
+        return;
       }
 
       await prisma.songRegion.update({
         where: { id: operation.regionId },
         data: {
-          startMs: undoMeta.previousStartMs,
-          endMs: undoMeta.previousEndMs,
+          startMs: previousBounds.startMs,
+          endMs: previousBounds.endMs,
         },
       });
       return;
@@ -437,8 +481,12 @@ export async function applyOperation(
   const version = await getCurrentVersion(songId);
   await clearUndoneOperations(version.id);
 
-  const storedPayload: StoredEditOperation = undoMeta
-    ? { ...operation, undoMeta }
+  if (isRegionMutation(operation) && !undoMeta) {
+    throw new BadRequestError("Failed to capture undo metadata for operation");
+  }
+
+  const storedPayload: StoredEditOperation = isRegionMutation(operation)
+    ? { ...operation, undoMeta: undoMeta! }
     : operation;
 
   await prisma.editOperation.create({
@@ -487,7 +535,11 @@ export async function previewOperation(
   };
 }
 
-export async function undoLastOperation(userId: string, songId: string) {
+export async function undoLastOperation(
+  userId: string,
+  songId: string,
+  log: UndoLogContext = noopLogger,
+) {
   const song = await getSongForUser(userId, songId);
 
   if (song.status !== "ready") {
@@ -496,19 +548,45 @@ export async function undoLastOperation(userId: string, songId: string) {
 
   const version = await getCurrentVersion(songId);
 
+  log.info(
+    {
+      songId,
+      versionId: version.id,
+      totalOperations: version.operations.length,
+      activeOperations: countActiveOperations(version.operations),
+    },
+    "undo: resolving last active operation",
+  );
+
   const lastOperation = await findLastActiveOperation(version.id);
 
   if (!lastOperation) {
+    log.warn({ songId, versionId: version.id }, "undo: nothing to undo");
     throw new BadRequestError("Nothing to undo");
   }
 
   const payload = lastOperation.payloadJson as unknown as StoredEditOperation;
 
+  log.info(
+    {
+      songId,
+      operationId: lastOperation.id,
+      operationType: lastOperation.operationType,
+      hasUndoMeta: Boolean(payload.undoMeta),
+    },
+    "undo: reversing operation",
+  );
+
   if (isRegionMutation(payload)) {
-    await reverseRegionMutation(songId, payload);
+    await reverseRegionMutation(songId, payload, log);
   }
 
   await markOperationUndone(lastOperation.id);
+
+  log.info(
+    { songId, operationId: lastOperation.id },
+    "undo: operation marked as undone",
+  );
 
   return getSongForUser(userId, songId);
 }

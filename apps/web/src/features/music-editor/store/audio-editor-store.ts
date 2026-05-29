@@ -85,6 +85,44 @@ const DEFAULT_PREVIEW: PreviewTrackState = {
   solo: false,
 };
 
+function resolvePreviewTracks(
+  operations: EditOperation[],
+  selectedRegionId: string | null,
+  previous: Record<EditorTrackId, PreviewTrackState>,
+): Record<EditorTrackId, PreviewTrackState> {
+  const resolveTrack = (trackId: EditorTrackId): PreviewTrackState => {
+    let gainDb = 0;
+    let muted = false;
+
+    if (selectedRegionId) {
+      for (const operation of operations) {
+        if (!("regionId" in operation) || operation.regionId !== selectedRegionId) {
+          continue;
+        }
+
+        if (operation.type === "SET_VOLUME" && operation.trackId === trackId) {
+          gainDb = operation.gainDb;
+        }
+
+        if (operation.type === "MUTE_TRACK" && operation.trackId === trackId) {
+          muted = operation.muted;
+        }
+      }
+    }
+
+    return {
+      gainDb,
+      muted,
+      solo: previous[trackId].solo,
+    };
+  };
+
+  return {
+    vocal: resolveTrack("vocal"),
+    instrumental: resolveTrack("instrumental"),
+  };
+}
+
 export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
   songId: null,
   selectedRegionId: null,
@@ -119,18 +157,32 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
   aiCommandPreview: null,
 
   hydrate: (state) => {
-    set({
-      songId: state.song.id,
-      regions: state.regions,
-      tracks: state.tracks,
-      operations: state.operations,
-      undoneOperations: state.undoneOperations ?? [],
-      currentVersionId: state.currentVersionId,
-      versions: state.versions,
-      songStatus: state.song.status,
-      pendingAction: state.pendingAction,
-      durationMs: state.song.durationMs ?? 0,
-      error: null,
+    set((current) => {
+      const selectedRegionId =
+        current.selectedRegionId &&
+        state.regions.some((region) => region.id === current.selectedRegionId)
+          ? current.selectedRegionId
+          : null;
+
+      return {
+        songId: state.song.id,
+        regions: state.regions,
+        tracks: state.tracks,
+        operations: state.operations,
+        undoneOperations: state.undoneOperations ?? [],
+        currentVersionId: state.currentVersionId,
+        versions: state.versions,
+        songStatus: state.song.status,
+        pendingAction: state.pendingAction,
+        durationMs: state.song.durationMs ?? 0,
+        selectedRegionId,
+        previewTracks: resolvePreviewTracks(
+          state.operations,
+          selectedRegionId,
+          current.previewTracks,
+        ),
+        error: null,
+      };
     });
   },
 

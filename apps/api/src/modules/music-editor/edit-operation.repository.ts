@@ -1,32 +1,16 @@
 import { prisma, Prisma } from "@ai-music/db";
 import type { DbEditOperation } from "./song-editor.mapper.js";
 
-type EditOperationUndoUpdate = {
-  undoneAt: Date | null;
-  payloadJson?: Prisma.InputJsonValue;
-};
-
-function activeOperationWhere(versionId: string): Prisma.EditOperationWhereInput {
-  return {
-    songVersionId: versionId,
-    undoneAt: null,
-  } as Prisma.EditOperationWhereInput;
-}
-
-function undoneOperationWhere(versionId: string): Prisma.EditOperationWhereInput {
-  return {
-    songVersionId: versionId,
-    undoneAt: { not: null },
-  } as Prisma.EditOperationWhereInput;
-}
-
-function toUpdateInput(data: EditOperationUndoUpdate): Prisma.EditOperationUpdateInput {
-  return data as Prisma.EditOperationUpdateInput;
+export function countActiveOperations(operations: DbEditOperation[]): number {
+  return operations.filter((operation) => operation.undoneAt === null).length;
 }
 
 export async function clearUndoneOperations(versionId: string): Promise<void> {
   await prisma.editOperation.deleteMany({
-    where: undoneOperationWhere(versionId),
+    where: {
+      songVersionId: versionId,
+      undoneAt: { not: null },
+    },
   });
 }
 
@@ -34,7 +18,10 @@ export async function findLastActiveOperation(
   versionId: string,
 ): Promise<DbEditOperation | null> {
   return prisma.editOperation.findFirst({
-    where: activeOperationWhere(versionId),
+    where: {
+      songVersionId: versionId,
+      undoneAt: null,
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -42,7 +29,7 @@ export async function findLastActiveOperation(
 export async function markOperationUndone(operationId: string): Promise<void> {
   await prisma.editOperation.update({
     where: { id: operationId },
-    data: toUpdateInput({ undoneAt: new Date() }),
+    data: { undoneAt: new Date() },
   });
 }
 
@@ -50,8 +37,11 @@ export async function findLastUndoneOperation(
   versionId: string,
 ): Promise<DbEditOperation | null> {
   return prisma.editOperation.findFirst({
-    where: undoneOperationWhere(versionId),
-    orderBy: { undoneAt: "desc" } as Prisma.EditOperationOrderByWithRelationInput,
+    where: {
+      songVersionId: versionId,
+      undoneAt: { not: null },
+    },
+    orderBy: { undoneAt: "desc" },
   });
 }
 
@@ -61,9 +51,9 @@ export async function restoreUndoneOperation(
 ): Promise<void> {
   await prisma.editOperation.update({
     where: { id: operationId },
-    data: toUpdateInput({
+    data: {
       undoneAt: null,
       payloadJson,
-    }),
+    },
   });
 }

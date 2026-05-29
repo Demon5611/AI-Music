@@ -24,7 +24,7 @@ import {
   kickoffStemSeparation,
   refreshEditorProgress,
 } from "./song-editor.service.js";
-import { toEditorStateDto, toRenderJobDto } from "./song-editor.mapper.js";
+import { toEditorStateDto, toRenderJobDto, parseOperations } from "./song-editor.mapper.js";
 import { transferVoiceForRegion } from "./voice-transfer.service.js";
 
 async function buildEditorResponse(userId: string, songId: string) {
@@ -129,14 +129,46 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
     "/api/music/:songId/operations/undo",
     { preHandler: requireAuth },
     async (request, reply) => {
+      const logger = {
+        info: (payload: Record<string, unknown>, message: string) => {
+          request.log.info(payload, message);
+        },
+        warn: (payload: Record<string, unknown>, message: string) => {
+          request.log.warn(payload, message);
+        },
+      };
+
       try {
+        request.log.info(
+          { songId: request.params.songId, userId: request.userId },
+          "undo: request received",
+        );
+
         const song = await undoLastOperation(
           request.userId!,
           request.params.songId,
+          logger,
         );
         const version = await getCurrentVersion(song.id);
+
+        request.log.info(
+          {
+            songId: request.params.songId,
+            activeOperations: parseOperations(version.operations).length,
+          },
+          "undo: completed",
+        );
+
         return reply.send(toEditorStateDto(song, version));
       } catch (error) {
+        request.log.warn(
+          {
+            songId: request.params.songId,
+            userId: request.userId,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          "undo: failed",
+        );
         return sendAppError(reply, error);
       }
     },
