@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, type MouseEvent } from "react"
 import WaveSurfer from "wavesurfer.js";
 import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
 import type { SongRegionDto } from "@ai-music/shared";
-import { AuthenticatedBlobUrl } from "@/shared/ui/authenticated-blob-url";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { TransportControls } from "@/features/music-editor/transport-controls";
 import {
@@ -21,10 +20,10 @@ import { formatTimeMs } from "@/features/music-editor/utils/format-time";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 
 interface WaveformTimelineProps {
-  audioUrl: string | null;
   regions: SongRegionDto[];
   selectedRegionId: string | null;
   onSelectRegion: (regionId: string) => void;
+  onResizeRegion: (regionId: string, startMs: number, endMs: number) => void;
   disabled?: boolean;
 }
 
@@ -46,6 +45,8 @@ const REGION_SELECTED_COLORS: Record<string, string> = {
   custom: "rgba(148, 163, 184, 0.45)",
 };
 
+const RESIZE_DEBOUNCE_MS = 350;
+
 function buildRulerMarks(durationMs: number, count = 5): number[] {
   if (durationMs <= 0) {
     return [0];
@@ -57,16 +58,18 @@ function buildRulerMarks(durationMs: number, count = 5): number[] {
 }
 
 function WaveformSurface({
-  playbackUrl,
+  mediaElement,
   regions,
   selectedRegionId,
   onSelectRegion,
+  onResizeRegion,
   disabled,
 }: {
-  playbackUrl: string;
+  mediaElement: HTMLAudioElement;
   regions: SongRegionDto[];
   selectedRegionId: string | null;
   onSelectRegion: (regionId: string) => void;
+  onResizeRegion: (regionId: string, startMs: number, endMs: number) => void;
   disabled?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -75,7 +78,10 @@ function WaveformSurface({
     null,
   );
   const isWaveformReadyRef = useRef(false);
+  const isSyncingRegionsRef = useRef(false);
+  const resizeDebounceRef = useRef<number | null>(null);
   const onSelectRegionRef = useRef(onSelectRegion);
+  const onResizeRegionRef = useRef(onResizeRegion);
 
   const currentTimeMs = useAudioEditorStore((state) => state.currentTimeMs);
   const durationMs = useAudioEditorStore((state) => state.durationMs);
@@ -85,7 +91,8 @@ function WaveformSurface({
 
   useEffect(() => {
     onSelectRegionRef.current = onSelectRegion;
-  }, [onSelectRegion]);
+    onResizeRegionRef.current = onResizeRegion;
+  }, [onResizeRegion, onSelectRegion]);
 
   const rulerMarks = useMemo(
     () => buildRulerMarks(durationMs),
@@ -124,7 +131,7 @@ function WaveformSurface({
 
     const wavesurfer = WaveSurfer.create({
       container: containerRef.current,
-      url: playbackUrl,
+      media: mediaElement,
       height: 96,
       waveColor: "#64748b",
       progressColor: "#94a3b8",
@@ -178,13 +185,35 @@ function WaveformSurface({
       onSelectRegionRef.current(String(region.id));
     });
 
+    regionsPlugin.on("region-updated", (region) => {
+      if (isSyncingRegionsRef.current) {
+        return;
+      }
+
+      if (resizeDebounceRef.current !== null) {
+        window.clearTimeout(resizeDebounceRef.current);
+      }
+
+      resizeDebounceRef.current = window.setTimeout(() => {
+        onResizeRegionRef.current(
+          String(region.id),
+          Math.round(region.start * 1000),
+          Math.round(region.end * 1000),
+        );
+      }, RESIZE_DEBOUNCE_MS);
+    });
+
     return () => {
+      if (resizeDebounceRef.current !== null) {
+        window.clearTimeout(resizeDebounceRef.current);
+      }
+
       isWaveformReadyRef.current = false;
       wavesurfer.destroy();
       wavesurferRef.current = null;
       regionsPluginRef.current = null;
     };
-  }, [disabled, playbackUrl, setDuration]);
+  }, [disabled, mediaElement, setDuration]);
 
   useEffect(() => {
     const wavesurfer = wavesurferRef.current;
@@ -203,6 +232,7 @@ function WaveformSurface({
       return;
     }
 
+    isSyncingRegionsRef.current = true;
     plugin.clearRegions();
 
     regions.forEach((region) => {
@@ -222,6 +252,8 @@ function WaveformSurface({
         resize: isSelected,
       });
     });
+
+    isSyncingRegionsRef.current = false;
   }, [regions, selectedRegionId]);
 
   useEffect(() => {
@@ -280,12 +312,15 @@ function WaveformSurface({
 }
 
 export function WaveformTimeline({
-  audioUrl,
   regions,
   selectedRegionId,
   onSelectRegion,
+  onResizeRegion,
   disabled,
 }: WaveformTimelineProps) {
+  const stemMedia = useAudioEditorStore((state) => state.stemMedia);
+  const masterMedia = stemMedia.instrumental ?? stemMedia.vocal;
+
   return (
     <div className={styles.timelineBlock}>
       <div className={styles.timelineHeader}>
@@ -293,25 +328,22 @@ export function WaveformTimeline({
         <TransportControls disabled={disabled} />
       </div>
 
-      <AuthenticatedBlobUrl src={audioUrl}>
-        {(playbackUrl) =>
-          playbackUrl ? (
-            <WaveformSurface
-              disabled={disabled}
-              playbackUrl={playbackUrl}
-              regions={regions}
-              selectedRegionId={selectedRegionId}
-              onSelectRegion={onSelectRegion}
-            />
-          ) : (
-            <p className={styles.panelHint}>Загрузка waveform...</p>
-          )
-        }
-      </AuthenticatedBlobUrl>
+      {masterMedia ? (
+        <WaveformSurface
+          disabled={disabled}
+          mediaElement={masterMedia}
+          regions={regions}
+          selectedRegionId={selectedRegionId}
+          onResizeRegion={onResizeRegion}
+          onSelectRegion={onSelectRegion}
+        />
+      ) : (
+        <p className={styles.panelHint}>Загрузка waveform...</p>
+      )}
 
       <p className={styles.timelineHint}>
-        Клик по timeline перемещает playhead. Клик по фрагменту выбирает его для
-        редактирования.
+        Клик по timeline перемещает playhead. Перетаскивание границ выбранного
+        фрагмента сохраняет новые bounds.
       </p>
     </div>
   );

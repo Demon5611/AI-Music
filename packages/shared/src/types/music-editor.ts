@@ -52,6 +52,13 @@ export interface DuplicateRegionOperation {
   regionId: string;
 }
 
+export interface ResizeRegionOperation {
+  type: "RESIZE_REGION";
+  regionId: string;
+  startMs: number;
+  endMs: number;
+}
+
 export interface FadeOperation {
   type: "FADE";
   trackId: EditorTrackId;
@@ -79,6 +86,7 @@ export type EditOperation =
   | SplitRegionOperation
   | MoveRegionOperation
   | DuplicateRegionOperation
+  | ResizeRegionOperation
   | FadeOperation
   | ReplaceVocalOperation
   | RegenerateRegionOperation;
@@ -148,6 +156,7 @@ export interface EditorStateDto {
   regions: SongRegionDto[];
   tracks: AudioTrackDto[];
   operations: EditOperation[];
+  undoneOperations: EditOperation[];
   currentVersionId: string;
   versions: SongVersionDto[];
   pendingAction: SongPendingActionDto;

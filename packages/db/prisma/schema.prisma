@@ -201,15 +201,17 @@ model SongVersion {
 }
 
 model EditOperation {
-  id            String   @id @default(cuid())
-  songVersionId String   @map("song_version_id")
-  operationType String   @map("operation_type")
-  payloadJson   Json     @map("payload_json")
-  createdAt     DateTime @default(now()) @map("created_at")
+  id            String    @id @default(cuid())
+  songVersionId String    @map("song_version_id")
+  operationType String    @map("operation_type")
+  payloadJson   Json      @map("payload_json")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  undoneAt      DateTime? @map("undone_at")
 
   songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
 
   @@index([songVersionId, createdAt])
+  @@index([songVersionId, undoneAt])
   @@map("edit_operations")
 }
 

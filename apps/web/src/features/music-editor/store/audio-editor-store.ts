@@ -21,6 +21,11 @@ export interface PlaybackController {
   setZoom: (zoom: number) => void;
 }
 
+export interface StemMediaElements {
+  vocal: HTMLAudioElement | null;
+  instrumental: HTMLAudioElement | null;
+}
+
 interface AudioEditorState {
   songId: string | null;
   selectedRegionId: string | null;
@@ -43,6 +48,7 @@ interface AudioEditorState {
   loopSelected: boolean;
   previewTracks: Record<EditorTrackId, PreviewTrackState>;
   playbackController: PlaybackController | null;
+  stemMedia: StemMediaElements;
 
   aiCommandText: string;
   aiCommandPreview: EditOperation | null;
@@ -67,8 +73,7 @@ interface AudioEditorState {
   togglePreviewMute: (trackId: EditorTrackId) => void;
   togglePreviewSolo: (trackId: EditorTrackId) => void;
 
-  undo: () => void;
-  redo: () => void;
+  setStemMedia: (media: StemMediaElements) => void;
 
   setAiCommandText: (value: string) => void;
   setAiCommandPreview: (operation: EditOperation | null) => void;
@@ -105,6 +110,10 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
     instrumental: { ...DEFAULT_PREVIEW },
   },
   playbackController: null,
+  stemMedia: {
+    vocal: null,
+    instrumental: null,
+  },
 
   aiCommandText: "",
   aiCommandPreview: null,
@@ -115,7 +124,7 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
       regions: state.regions,
       tracks: state.tracks,
       operations: state.operations,
-      undoneOperations: [],
+      undoneOperations: state.undoneOperations ?? [],
       currentVersionId: state.currentVersionId,
       versions: state.versions,
       songStatus: state.song.status,
@@ -197,35 +206,7 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
       };
     }),
 
-  undo: () => {
-    const { operations, undoneOperations } = get();
-
-    if (operations.length === 0) {
-      return;
-    }
-
-    const last = operations[operations.length - 1];
-
-    set({
-      operations: operations.slice(0, -1),
-      undoneOperations: [...undoneOperations, last],
-    });
-  },
-
-  redo: () => {
-    const { operations, undoneOperations } = get();
-
-    if (undoneOperations.length === 0) {
-      return;
-    }
-
-    const next = undoneOperations[undoneOperations.length - 1];
-
-    set({
-      operations: [...operations, next],
-      undoneOperations: undoneOperations.slice(0, -1),
-    });
-  },
+  setStemMedia: (media) => set({ stemMedia: media }),
 
   setAiCommandText: (value) => set({ aiCommandText: value }),
   setAiCommandPreview: (operation) => set({ aiCommandPreview: operation }),

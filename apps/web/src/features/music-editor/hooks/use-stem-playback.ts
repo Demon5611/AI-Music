@@ -54,6 +54,7 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
   const setDuration = useAudioEditorStore((state) => state.setDuration);
   const setIsPlaying = useAudioEditorStore((state) => state.setIsPlaying);
   const setPlaybackController = useAudioEditorStore((state) => state.setPlaybackController);
+  const setStemMedia = useAudioEditorStore((state) => state.setStemMedia);
 
   const vocalRef = useRef<HTMLAudioElement | null>(null);
   const instrumentalRef = useRef<HTMLAudioElement | null>(null);
@@ -82,6 +83,7 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
 
   useEffect(() => {
     if (!vocalUrl && !instrumentalUrl) {
+      setStemMedia({ vocal: null, instrumental: null });
       return;
     }
 
@@ -90,6 +92,7 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
 
     vocalRef.current = vocal;
     instrumentalRef.current = instrumental;
+    setStemMedia({ vocal, instrumental });
 
     function updateDuration() {
       const nextDuration = resolveDurationMs(vocalRef.current, instrumentalRef.current);
@@ -111,8 +114,9 @@ export function useStemPlayback(vocalUrl: string | null, instrumentalUrl: string
       instrumental?.pause();
       vocalRef.current = null;
       instrumentalRef.current = null;
+      setStemMedia({ vocal: null, instrumental: null });
     };
-  }, [instrumentalUrl, setDuration, syncVolumes, vocalUrl]);
+  }, [instrumentalUrl, setDuration, setStemMedia, syncVolumes, vocalUrl]);
 
   useEffect(() => {
     function tick() {

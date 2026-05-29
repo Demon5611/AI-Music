@@ -13,7 +13,7 @@ import {
   startRegenerateRegion,
 } from "./ai-actions.service.js";
 import { executeAiCommand } from "./ai-command.service.js";
-import { applyOperation, previewOperation } from "./operation.service.js";
+import { applyOperation, previewOperation, redoLastOperation, undoLastOperation } from "./operation.service.js";
 import { renderSongVersion, getRenderJob } from "./render.service.js";
 import {
   ensureSongForTrack,
@@ -116,6 +116,40 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
             selectedRegionId: parsed.data.selectedRegionId,
             selectedTrackId: parsed.data.selectedTrackId,
           },
+        );
+        const version = await getCurrentVersion(song.id);
+        return reply.send(toEditorStateDto(song, version));
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { songId: string } }>(
+    "/api/music/:songId/operations/undo",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const song = await undoLastOperation(
+          request.userId!,
+          request.params.songId,
+        );
+        const version = await getCurrentVersion(song.id);
+        return reply.send(toEditorStateDto(song, version));
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { songId: string } }>(
+    "/api/music/:songId/operations/redo",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const song = await redoLastOperation(
+          request.userId!,
+          request.params.songId,
         );
         const version = await getCurrentVersion(song.id);
         return reply.send(toEditorStateDto(song, version));

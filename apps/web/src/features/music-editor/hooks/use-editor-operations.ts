@@ -50,6 +50,42 @@ export function useEditorOperations() {
     [api, hydrate, setBusy, setError, songId],
   );
 
+  const undo = useCallback(async () => {
+    if (!songId) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+
+    try {
+      const result = await api.musicEditor.undoLastOperation(songId);
+      hydrate(result);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Undo failed");
+    } finally {
+      setBusy(false);
+    }
+  }, [api, hydrate, setBusy, setError, songId]);
+
+  const redo = useCallback(async () => {
+    if (!songId) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+
+    try {
+      const result = await api.musicEditor.redoLastOperation(songId);
+      hydrate(result);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Redo failed");
+    } finally {
+      setBusy(false);
+    }
+  }, [api, hydrate, setBusy, setError, songId]);
+
   const setVolume = useCallback(
     (trackId: EditorTrackId, gainDb: number) => {
       if (!selectedRegionId) {
@@ -113,6 +149,18 @@ export function useEditorOperations() {
     });
   }, [applyOperation, selectedRegionId, setError]);
 
+  const resizeRegion = useCallback(
+    (regionId: string, startMs: number, endMs: number) => {
+      void applyOperation({
+        type: "RESIZE_REGION",
+        regionId,
+        startMs,
+        endMs,
+      });
+    },
+    [applyOperation],
+  );
+
   const fadeRegion = useCallback(
     (fadeType: "in" | "out") => {
       if (!selectedRegionId || !selectedTrackId) {
@@ -169,10 +217,13 @@ export function useEditorOperations() {
 
   return {
     applyOperation,
+    undo,
+    redo,
     setVolume,
     muteTrack,
     splitRegion,
     duplicateRegion,
+    resizeRegion,
     fadeRegion,
     moveRegion,
     cutRegion,

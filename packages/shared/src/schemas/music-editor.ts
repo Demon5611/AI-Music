@@ -38,6 +38,13 @@ export const DuplicateRegionOperationSchema = z.object({
   regionId: z.string().min(1),
 });
 
+export const ResizeRegionOperationSchema = z.object({
+  type: z.literal("RESIZE_REGION"),
+  regionId: z.string().min(1),
+  startMs: z.number().int().min(0),
+  endMs: z.number().int().min(1),
+});
+
 export const FadeOperationSchema = z.object({
   type: z.literal("FADE"),
   trackId: editorTrackIdSchema,
@@ -65,6 +72,7 @@ export const EditOperationSchema = z.discriminatedUnion("type", [
   SplitRegionOperationSchema,
   MoveRegionOperationSchema,
   DuplicateRegionOperationSchema,
+  ResizeRegionOperationSchema,
   FadeOperationSchema,
   ReplaceVocalOperationSchema,
   RegenerateRegionOperationSchema,

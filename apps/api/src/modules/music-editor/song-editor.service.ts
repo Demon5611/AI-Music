@@ -9,7 +9,10 @@ import {
   buildSongStemKey,
   getStorageService,
 } from "../storage/storage.service.js";
-import { buildDefaultRegions } from "./song-editor.mapper.js";
+import {
+  buildDefaultRegions,
+  type SongVersionWithOperations,
+} from "./song-editor.mapper.js";
 
 export async function ensureSongForTrack(userId: string, trackId: string) {
   const track = await prisma.musicGenerationTrack.findUnique({
@@ -78,7 +81,9 @@ export async function getSongForUser(userId: string, songId: string) {
   return song;
 }
 
-export async function getCurrentVersion(songId: string) {
+export async function getCurrentVersion(
+  songId: string,
+): Promise<SongVersionWithOperations> {
   const version = await prisma.songVersion.findFirst({
     where: { songId, status: { in: ["draft", "rendering"] } },
     include: { operations: { orderBy: { createdAt: "asc" } } },

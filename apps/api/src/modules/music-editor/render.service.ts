@@ -9,6 +9,7 @@ import {
   buildSongRenderKey,
   getStorageService,
 } from "../storage/storage.service.js";
+import { parseOperations } from "./song-editor.mapper.js";
 import { getCurrentVersion, getSongForUser } from "./song-editor.service.js";
 
 interface RegionSlice {
@@ -182,9 +183,7 @@ export async function renderSongVersion(userId: string, songId: string) {
   }
 
   const version = await getCurrentVersion(songId);
-  const operations = version.operations.map(
-    (item) => item.payloadJson as unknown as EditOperation,
-  );
+  const operations = parseOperations(version.operations);
 
   const nextVersionNumber =
     (song.versions.at(0)?.versionNumber ?? version.versionNumber) + 1;

@@ -78,6 +78,9 @@ export function AudioEditor({ songId }: AudioEditorProps) {
     fadeRegion,
     moveRegion,
     cutRegion,
+    resizeRegion,
+    undo,
+    redo,
   } = useEditorOperations();
 
   const {
@@ -120,9 +123,6 @@ export function AudioEditor({ songId }: AudioEditorProps) {
 
   const vocalTrack = tracks.find((track) => track.id === "vocal");
   const instrumentalTrack = tracks.find((track) => track.id === "instrumental");
-
-  const masterAudioUrl =
-    instrumentalTrack?.audioUrl ?? vocalTrack?.audioUrl ?? null;
 
   const editorReady = songStatus === "ready" && !isProcessing;
   const stemsReady = editorReady && Boolean(vocalTrack?.audioUrl || instrumentalTrack?.audioUrl);
@@ -182,10 +182,10 @@ export function AudioEditor({ songId }: AudioEditorProps) {
       <div className={styles.layout}>
         <div className={styles.mainColumn}>
           <WaveformTimeline
-            audioUrl={masterAudioUrl}
             disabled={controlsDisabled}
             regions={regions}
             selectedRegionId={selectedRegionId}
+            onResizeRegion={resizeRegion}
             onSelectRegion={setSelectedRegion}
           />
 
@@ -258,7 +258,12 @@ export function AudioEditor({ songId }: AudioEditorProps) {
             onSelectTrack={setSelectedTrack}
           />
 
-          <EditHistoryPanel operations={operations} />
+          <EditHistoryPanel
+            disabled={controlsDisabled}
+            operations={operations}
+            onRedo={() => void redo()}
+            onUndo={() => void undo()}
+          />
 
           <RenderButton
             disabled={controlsDisabled}

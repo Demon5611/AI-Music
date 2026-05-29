@@ -25,6 +25,10 @@ export function createMusicEditorApi(client: ApiClient) {
       client.post<EditorStateDto>(`/api/music/${songId}/separate-stems`, {}),
     applyOperation: (songId: string, body: ApplyOperationBody) =>
       client.post<EditorStateDto>(`/api/music/${songId}/operations`, body),
+    undoLastOperation: (songId: string) =>
+      client.post<EditorStateDto>(`/api/music/${songId}/operations/undo`, {}),
+    redoLastOperation: (songId: string) =>
+      client.post<EditorStateDto>(`/api/music/${songId}/operations/redo`, {}),
     previewOperation: (songId: string, body: ApplyOperationBody) =>
       client.post<{ valid: boolean; operation: ApplyOperationBody["operation"] }>(
         `/api/music/${songId}/preview-operation`,

@@ -1,11 +1,63 @@
 import type { EditOperation, EditorTrackId } from "@ai-music/shared";
 import { prisma, Prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
+import {
+  clearUndoneOperations,
+  findLastActiveOperation,
+  findLastUndoneOperation,
+  markOperationUndone,
+  restoreUndoneOperation,
+} from "./edit-operation.repository.js";
 import { getCurrentVersion, getSongForUser } from "./song-editor.service.js";
 
 interface SelectionContext {
   selectedRegionId?: string | null;
   selectedTrackId?: EditorTrackId | null;
+}
+
+interface OperationUndoMeta {
+  previousStartMs?: number;
+  previousEndMs?: number;
+  duplicatedRegionId?: string;
+  cutRegionSnapshot?: {
+    label: string;
+    startMs: number;
+    endMs: number;
+    orderIndex: number;
+  };
+  previousIndex?: number;
+}
+
+type StoredEditOperation = EditOperation & {
+  undoMeta?: OperationUndoMeta;
+};
+
+const MIN_REGION_LENGTH_MS = 100;
+
+function isRegionMutation(operation: EditOperation): boolean {
+  return [
+    "CUT_REGION",
+    "SPLIT_REGION",
+    "MOVE_REGION",
+    "DUPLICATE_REGION",
+    "RESIZE_REGION",
+  ].includes(operation.type);
+}
+
+function assertValidResizeBounds(
+  startMs: number,
+  endMs: number,
+  songDurationMs: number | null,
+): void {
+  if (endMs - startMs < MIN_REGION_LENGTH_MS) {
+    throw new BadRequestError(
+      `Region must be at least ${MIN_REGION_LENGTH_MS}ms long`,
+    );
+  }
+
+  if (songDurationMs !== null && endMs > songDurationMs) {
+    throw new BadRequestError("Region end exceeds song duration");
+  }
 }
 
 export function validateOperationSelection(
@@ -33,15 +85,95 @@ export function validateOperationSelection(
   }
 }
 
-export async function applyRegionMutation(
-  songId: string,
-  operation: EditOperation,
-): Promise<void> {
+async function reindexRegions(songId: string): Promise<void> {
   const regions = await prisma.songRegion.findMany({
     where: { songId },
     orderBy: { orderIndex: "asc" },
   });
 
+  await Promise.all(
+    regions.map((region, index) =>
+      prisma.songRegion.update({
+        where: { id: region.id },
+        data: { orderIndex: index },
+      }),
+    ),
+  );
+}
+
+function buildUndoMeta(
+  operation: EditOperation,
+  regions: Awaited<ReturnType<typeof prisma.songRegion.findMany>>,
+): OperationUndoMeta | undefined {
+  const regionMap = new Map(regions.map((region) => [region.id, region]));
+
+  switch (operation.type) {
+    case "CUT_REGION": {
+      const region = regionMap.get(operation.regionId);
+
+      if (!region) {
+        return undefined;
+      }
+
+      return {
+        cutRegionSnapshot: {
+          label: region.label,
+          startMs: region.startMs,
+          endMs: region.endMs,
+          orderIndex: region.orderIndex,
+        },
+      };
+    }
+
+    case "SPLIT_REGION": {
+      const region = regionMap.get(operation.regionId);
+
+      if (!region) {
+        return undefined;
+      }
+
+      return { previousEndMs: region.endMs };
+    }
+
+    case "MOVE_REGION": {
+      const sorted = regions.slice().sort((a, b) => a.orderIndex - b.orderIndex);
+      const previousIndex = sorted.findIndex((item) => item.id === operation.regionId);
+
+      if (previousIndex < 0) {
+        return undefined;
+      }
+
+      return { previousIndex };
+    }
+
+    case "RESIZE_REGION": {
+      const region = regionMap.get(operation.regionId);
+
+      if (!region) {
+        return undefined;
+      }
+
+      return {
+        previousStartMs: region.startMs,
+        previousEndMs: region.endMs,
+      };
+    }
+
+    default:
+      return undefined;
+  }
+}
+
+export async function applyRegionMutation(
+  songId: string,
+  operation: EditOperation,
+): Promise<OperationUndoMeta | undefined> {
+  const regions = await prisma.songRegion.findMany({
+    where: { songId },
+    orderBy: { orderIndex: "asc" },
+  });
+
+  const undoMeta = buildUndoMeta(operation, regions);
   const regionMap = new Map(regions.map((region) => [region.id, region]));
 
   switch (operation.type) {
@@ -54,7 +186,7 @@ export async function applyRegionMutation(
 
       await prisma.songRegion.delete({ where: { id: region.id } });
       await reindexRegions(songId);
-      return;
+      return undoMeta;
     }
 
     case "SPLIT_REGION": {
@@ -90,7 +222,7 @@ export async function applyRegionMutation(
       });
 
       await reindexRegions(songId);
-      return;
+      return undoMeta;
     }
 
     case "MOVE_REGION": {
@@ -113,7 +245,7 @@ export async function applyRegionMutation(
           }),
         ),
       );
-      return;
+      return undoMeta;
     }
 
     case "DUPLICATE_REGION": {
@@ -123,7 +255,7 @@ export async function applyRegionMutation(
         throw new NotFoundError("Region not found");
       }
 
-      await prisma.songRegion.create({
+      const duplicated = await prisma.songRegion.create({
         data: {
           songId,
           label: region.label,
@@ -134,28 +266,136 @@ export async function applyRegionMutation(
       });
 
       await reindexRegions(songId);
+      return { duplicatedRegionId: duplicated.id };
+    }
+
+    case "RESIZE_REGION": {
+      const region = regionMap.get(operation.regionId);
+
+      if (!region) {
+        throw new NotFoundError("Region not found");
+      }
+
+      const song = await prisma.song.findUnique({ where: { id: songId } });
+
+      assertValidResizeBounds(
+        operation.startMs,
+        operation.endMs,
+        song?.durationMs ?? null,
+      );
+
+      await prisma.songRegion.update({
+        where: { id: region.id },
+        data: {
+          startMs: operation.startMs,
+          endMs: operation.endMs,
+          label: "custom",
+        },
+      });
+
+      return undoMeta;
+    }
+
+    default:
+      return undefined;
+  }
+}
+
+export async function reverseRegionMutation(
+  songId: string,
+  operation: StoredEditOperation,
+): Promise<void> {
+  const undoMeta = operation.undoMeta;
+
+  switch (operation.type) {
+    case "CUT_REGION": {
+      if (!undoMeta?.cutRegionSnapshot) {
+        throw new BadRequestError("Cannot undo cut: missing snapshot");
+      }
+
+      await prisma.songRegion.create({
+        data: {
+          songId,
+          label: undoMeta.cutRegionSnapshot.label,
+          startMs: undoMeta.cutRegionSnapshot.startMs,
+          endMs: undoMeta.cutRegionSnapshot.endMs,
+          orderIndex: undoMeta.cutRegionSnapshot.orderIndex,
+        },
+      });
+      await reindexRegions(songId);
+      return;
+    }
+
+    case "SPLIT_REGION": {
+      if (undoMeta?.previousEndMs === undefined) {
+        throw new BadRequestError("Cannot undo split: missing metadata");
+      }
+
+      const splitRegion = await prisma.songRegion.findFirst({
+        where: {
+          songId,
+          startMs: operation.splitAtMs,
+        },
+      });
+
+      if (splitRegion) {
+        await prisma.songRegion.delete({ where: { id: splitRegion.id } });
+      }
+
+      await prisma.songRegion.update({
+        where: { id: operation.regionId },
+        data: { endMs: undoMeta.previousEndMs },
+      });
+      await reindexRegions(songId);
+      return;
+    }
+
+    case "MOVE_REGION": {
+      if (undoMeta?.previousIndex === undefined) {
+        throw new BadRequestError("Cannot undo move: missing metadata");
+      }
+
+      await applyRegionMutation(songId, {
+        type: "MOVE_REGION",
+        regionId: operation.regionId,
+        targetIndex: undoMeta.previousIndex,
+      });
+      return;
+    }
+
+    case "DUPLICATE_REGION": {
+      if (!undoMeta?.duplicatedRegionId) {
+        throw new BadRequestError("Cannot undo duplicate: missing metadata");
+      }
+
+      await prisma.songRegion.delete({
+        where: { id: undoMeta.duplicatedRegionId },
+      });
+      await reindexRegions(songId);
+      return;
+    }
+
+    case "RESIZE_REGION": {
+      if (
+        undoMeta?.previousStartMs === undefined ||
+        undoMeta.previousEndMs === undefined
+      ) {
+        throw new BadRequestError("Cannot undo resize: missing metadata");
+      }
+
+      await prisma.songRegion.update({
+        where: { id: operation.regionId },
+        data: {
+          startMs: undoMeta.previousStartMs,
+          endMs: undoMeta.previousEndMs,
+        },
+      });
       return;
     }
 
     default:
       return;
   }
-}
-
-async function reindexRegions(songId: string): Promise<void> {
-  const regions = await prisma.songRegion.findMany({
-    where: { songId },
-    orderBy: { orderIndex: "asc" },
-  });
-
-  await Promise.all(
-    regions.map((region, index) =>
-      prisma.songRegion.update({
-        where: { id: region.id },
-        data: { orderIndex: index },
-      }),
-    ),
-  );
 }
 
 export async function applyOperation(
@@ -182,15 +422,30 @@ export async function applyOperation(
     }
   }
 
-  await applyRegionMutation(songId, operation);
+  if (operation.type === "RESIZE_REGION") {
+    assertValidResizeBounds(
+      operation.startMs,
+      operation.endMs,
+      song.durationMs,
+    );
+  }
+
+  const undoMeta = isRegionMutation(operation)
+    ? await applyRegionMutation(songId, operation)
+    : undefined;
 
   const version = await getCurrentVersion(songId);
+  await clearUndoneOperations(version.id);
+
+  const storedPayload: StoredEditOperation = undoMeta
+    ? { ...operation, undoMeta }
+    : operation;
 
   await prisma.editOperation.create({
     data: {
       songVersionId: version.id,
       operationType: operation.type,
-      payloadJson: operation as unknown as Prisma.InputJsonValue,
+      payloadJson: storedPayload as unknown as Prisma.InputJsonValue,
     },
   });
 
@@ -217,9 +472,85 @@ export async function previewOperation(
     }
   }
 
+  if (operation.type === "RESIZE_REGION") {
+    assertValidResizeBounds(
+      operation.startMs,
+      operation.endMs,
+      song.durationMs,
+    );
+  }
+
   return {
     valid: true,
     operation,
     songId: song.id,
   };
+}
+
+export async function undoLastOperation(userId: string, songId: string) {
+  const song = await getSongForUser(userId, songId);
+
+  if (song.status !== "ready") {
+    throw new BadRequestError("Song editor is not ready yet");
+  }
+
+  const version = await getCurrentVersion(songId);
+
+  const lastOperation = await findLastActiveOperation(version.id);
+
+  if (!lastOperation) {
+    throw new BadRequestError("Nothing to undo");
+  }
+
+  const payload = lastOperation.payloadJson as unknown as StoredEditOperation;
+
+  if (isRegionMutation(payload)) {
+    await reverseRegionMutation(songId, payload);
+  }
+
+  await markOperationUndone(lastOperation.id);
+
+  return getSongForUser(userId, songId);
+}
+
+export async function redoLastOperation(userId: string, songId: string) {
+  const song = await getSongForUser(userId, songId);
+
+  if (song.status !== "ready") {
+    throw new BadRequestError("Song editor is not ready yet");
+  }
+
+  const version = await getCurrentVersion(songId);
+
+  const lastUndone = await findLastUndoneOperation(version.id);
+
+  if (!lastUndone) {
+    throw new BadRequestError("Nothing to redo");
+  }
+
+  const payload = lastUndone.payloadJson as unknown as StoredEditOperation;
+  const { undoMeta: previousUndoMeta, ...operation } = payload;
+
+  let nextUndoMeta = previousUndoMeta;
+
+  if (isRegionMutation(operation)) {
+    const mutationUndoMeta = await applyRegionMutation(songId, operation);
+
+    if (operation.type === "DUPLICATE_REGION" && mutationUndoMeta) {
+      nextUndoMeta = {
+        ...previousUndoMeta,
+        ...mutationUndoMeta,
+      };
+    }
+  }
+
+  await restoreUndoneOperation(
+    lastUndone.id,
+    {
+      ...operation,
+      undoMeta: nextUndoMeta,
+    } as unknown as Prisma.InputJsonValue,
+  );
+
+  return getSongForUser(userId, songId);
 }

@@ -12,12 +12,16 @@ import type {
 import type { Prisma, Song, SongRegion, SongStem, SongVersion } from "@ai-music/db";
 import { resolveApiBaseUrl } from "../music/music-record.service.js";
 
-type DbEditOperation = Prisma.EditOperationGetPayload<object>;
+export type DbEditOperation = Prisma.EditOperationGetPayload<object>;
+
+export type SongVersionWithOperations = SongVersion & {
+  operations: DbEditOperation[];
+};
 
 type SongWithRelations = Song & {
   stems: SongStem[];
   regions: SongRegion[];
-  versions: (SongVersion & { operations: DbEditOperation[] })[];
+  versions: SongVersionWithOperations[];
 };
 
 const REGION_LAYOUT: Array<{ label: SongRegionLabel; ratio: number }> = [
@@ -149,12 +153,42 @@ function toVersionDtos(
     }));
 }
 
-function parseOperations(
+function stripUndoMeta(operation: EditOperation): EditOperation {
+  if (!("undoMeta" in operation)) {
+    return operation;
+  }
+
+  const { undoMeta: _removed, ...cleanOperation } = operation as EditOperation & {
+    undoMeta?: unknown;
+  };
+
+  return cleanOperation;
+}
+
+export function parseOperations(
   operations: DbEditOperation[],
 ): EditOperation[] {
-  return operations.map(
-    (operation) => operation.payloadJson as unknown as EditOperation,
-  );
+  return operations
+    .filter((operation) => operation.undoneAt === null)
+    .map((operation) =>
+      stripUndoMeta(operation.payloadJson as unknown as EditOperation),
+    );
+}
+
+function parseUndoneOperations(
+  operations: DbEditOperation[],
+): EditOperation[] {
+  return operations
+    .filter((operation) => operation.undoneAt !== null)
+    .slice()
+    .sort((left, right) => {
+      const leftTime = left.undoneAt?.getTime() ?? 0;
+      const rightTime = right.undoneAt?.getTime() ?? 0;
+      return rightTime - leftTime;
+    })
+    .map((operation) =>
+      stripUndoMeta(operation.payloadJson as unknown as EditOperation),
+    );
 }
 
 function computeTrackState(
@@ -185,6 +219,7 @@ export function toEditorStateDto(
 ): EditorStateDto {
   const apiBaseUrl = resolveApiBaseUrl();
   const operations = parseOperations(currentVersion.operations);
+  const undoneOperations = parseUndoneOperations(currentVersion.operations);
   const stemByType = new Map(song.stems.map((stem) => [stem.type, stem]));
 
   const tracks = (["vocal", "instrumental"] as const).map((trackId) => {
@@ -207,6 +242,7 @@ export function toEditorStateDto(
     regions: toRegionDtos(song.regions),
     tracks,
     operations,
+    undoneOperations,
     currentVersionId: currentVersion.id,
     versions: toVersionDtos(song.id, song.versions, apiBaseUrl),
     pendingAction: toPendingActionDto(song),
