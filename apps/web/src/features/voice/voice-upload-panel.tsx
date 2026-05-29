@@ -11,6 +11,7 @@ import { useState } from "react";
 import { readAudioDurationSec } from "@/features/voice/read-audio-duration";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
+import { LoadingPanel } from "@/shared/ui/elevenlabs";
 import styles from "@/shared/ui/form.module.css";
 
 function resolveErrorMessage(error: unknown): string {
@@ -84,7 +85,11 @@ export function VoiceUploadPanel() {
   }
 
   if (!authReady) {
-    return <p className={styles.status}>Загрузка сессии...</p>;
+    return (
+      <section className={styles.section}>
+        <LoadingPanel />
+      </section>
+    );
   }
 
   return (

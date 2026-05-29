@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
+import { LoadingPanel } from "@/shared/ui/elevenlabs";
 import styles from "@/shared/ui/form.module.css";
 
 function resolveErrorMessage(error: unknown): string {
@@ -76,11 +77,20 @@ export function CreateTrackPanel() {
   }
 
   if (!authReady) {
-    return <p className={styles.status}>Загрузка сессии...</p>;
+    return (
+      <section className={styles.section}>
+        <LoadingPanel />
+      </section>
+    );
   }
 
   if (samplesQuery.isLoading) {
-    return <p className={styles.status}>Загрузка образцов голоса...</p>;
+    return (
+      <section className={styles.section}>
+        <h1 className={styles.title}>Создать трек</h1>
+        <LoadingPanel />
+      </section>
+    );
   }
 
   if (!readySamples.length) {

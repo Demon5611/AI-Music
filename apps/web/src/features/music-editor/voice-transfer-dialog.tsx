@@ -3,6 +3,7 @@
 import type { KitsVoiceModel } from "@ai-music/shared";
 import { useEffect, useState } from "react";
 import { useApi } from "@/shared/providers/api-provider";
+import { AiProcessingStatus, LoadingPanel } from "@/shared/ui/elevenlabs";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 
 interface VoiceTransferDialogProps {
@@ -99,7 +100,13 @@ export function VoiceTransferDialog({
     <div className={styles.dialogBackdrop}>
       <div className={styles.dialogCard}>
         <h3 className={styles.panelTitle}>Заменить вокал (Kits)</h3>
-        {isLoading ? <p className={styles.panelHint}>Загрузка моделей...</p> : null}
+        {isLoading ? <LoadingPanel lines={2} /> : null}
+        {isSubmitting ? (
+          <AiProcessingStatus
+            agentState="thinking"
+            label="Конвертация вокала..."
+          />
+        ) : null}
         {models.length > 0 ? (
           <label className={styles.fieldLabel}>
             Voice model

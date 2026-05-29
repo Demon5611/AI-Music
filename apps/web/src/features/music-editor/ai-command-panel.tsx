@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AiProcessingStatus } from "@/shared/ui/elevenlabs";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
@@ -86,16 +87,18 @@ export function AiCommandPanel({
           onChange={(event) => setAiCommandText(event.target.value)}
         />
 
-          <button
-            className={styles.primaryButton}
-            disabled={disabled || isSubmitting || !aiCommandText.trim()}
-            type="button"
-            onClick={() => void handlePreview()}
-          >
-            {isSubmitting && !aiCommandPreview
-              ? "Анализируем..."
-              : "Применить AI-команду"}
-          </button>
+          {isSubmitting && !aiCommandPreview ? (
+            <AiProcessingStatus agentState="thinking" label="Анализируем команду..." />
+          ) : (
+            <button
+              className={styles.primaryButton}
+              disabled={disabled || isSubmitting || !aiCommandText.trim()}
+              type="button"
+              onClick={() => void handlePreview()}
+            >
+              Применить AI-команду
+            </button>
+          )}
 
         {lastExplanation ? (
           <p className={styles.panelHint}>{lastExplanation}</p>

@@ -1,8 +1,8 @@
 "use client";
 
 import { CollapsibleLyrics } from "@/features/music-test/collapsible-lyrics";
-import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
+import { AudioPreviewPlayer } from "@/shared/ui/elevenlabs";
 import styles from "./styles/music-test.module.css";
 
 interface SongTrackResultProps {
@@ -59,7 +59,7 @@ export function SongTrackResult({
           />
         ) : null}
       </div>
-      <AuthenticatedAudio className={styles.player} src={audioUrl} />
+      <AudioPreviewPlayer className={styles.player} src={audioUrl} />
       {trackId && onOpenEditor ? (
         <button
           className={styles.editorLink}

@@ -1,0 +1,77 @@
+---
+description: ElevenLabs UI — только visual/design layer для AI и audio preview
+alwaysApply: true
+---
+
+# ElevenLabs UI Integration
+
+Проект — **AI Music Editor**, не Voice Assistant.
+
+## Использовать (visual layer)
+
+Компоненты из `@/components/ui/` (ElevenLabs UI / shadcn):
+
+- `Orb` — AI / processing status
+- `Waveform` — декоративная визуализация preview (не timeline)
+- `AudioPlayer*` — preview проигрывания
+- `Skeleton`, `ShimmeringText`, `Progress` — loading / empty / progress
+
+**Где применять:**
+
+- AI generation status (`generation/`)
+- Voice transfer status (`voice-transfer-dialog`, Kits)
+- Audio preview (`song-track-result`, preview panels)
+- Loading screens, empty states
+
+Обёртки проекта: `@/shared/ui/elevenlabs/*`.
+
+## НЕ использовать
+
+- Voice Agent UI, Conversation, Chat Widgets
+- Speech Agent, Voice Chat Flows, Transcriber, Mic Selector
+
+```bash
+# Запрещено добавлять в music-editor и timeline
+pnpm dlx shadcn@latest add conversation voice-chat-01 speech-input
+```
+
+## Timeline и редактор — полностью свои
+
+ElevenLabs UI **не** для: timeline, track lanes, regions, mixer, split/duplicate/move/fade, undo/redo, render flow.
+
+Стек редактора:
+
+- `@waveform-playlist/*` — timeline
+- Web Audio API, Tone.js — playback
+- dnd-kit — drag
+- Собственные React-комponents + CSS modules
+
+Файлы timeline/mixer/regions (`waveform-timeline`, `mixer-panel`, `track-lane`, `transport-controls`, `region-toolbar`) — **без** ElevenLabs UI.
+
+В `music-editor/` допустимы только **status/preview** обёртки:
+- `ai-command-panel` — AI processing status
+- `voice-transfer-dialog` — voice transfer status
+
+## Архитектура
+
+```
+ElevenLabs UI  →  AI / audio preview / loading (design layer)
+@waveform-playlist + custom  →  Timeline, regions, mixer, operations, render
+```
+
+## CSS tokens (важно)
+
+shadcn использует `--muted` как **фон**. В CSS modules проекта `--muted` — **цвет текста**.
+
+В `globals.css`:
+- `--muted` / `--muted-foreground` — вторичный текст (CSS modules)
+- `--muted-bg` — фон для shadcn (`bg-muted`, Skeleton)
+
+Не перезаписывать `--muted` значением shadcn.
+
+Только из allow-list через GitHub registry (если ui.elevenlabs.io недоступен):
+
+```bash
+pnpm dlx shadcn@latest add \
+  "https://raw.githubusercontent.com/elevenlabs/ui/main/apps/www/public/r/orb.json"
+```

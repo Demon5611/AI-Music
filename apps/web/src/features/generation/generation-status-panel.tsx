@@ -6,23 +6,19 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
+import {
+  AiProcessingStatus,
+  GENERATION_STATUS_LABELS,
+  isGenerationInProgress,
+  LoadingPanel,
+  resolveGenerationProgress,
+} from "@/shared/ui/elevenlabs";
 import styles from "@/shared/ui/form.module.css";
 
 const TERMINAL_STATUSES = new Set<GenerationJob["status"]>([
   "completed",
   "failed",
 ]);
-
-const STATUS_LABELS: Record<GenerationJob["status"], string> = {
-  pending: "В очереди",
-  preprocessing_voice: "Подготовка голоса",
-  generating_lyrics: "Генерация текста",
-  generating_song: "Генерация музыки",
-  converting_voice: "Voice transfer (Kits)",
-  uploading_result: "Сохранение результата",
-  completed: "Готово",
-  failed: "Ошибка",
-};
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.body && typeof error.body === "object") {
@@ -62,11 +58,20 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
   });
 
   if (!authReady) {
-    return <p className={styles.status}>Загрузка сессии...</p>;
+    return (
+      <section className={styles.section}>
+        <LoadingPanel />
+      </section>
+    );
   }
 
   if (jobQuery.isLoading) {
-    return <p className={styles.status}>Загрузка статуса...</p>;
+    return (
+      <section className={styles.section}>
+        <h1 className={styles.title}>Генерация</h1>
+        <LoadingPanel />
+      </section>
+    );
   }
 
   if (jobQuery.error) {
@@ -84,11 +89,23 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
     return null;
   }
 
+  const inProgress = isGenerationInProgress(job.status);
+
   return (
     <section className={styles.section}>
       <h1 className={styles.title}>Генерация</h1>
       <p className={styles.meta}>Job ID: {job.id}</p>
-      <p className={styles.meta}>Статус: {STATUS_LABELS[job.status]}</p>
+
+      {inProgress ? (
+        <AiProcessingStatus
+          agentState="thinking"
+          label={GENERATION_STATUS_LABELS[job.status]}
+          meta="Обновление каждые 3 сек..."
+          progress={resolveGenerationProgress(job.status)}
+        />
+      ) : (
+        <p className={styles.meta}>Статус: {GENERATION_STATUS_LABELS[job.status]}</p>
+      )}
 
       {job.status === "failed" && job.errorMessage ? (
         <p className={styles.error}>{job.errorMessage}</p>
@@ -100,10 +117,6 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
             Открыть трек
           </Link>
         </div>
-      ) : null}
-
-      {!TERMINAL_STATUSES.has(job.status) ? (
-        <p className={styles.status}>Обновление каждые 3 сек...</p>
       ) : null}
 
       <Link href="/profile" className={styles.hint}>
