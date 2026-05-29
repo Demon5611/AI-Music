@@ -466,7 +466,10 @@ export async function applyOperation(
     }
   }
 
-  if (operation.type === "RESIZE_REGION") {
+  if (
+    operation.type === "RESIZE_REGION" ||
+    operation.type === "RESIZE_TRACK_REGION"
+  ) {
     assertValidResizeBounds(
       operation.startMs,
       operation.endMs,
@@ -520,7 +523,10 @@ export async function previewOperation(
     }
   }
 
-  if (operation.type === "RESIZE_REGION") {
+  if (
+    operation.type === "RESIZE_REGION" ||
+    operation.type === "RESIZE_TRACK_REGION"
+  ) {
     assertValidResizeBounds(
       operation.startMs,
       operation.endMs,

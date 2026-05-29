@@ -47,6 +47,13 @@ export interface MoveRegionOperation {
   targetIndex: number;
 }
 
+export interface MoveTrackRegionOperation {
+  type: "MOVE_TRACK_REGION";
+  trackId: EditorTrackId;
+  regionId: string;
+  targetIndex: number;
+}
+
 export interface DuplicateRegionOperation {
   type: "DUPLICATE_REGION";
   regionId: string;
@@ -54,6 +61,14 @@ export interface DuplicateRegionOperation {
 
 export interface ResizeRegionOperation {
   type: "RESIZE_REGION";
+  regionId: string;
+  startMs: number;
+  endMs: number;
+}
+
+export interface ResizeTrackRegionOperation {
+  type: "RESIZE_TRACK_REGION";
+  trackId: EditorTrackId;
   regionId: string;
   startMs: number;
   endMs: number;
@@ -85,8 +100,10 @@ export type EditOperation =
   | CutRegionOperation
   | SplitRegionOperation
   | MoveRegionOperation
+  | MoveTrackRegionOperation
   | DuplicateRegionOperation
   | ResizeRegionOperation
+  | ResizeTrackRegionOperation
   | FadeOperation
   | ReplaceVocalOperation
   | RegenerateRegionOperation;

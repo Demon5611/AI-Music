@@ -33,6 +33,13 @@ export const MoveRegionOperationSchema = z.object({
   targetIndex: z.number().int().min(0),
 });
 
+export const MoveTrackRegionOperationSchema = z.object({
+  type: z.literal("MOVE_TRACK_REGION"),
+  trackId: editorTrackIdSchema,
+  regionId: z.string().min(1),
+  targetIndex: z.number().int().min(0),
+});
+
 export const DuplicateRegionOperationSchema = z.object({
   type: z.literal("DUPLICATE_REGION"),
   regionId: z.string().min(1),
@@ -40,6 +47,14 @@ export const DuplicateRegionOperationSchema = z.object({
 
 export const ResizeRegionOperationSchema = z.object({
   type: z.literal("RESIZE_REGION"),
+  regionId: z.string().min(1),
+  startMs: z.number().int().min(0),
+  endMs: z.number().int().min(1),
+});
+
+export const ResizeTrackRegionOperationSchema = z.object({
+  type: z.literal("RESIZE_TRACK_REGION"),
+  trackId: editorTrackIdSchema,
   regionId: z.string().min(1),
   startMs: z.number().int().min(0),
   endMs: z.number().int().min(1),
@@ -71,8 +86,10 @@ export const EditOperationSchema = z.discriminatedUnion("type", [
   CutRegionOperationSchema,
   SplitRegionOperationSchema,
   MoveRegionOperationSchema,
+  MoveTrackRegionOperationSchema,
   DuplicateRegionOperationSchema,
   ResizeRegionOperationSchema,
+  ResizeTrackRegionOperationSchema,
   FadeOperationSchema,
   ReplaceVocalOperationSchema,
   RegenerateRegionOperationSchema,

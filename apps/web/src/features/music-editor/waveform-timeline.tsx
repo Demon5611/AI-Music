@@ -10,7 +10,7 @@ import {
   usePlaylistData,
 } from "@waveform-playlist/browser";
 import type { ClipTrack } from "@waveform-playlist/core";
-import type { EditorTrackId, SongRegionDto } from "@ai-music/shared";
+import type { EditOperation, EditorTrackId, SongRegionDto } from "@ai-music/shared";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { TransportControls } from "@/features/music-editor/transport-controls";
 import {
@@ -24,6 +24,7 @@ import {
   dbToGain,
   mirrorRegionClipEdits,
   resolveTimelineOperation,
+  TRACK_WAVE_HEIGHT,
   type PendingTimelineOperation,
   type TimelineStemSource,
 } from "@/features/music-editor/utils/waveform-playlist-utils";
@@ -31,12 +32,24 @@ import styles from "@/features/music-editor/styles/music-editor.module.css";
 
 interface WaveformTimelineProps {
   regions: SongRegionDto[];
+  operations: EditOperation[];
   selectedRegionId: string | null;
   vocalPlaybackUrl: string | null;
   instrumentalPlaybackUrl: string | null;
   onSelectRegion: (regionId: string) => void;
   onResizeRegion: (regionId: string, startMs: number, endMs: number) => void;
   onMoveRegion: (regionId: string, targetIndex: number) => void;
+  onResizeTrackRegion: (
+    trackId: EditorTrackId,
+    regionId: string,
+    startMs: number,
+    endMs: number,
+  ) => void;
+  onMoveTrackRegion: (
+    trackId: EditorTrackId,
+    regionId: string,
+    targetIndex: number,
+  ) => void;
   disabled?: boolean;
 }
 
@@ -50,6 +63,7 @@ const PERSIST_DEBOUNCE_MS = 450;
 function useRegionPlaylistTracks(
   sources: TimelineStemSource[],
   regions: SongRegionDto[],
+  operations: EditOperation[],
 ): {
   tracks: ClipTrack[];
   isLoading: boolean;
@@ -88,7 +102,7 @@ function useRegionPlaylistTracks(
             const arrayBuffer = await response.arrayBuffer();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-            return buildRegionTrack(source, audioBuffer, regions);
+            return buildRegionTrack(source, audioBuffer, regions, operations);
           }),
         );
 
@@ -113,24 +127,41 @@ function useRegionPlaylistTracks(
       abortController.abort();
       void audioContext.close();
     };
-  }, [regions, sources]);
+  }, [operations, regions, sources]);
 
   return { tracks, isLoading, error };
 }
 
 function PlaylistTrackStateBridge({ sources }: { sources: TimelineStemSource[] }) {
   const controls = usePlaylistControls();
+  const controlsRef = useRef(controls);
   const previewTracks = useAudioEditorStore((state) => state.previewTracks);
+  const previewSignature = sources
+    .map((source) => {
+      const trackState = previewTracks[source.id];
+
+      return [
+        source.id,
+        trackState.gainDb,
+        trackState.muted,
+        trackState.solo,
+      ].join(":");
+    })
+    .join("|");
+
+  useEffect(() => {
+    controlsRef.current = controls;
+  }, [controls]);
 
   useEffect(() => {
     sources.forEach((source, index) => {
       const trackState = previewTracks[source.id];
 
-      controls.setTrackVolume(index, dbToGain(trackState.gainDb));
-      controls.setTrackMute(index, trackState.muted);
-      controls.setTrackSolo(index, trackState.solo);
+      controlsRef.current.setTrackVolume(index, dbToGain(trackState.gainDb));
+      controlsRef.current.setTrackMute(index, trackState.muted);
+      controlsRef.current.setTrackSolo(index, trackState.solo);
     });
-  }, [controls, previewTracks, sources]);
+  }, [previewSignature, previewTracks, sources]);
 
   return null;
 }
@@ -199,14 +230,18 @@ function PlaylistTransportBridge() {
 
 export function WaveformTimeline({
   regions,
+  operations,
   selectedRegionId,
   vocalPlaybackUrl,
   instrumentalPlaybackUrl,
   onSelectRegion,
   onResizeRegion,
   onMoveRegion,
+  onResizeTrackRegion,
+  onMoveTrackRegion,
   disabled,
 }: WaveformTimelineProps) {
+  const [linkedTracks, setLinkedTracks] = useState(false);
   const sources = useMemo<TimelineStemSource[]>(() => {
     const nextSources: TimelineStemSource[] = [];
 
@@ -230,7 +265,11 @@ export function WaveformTimeline({
 
     return nextSources;
   }, [instrumentalPlaybackUrl, vocalPlaybackUrl]);
-  const { tracks, isLoading, error } = useRegionPlaylistTracks(sources, regions);
+  const { tracks, isLoading, error } = useRegionPlaylistTracks(
+    sources,
+    regions,
+    operations,
+  );
   const [playlistTracks, setPlaylistTracks] = useState<ClipTrack[]>(tracks);
   const pendingOperationRef = useRef<PendingTimelineOperation | null>(null);
   const persistTimerRef = useRef<number | null>(null);
@@ -256,19 +295,46 @@ export function WaveformTimeline({
     }
 
     if (operation.type === "resize") {
-      onResizeRegion(operation.regionId, operation.startMs, operation.endMs);
+      if ("trackId" in operation) {
+        onResizeTrackRegion(
+          operation.trackId,
+          operation.regionId,
+          operation.startMs,
+          operation.endMs,
+        );
+      } else {
+        onResizeRegion(operation.regionId, operation.startMs, operation.endMs);
+      }
+      return;
+    }
+
+    if ("trackId" in operation) {
+      onMoveTrackRegion(operation.trackId, operation.regionId, operation.targetIndex);
       return;
     }
 
     onMoveRegion(operation.regionId, operation.targetIndex);
-  }, [disabled, onMoveRegion, onResizeRegion]);
+  }, [
+    disabled,
+    onMoveRegion,
+    onMoveTrackRegion,
+    onResizeRegion,
+    onResizeTrackRegion,
+  ]);
 
   const handleTracksChange = useCallback(
     (nextTracks: ClipTrack[]) => {
-      const mirroredTracks = mirrorRegionClipEdits(nextTracks);
-      setPlaylistTracks(mirroredTracks);
+      const nextPlaylistTracks = linkedTracks
+        ? mirrorRegionClipEdits(nextTracks)
+        : nextTracks;
+      setPlaylistTracks(nextPlaylistTracks);
 
-      const operation = resolveTimelineOperation(mirroredTracks, regions);
+      const operation = resolveTimelineOperation(
+        nextPlaylistTracks,
+        regions,
+        operations,
+        linkedTracks,
+      );
 
       if (!operation || disabled) {
         return;
@@ -285,7 +351,7 @@ export function WaveformTimeline({
         PERSIST_DEBOUNCE_MS,
       );
     },
-    [disabled, persistTimelineOperation, regions],
+    [disabled, linkedTracks, operations, persistTimelineOperation, regions],
   );
 
   const handleEnterEdit = useCallback(() => {
@@ -316,6 +382,16 @@ export function WaveformTimeline({
           >
             Edit
           </button>
+          <button
+            className={
+              linkedTracks ? styles.timelineModeButtonActive : styles.timelineModeButton
+            }
+            disabled={disabled || playlistTracks.length === 0}
+            type="button"
+            onClick={() => setLinkedTracks((value) => !value)}
+          >
+            {linkedTracks ? "Linked tracks" : "Independent tracks"}
+          </button>
         </div>
         <TransportControls disabled={disabled || playlistTracks.length === 0} />
       </div>
@@ -332,10 +408,11 @@ export function WaveformTimeline({
             <WaveformPlaylistProvider
               automaticScroll
               controls={{ show: false, width: 0 }}
+              mono
               samplesPerPixel={2048}
               timescale
               tracks={playlistTracks}
-              waveHeight={96}
+              waveHeight={TRACK_WAVE_HEIGHT}
               onTracksChange={handleTracksChange}
             >
               <PlaylistTransportBridge />
@@ -349,9 +426,9 @@ export function WaveformTimeline({
       ) : null}
 
       <p className={styles.timelineHint}>
-        Timeline собран из нативных clips: duplicate, cut и split меняют
-        структуру дорожки без внешних overlay-слоев. Drag и trim сохраняются как
-        операции редактора.
+        {linkedTracks
+          ? "Linked mode: drag и trim применяются синхронно к Vocal и Instrumental."
+          : "Independent mode: drag и trim применяются только к дорожке, которую вы редактируете."}
       </p>
     </div>
   );

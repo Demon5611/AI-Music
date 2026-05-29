@@ -37,10 +37,14 @@ function formatOperationLabel(
       return `Duplicate — ${regionLabel}`;
     case "MOVE_REGION":
       return `Move — ${regionLabel}`;
+    case "MOVE_TRACK_REGION":
+      return `Move ${operation.trackId} — ${regionLabel}`;
     case "CUT_REGION":
       return `Cut — ${regionLabel}`;
     case "RESIZE_REGION":
       return `Resize — ${regionLabel}`;
+    case "RESIZE_TRACK_REGION":
+      return `Resize ${operation.trackId} — ${regionLabel}`;
     case "REPLACE_VOCAL":
       return `Replace vocal — ${regionLabel}`;
     case "REGENERATE_REGION":

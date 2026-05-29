@@ -161,6 +161,24 @@ export function useEditorOperations() {
     [applyOperation],
   );
 
+  const resizeTrackRegion = useCallback(
+    (
+      trackId: EditorTrackId,
+      regionId: string,
+      startMs: number,
+      endMs: number,
+    ) => {
+      void applyOperation({
+        type: "RESIZE_TRACK_REGION",
+        trackId,
+        regionId,
+        startMs,
+        endMs,
+      });
+    },
+    [applyOperation],
+  );
+
   const fadeRegion = useCallback(
     (fadeType: "in" | "out") => {
       if (!selectedRegionId || !selectedTrackId) {
@@ -214,6 +232,18 @@ export function useEditorOperations() {
     [applyOperation],
   );
 
+  const moveTrackRegionToIndex = useCallback(
+    (trackId: EditorTrackId, regionId: string, targetIndex: number) => {
+      void applyOperation({
+        type: "MOVE_TRACK_REGION",
+        trackId,
+        regionId,
+        targetIndex,
+      });
+    },
+    [applyOperation],
+  );
+
   const cutRegion = useCallback(() => {
     if (!selectedRegionId) {
       setError("Выберите регион для cut");
@@ -235,9 +265,11 @@ export function useEditorOperations() {
     splitRegion,
     duplicateRegion,
     resizeRegion,
+    resizeTrackRegion,
     fadeRegion,
     moveRegion,
     moveRegionToIndex,
+    moveTrackRegionToIndex,
     cutRegion,
   };
 }

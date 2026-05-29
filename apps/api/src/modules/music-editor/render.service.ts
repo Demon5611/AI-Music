@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { EditOperation } from "@ai-music/shared";
+import type { EditOperation, EditorTrackId } from "@ai-music/shared";
 import { prisma, Prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
 import {
@@ -17,6 +17,45 @@ interface RegionSlice {
   startMs: number;
   endMs: number;
   replacementAudioKey: string | null;
+}
+
+function resolveTrackRegions(
+  trackId: EditorTrackId,
+  regions: RegionSlice[],
+  operations: EditOperation[],
+): RegionSlice[] {
+  const trackRegions = regions.map((region) => ({ ...region }));
+
+  for (const operation of operations) {
+    if (!("trackId" in operation) || operation.trackId !== trackId) {
+      continue;
+    }
+
+    if (operation.type === "RESIZE_TRACK_REGION") {
+      const region = trackRegions.find((item) => item.id === operation.regionId);
+
+      if (region) {
+        region.startMs = operation.startMs;
+        region.endMs = operation.endMs;
+      }
+    }
+
+    if (operation.type === "MOVE_TRACK_REGION") {
+      const fromIndex = trackRegions.findIndex(
+        (item) => item.id === operation.regionId,
+      );
+
+      if (fromIndex < 0) {
+        continue;
+      }
+
+      const targetIndex = Math.min(operation.targetIndex, trackRegions.length - 1);
+      const [moved] = trackRegions.splice(fromIndex, 1);
+      trackRegions.splice(targetIndex, 0, moved);
+    }
+  }
+
+  return trackRegions;
 }
 
 function resolveRegionGainDb(
@@ -168,6 +207,60 @@ async function mixTracks(
   ]);
 }
 
+async function renderStemTrack({
+  trackId,
+  inputPath,
+  outputPath,
+  workDir,
+  regions,
+  operations,
+  storage,
+}: {
+  trackId: EditorTrackId;
+  inputPath: string;
+  outputPath: string;
+  workDir: string;
+  regions: RegionSlice[];
+  operations: EditOperation[];
+  storage: ReturnType<typeof getStorageService>;
+}): Promise<void> {
+  const segmentPaths: string[] = [];
+
+  for (let index = 0; index < regions.length; index += 1) {
+    const region = regions[index];
+    const startSec = region.startMs / 1000;
+    const durationSec = (region.endMs - region.startMs) / 1000;
+
+    if (durationSec <= 0) {
+      continue;
+    }
+
+    const segmentPath = join(workDir, `${trackId}-${index}.mp3`);
+    const gainDb = resolveRegionGainDb(trackId, region.id, operations);
+    const filters = [
+      `volume=${gainDb}dB`,
+      ...resolveFadeFilters(trackId, region.id, durationSec, operations),
+    ];
+
+    if (trackId === "vocal" && region.replacementAudioKey) {
+      const replacementBuffer = await storage.get(region.replacementAudioKey);
+      const replacementInput = join(workDir, `replacement-${index}.mp3`);
+      await writeFile(replacementInput, replacementBuffer);
+      await extractSegment(replacementInput, segmentPath, 0, durationSec, filters);
+    } else {
+      await extractSegment(inputPath, segmentPath, startSec, durationSec, filters);
+    }
+
+    segmentPaths.push(segmentPath);
+  }
+
+  if (segmentPaths.length === 0) {
+    throw new BadRequestError(`No ${trackId} regions available for render`);
+  }
+
+  await concatSegments(segmentPaths, outputPath);
+}
+
 export async function renderSongVersion(userId: string, songId: string) {
   const song = await getSongForUser(userId, songId);
 
@@ -233,94 +326,35 @@ export async function renderSongVersion(userId: string, songId: string) {
         replacementAudioKey: region.replacementAudioKey,
       }));
 
-    const mixedSegments: string[] = [];
-
-    for (let index = 0; index < regions.length; index += 1) {
-      const region = regions[index];
-      const startSec = region.startMs / 1000;
-      const durationSec = (region.endMs - region.startMs) / 1000;
-
-      if (durationSec <= 0) {
-        continue;
-      }
-
-      const mixedSegment = join(workDir, `mixed-${index}.mp3`);
-
-      if (region.replacementAudioKey) {
-        const replacementBuffer = await storage.get(region.replacementAudioKey);
-        const replacementInput = join(workDir, `replacement-${index}.mp3`);
-        await writeFile(replacementInput, replacementBuffer);
-
-        const gainDb = Math.max(
-          resolveRegionGainDb("vocal", region.id, operations),
-          resolveRegionGainDb("instrumental", region.id, operations),
-        );
-        const filters = [
-          `volume=${gainDb}dB`,
-          ...resolveFadeFilters("vocal", region.id, durationSec, operations),
-        ];
-
-        await extractSegment(
-          replacementInput,
-          mixedSegment,
-          0,
-          durationSec,
-          filters,
-        );
-        mixedSegments.push(mixedSegment);
-        continue;
-      }
-
-      const vocalGainDb = resolveRegionGainDb("vocal", region.id, operations);
-      const instrumentalGainDb = resolveRegionGainDb(
-        "instrumental",
-        region.id,
-        operations,
-      );
-
-      const vocalFilters = [
-        `volume=${vocalGainDb}dB`,
-        ...resolveFadeFilters("vocal", region.id, durationSec, operations),
-      ];
-      const instrumentalFilters = [
-        `volume=${instrumentalGainDb}dB`,
-        ...resolveFadeFilters(
-          "instrumental",
-          region.id,
-          durationSec,
-          operations,
-        ),
-      ];
-
-      const vocalSegment = join(workDir, `vocal-${index}.mp3`);
-      const instrumentalSegment = join(workDir, `instrumental-${index}.mp3`);
-
-      await extractSegment(
-        vocalInput,
-        vocalSegment,
-        startSec,
-        durationSec,
-        vocalFilters,
-      );
-      await extractSegment(
-        instrumentalInput,
-        instrumentalSegment,
-        startSec,
-        durationSec,
-        instrumentalFilters,
-      );
-
-      await mixTracks(vocalSegment, instrumentalSegment, mixedSegment);
-      mixedSegments.push(mixedSegment);
-    }
-
+    const vocalOutput = join(workDir, "vocal-track.mp3");
+    const instrumentalOutput = join(workDir, "instrumental-track.mp3");
     const finalOutput = join(workDir, "final.mp3");
+    const vocalRegions = resolveTrackRegions("vocal", regions, operations);
+    const instrumentalRegions = resolveTrackRegions(
+      "instrumental",
+      regions,
+      operations,
+    );
 
-    if (mixedSegments.length === 0) {
-      throw new BadRequestError("No regions available for render");
-    }
-
-    await concatSegments(mixedSegments, finalOutput);
+    await renderStemTrack({
+      trackId: "vocal",
+      inputPath: vocalInput,
+      outputPath: vocalOutput,
+      workDir,
+      regions: vocalRegions,
+      operations,
+      storage,
+    });
+    await renderStemTrack({
+      trackId: "instrumental",
+      inputPath: instrumentalInput,
+      outputPath: instrumentalOutput,
+      workDir,
+      regions: instrumentalRegions,
+      operations,
+      storage,
+    });
+    await mixTracks(vocalOutput, instrumentalOutput, finalOutput);
 
     const renderedBuffer = await readFile(finalOutput);
     const renderKey = buildSongRenderKey(userId, songId, newVersion.versionNumber);

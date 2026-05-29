@@ -90,8 +90,10 @@ export function AudioEditor({ songId }: AudioEditorProps) {
     fadeRegion,
     moveRegion,
     moveRegionToIndex,
+    moveTrackRegionToIndex,
     cutRegion,
     resizeRegion,
+    resizeTrackRegion,
     undo,
     redo,
   } = useEditorOperations();
@@ -203,7 +205,10 @@ export function AudioEditor({ songId }: AudioEditorProps) {
             disabled={controlsDisabled}
             instrumentalPlaybackUrl={playbackUrls.instrumental}
             onMoveRegion={moveRegionToIndex}
+            onMoveTrackRegion={moveTrackRegionToIndex}
             onResizeRegion={resizeRegion}
+            onResizeTrackRegion={resizeTrackRegion}
+            operations={operations}
             regions={regions}
             selectedRegionId={selectedRegionId}
             vocalPlaybackUrl={playbackUrls.vocal}
