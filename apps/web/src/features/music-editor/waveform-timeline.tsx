@@ -1,352 +1,357 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, type MouseEvent } from "react";
-import WaveSurfer from "wavesurfer.js";
-import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
-import type { SongRegionDto } from "@ai-music/shared";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ClipInteractionProvider,
+  Waveform,
+  WaveformPlaylistProvider,
+  usePlaybackAnimation,
+  usePlaylistControls,
+  usePlaylistData,
+} from "@waveform-playlist/browser";
+import type { ClipTrack } from "@waveform-playlist/core";
+import type { EditorTrackId, SongRegionDto } from "@ai-music/shared";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { TransportControls } from "@/features/music-editor/transport-controls";
 import {
-  selectRegionLabel,
   useAudioEditorStore,
+  type PlaybackController,
 } from "@/features/music-editor/store/audio-editor-store";
+import { seekTimeline } from "@/features/music-editor/utils/timeline-sync";
 import {
-  getWaveSurferScrollElement,
-  resolveWaveSurferClickTimeMs,
-  scrollToPlayhead,
-  seekTimeline,
-} from "@/features/music-editor/utils/timeline-sync";
-import { formatTimeMs } from "@/features/music-editor/utils/format-time";
+  AUDIO_CONTEXT_OPTIONS,
+  buildRegionTrack,
+  dbToGain,
+  mirrorRegionClipEdits,
+  resolveTimelineOperation,
+  type PendingTimelineOperation,
+  type TimelineStemSource,
+} from "@/features/music-editor/utils/waveform-playlist-utils";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 
 interface WaveformTimelineProps {
   regions: SongRegionDto[];
   selectedRegionId: string | null;
+  vocalPlaybackUrl: string | null;
+  instrumentalPlaybackUrl: string | null;
   onSelectRegion: (regionId: string) => void;
   onResizeRegion: (regionId: string, startMs: number, endMs: number) => void;
+  onMoveRegion: (regionId: string, targetIndex: number) => void;
   disabled?: boolean;
 }
 
-const REGION_COLORS: Record<string, string> = {
-  intro: "rgba(59, 130, 246, 0.22)",
-  verse: "rgba(16, 185, 129, 0.22)",
-  chorus: "rgba(245, 158, 11, 0.28)",
-  bridge: "rgba(139, 92, 246, 0.22)",
-  outro: "rgba(236, 72, 153, 0.22)",
-  custom: "rgba(148, 163, 184, 0.22)",
+const TRACK_COLORS: Record<EditorTrackId, string> = {
+  vocal: "#93c5fd",
+  instrumental: "#86efac",
 };
 
-const REGION_SELECTED_COLORS: Record<string, string> = {
-  intro: "rgba(59, 130, 246, 0.45)",
-  verse: "rgba(16, 185, 129, 0.45)",
-  chorus: "rgba(245, 158, 11, 0.52)",
-  bridge: "rgba(139, 92, 246, 0.45)",
-  outro: "rgba(236, 72, 153, 0.45)",
-  custom: "rgba(148, 163, 184, 0.45)",
-};
+const PERSIST_DEBOUNCE_MS = 450;
 
-const RESIZE_DEBOUNCE_MS = 350;
-
-function buildRulerMarks(durationMs: number, count = 5): number[] {
-  if (durationMs <= 0) {
-    return [0];
-  }
-
-  const step = durationMs / count;
-
-  return Array.from({ length: count + 1 }, (_, index) => Math.round(step * index));
-}
-
-function WaveformSurface({
-  waveformUrl,
-  regions,
-  selectedRegionId,
-  onSelectRegion,
-  onResizeRegion,
-  disabled,
-}: {
-  waveformUrl: string;
-  regions: SongRegionDto[];
-  selectedRegionId: string | null;
-  onSelectRegion: (regionId: string) => void;
-  onResizeRegion: (regionId: string, startMs: number, endMs: number) => void;
-  disabled?: boolean;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const wavesurferRef = useRef<WaveSurfer | null>(null);
-  const regionsPluginRef = useRef<ReturnType<typeof RegionsPlugin.create> | null>(
-    null,
-  );
-  const isWaveformReadyRef = useRef(false);
-  const isSyncingRegionsRef = useRef(false);
-  const resizeDebounceRef = useRef<number | null>(null);
-  const onSelectRegionRef = useRef(onSelectRegion);
-  const onResizeRegionRef = useRef(onResizeRegion);
-
-  const currentTimeMs = useAudioEditorStore((state) => state.currentTimeMs);
-  const durationMs = useAudioEditorStore((state) => state.durationMs);
-  const isPlaying = useAudioEditorStore((state) => state.isPlaying);
-  const zoom = useAudioEditorStore((state) => state.zoom);
-  const setDuration = useAudioEditorStore((state) => state.setDuration);
+function useRegionPlaylistTracks(
+  sources: TimelineStemSource[],
+  regions: SongRegionDto[],
+): {
+  tracks: ClipTrack[];
+  isLoading: boolean;
+  error: string | null;
+} {
+  const [tracks, setTracks] = useState<ClipTrack[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    onSelectRegionRef.current = onSelectRegion;
-    onResizeRegionRef.current = onResizeRegion;
-  }, [onResizeRegion, onSelectRegion]);
-
-  const rulerMarks = useMemo(
-    () => buildRulerMarks(durationMs),
-    [durationMs],
-  );
-
-  const handleRulerClick = useCallback(
-    (event: MouseEvent<HTMLDivElement>) => {
-      if (disabled || durationMs <= 0) {
-        return;
-      }
-
-      const wavesurfer = wavesurferRef.current;
-
-      if (wavesurfer && isWaveformReadyRef.current) {
-        seekTimeline(
-          resolveWaveSurferClickTimeMs(wavesurfer, event.clientX),
-        );
-        return;
-      }
-
-      const rect = event.currentTarget.getBoundingClientRect();
-      const progress = (event.clientX - rect.left) / Math.max(rect.width, 1);
-      seekTimeline(Math.round(progress * durationMs));
-    },
-    [disabled, durationMs],
-  );
-
-  useEffect(() => {
-    if (!containerRef.current) {
+    if (sources.length === 0 || regions.length === 0) {
+      setTracks([]);
+      setIsLoading(false);
+      setError(null);
       return;
     }
 
-    const regionsPlugin = RegionsPlugin.create();
-    regionsPluginRef.current = regionsPlugin;
+    const abortController = new AbortController();
+    const audioContext = new window.AudioContext(AUDIO_CONTEXT_OPTIONS);
 
-    const wavesurfer = WaveSurfer.create({
-      container: containerRef.current,
-      url: waveformUrl,
-      height: 96,
-      waveColor: "#64748b",
-      progressColor: "#94a3b8",
-      cursorColor: "#2563eb",
-      cursorWidth: 2,
-      barWidth: 2,
-      barGap: 1,
-      normalize: true,
-      interact: !disabled,
-      plugins: [regionsPlugin],
-    });
+    async function loadTracks(): Promise<void> {
+      setIsLoading(true);
+      setError(null);
 
-    wavesurferRef.current = wavesurfer;
-    isWaveformReadyRef.current = false;
-    wavesurfer.setMuted(true);
+      try {
+        const nextTracks = await Promise.all(
+          sources.map(async (source) => {
+            const response = await fetch(source.url, {
+              signal: abortController.signal,
+            });
 
-    wavesurfer.on("ready", () => {
-      isWaveformReadyRef.current = true;
-      wavesurfer.setMuted(true);
-      const waveformDurationMs = Math.round(wavesurfer.getDuration() * 1000);
-      const storeDuration = useAudioEditorStore.getState().durationMs;
+            if (!response.ok) {
+              throw new Error(`Audio request failed: ${response.status}`);
+            }
 
-      if (storeDuration <= 0 && waveformDurationMs > 0) {
-        setDuration(waveformDurationMs);
-      }
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-      wavesurfer.zoom(useAudioEditorStore.getState().zoom);
-      wavesurfer.setTime(useAudioEditorStore.getState().currentTimeMs / 1000);
-    });
-
-    wavesurfer.on("interaction", (newTimeSec) => {
-      seekTimeline(Math.round(newTimeSec * 1000));
-    });
-
-    regionsPlugin.on("region-clicked", (region, event) => {
-      const durationSec = wavesurfer.getDuration();
-      let timeMs = Math.round(region.start * 1000);
-
-      if (durationSec > 0 && event.target instanceof HTMLElement) {
-        const regionRect = event.target.getBoundingClientRect();
-        const regionWidth = Math.max(regionRect.width, 1);
-        const fraction = Math.min(
-          1,
-          Math.max(0, (event.clientX - regionRect.left) / regionWidth),
+            return buildRegionTrack(source, audioBuffer, regions);
+          }),
         );
-        timeMs = Math.round(
-          (region.start + fraction * (region.end - region.start)) * 1000,
-        );
-      }
 
-      wavesurfer.setTime(timeMs / 1000);
-      seekTimeline(timeMs);
-      onSelectRegionRef.current(String(region.id));
+        setTracks(nextTracks);
+      } catch (loadError) {
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        setError(loadError instanceof Error ? loadError.message : "Audio load failed");
+        setTracks([]);
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadTracks();
+
+    return () => {
+      abortController.abort();
+      void audioContext.close();
+    };
+  }, [regions, sources]);
+
+  return { tracks, isLoading, error };
+}
+
+function PlaylistTrackStateBridge({ sources }: { sources: TimelineStemSource[] }) {
+  const controls = usePlaylistControls();
+  const previewTracks = useAudioEditorStore((state) => state.previewTracks);
+
+  useEffect(() => {
+    sources.forEach((source, index) => {
+      const trackState = previewTracks[source.id];
+
+      controls.setTrackVolume(index, dbToGain(trackState.gainDb));
+      controls.setTrackMute(index, trackState.muted);
+      controls.setTrackSolo(index, trackState.solo);
     });
+  }, [controls, previewTracks, sources]);
 
-    regionsPlugin.on("region-updated", (region) => {
-      if (isSyncingRegionsRef.current) {
-        return;
-      }
+  return null;
+}
 
-      if (resizeDebounceRef.current !== null) {
-        window.clearTimeout(resizeDebounceRef.current);
-      }
+function PlaylistTransportBridge() {
+  const controls = usePlaylistControls();
+  const data = usePlaylistData();
+  const playback = usePlaybackAnimation();
+  const setCurrentTime = useAudioEditorStore((state) => state.setCurrentTime);
+  const setDuration = useAudioEditorStore((state) => state.setDuration);
+  const setIsPlaying = useAudioEditorStore((state) => state.setIsPlaying);
+  const setPlaybackController = useAudioEditorStore(
+    (state) => state.setPlaybackController,
+  );
 
-      resizeDebounceRef.current = window.setTimeout(() => {
-        onResizeRegionRef.current(
-          String(region.id),
-          Math.round(region.start * 1000),
-          Math.round(region.end * 1000),
-        );
-      }, RESIZE_DEBOUNCE_MS);
+  useEffect(() => {
+    setDuration(Math.round(data.duration * 1000));
+  }, [data.duration, setDuration]);
+
+  useEffect(() => {
+    playback.registerFrameCallback("music-editor-playlist", ({ time }) => {
+      setCurrentTime(Math.round(time * 1000));
     });
 
     return () => {
-      if (resizeDebounceRef.current !== null) {
-        window.clearTimeout(resizeDebounceRef.current);
-      }
-
-      isWaveformReadyRef.current = false;
-      wavesurfer.destroy();
-      wavesurferRef.current = null;
-      regionsPluginRef.current = null;
+      playback.unregisterFrameCallback("music-editor-playlist");
     };
-  }, [disabled, setDuration, waveformUrl]);
+  }, [playback, setCurrentTime]);
 
   useEffect(() => {
-    const wavesurfer = wavesurferRef.current;
+    const controller: PlaybackController = {
+      play: () => {
+        const startSec = useAudioEditorStore.getState().currentTimeMs / 1000;
+        void controls.play(startSec).then(() => setIsPlaying(true));
+      },
+      pause: () => {
+        controls.pause();
+        setIsPlaying(false);
+      },
+      stop: () => {
+        controls.stop();
+        setCurrentTime(0);
+        setIsPlaying(false);
+      },
+      seek: (ms) => {
+        controls.seekTo(ms / 1000);
+        setCurrentTime(ms);
+      },
+      setZoom: () => undefined,
+    };
 
-    if (!wavesurfer || !isWaveformReadyRef.current) {
-      return;
-    }
+    setPlaybackController(controller);
 
-    wavesurfer.zoom(zoom);
-  }, [zoom]);
+    return () => {
+      setPlaybackController(null);
+    };
+  }, [
+    controls,
+    setCurrentTime,
+    setIsPlaying,
+    setPlaybackController,
+  ]);
 
-  useEffect(() => {
-    const plugin = regionsPluginRef.current;
-
-    if (!plugin) {
-      return;
-    }
-
-    isSyncingRegionsRef.current = true;
-    plugin.clearRegions();
-
-    regions.forEach((region) => {
-      const isSelected = region.id === selectedRegionId;
-
-      plugin.addRegion({
-        id: region.id,
-        start: region.startMs / 1000,
-        end: region.endMs / 1000,
-        content: isSelected
-          ? `${selectRegionLabel(region)} — ${formatTimeMs(region.startMs)}–${formatTimeMs(region.endMs)}`
-          : selectRegionLabel(region),
-        color:
-          (isSelected ? REGION_SELECTED_COLORS : REGION_COLORS)[region.label] ??
-          REGION_COLORS.custom,
-        drag: false,
-        resize: isSelected,
-      });
-    });
-
-    isSyncingRegionsRef.current = false;
-  }, [regions, selectedRegionId]);
-
-  useEffect(() => {
-    const wavesurfer = wavesurferRef.current;
-
-    if (!wavesurfer || !isWaveformReadyRef.current) {
-      return;
-    }
-
-    const durationSec = wavesurfer.getDuration();
-
-    if (durationSec <= 0) {
-      return;
-    }
-
-    wavesurfer.setTime(currentTimeMs / 1000);
-
-    const wrapper = wavesurfer.getWrapper();
-
-    if (isPlaying && wrapper instanceof HTMLElement) {
-      scrollToPlayhead(
-        getWaveSurferScrollElement(wavesurfer),
-        currentTimeMs,
-        durationMs,
-      );
-    }
-  }, [currentTimeMs, durationMs, isPlaying]);
-
-  return (
-    <div className={styles.timelineSurface}>
-      <Tooltip block content="Линейка времени помогает точно выбрать нужную часть трека">
-        <div
-          className={styles.timeRulerInteractive}
-          onClick={handleRulerClick}
-          onKeyDown={() => undefined}
-          role="presentation"
-        >
-          {rulerMarks.map((markMs) => (
-            <span className={styles.timeRulerMark} key={markMs}>
-              {formatTimeMs(markMs)}
-            </span>
-          ))}
-        </div>
-      </Tooltip>
-
-      <Tooltip
-        block
-        content="Клик перемещает playhead. Клик по цветному блоку также выбирает фрагмент"
-      >
-        <div className={styles.waveformScroll}>
-          <div className={styles.waveform} ref={containerRef} />
-        </div>
-      </Tooltip>
-    </div>
-  );
+  return null;
 }
 
 export function WaveformTimeline({
   regions,
   selectedRegionId,
+  vocalPlaybackUrl,
+  instrumentalPlaybackUrl,
   onSelectRegion,
   onResizeRegion,
+  onMoveRegion,
   disabled,
 }: WaveformTimelineProps) {
-  const stemMedia = useAudioEditorStore((state) => state.stemMedia);
-  const waveformUrl =
-    stemMedia.instrumental?.src ?? stemMedia.vocal?.src ?? null;
+  const sources = useMemo<TimelineStemSource[]>(() => {
+    const nextSources: TimelineStemSource[] = [];
+
+    if (vocalPlaybackUrl) {
+      nextSources.push({
+        id: "vocal",
+        label: "Vocal",
+        url: vocalPlaybackUrl,
+        color: TRACK_COLORS.vocal,
+      });
+    }
+
+    if (instrumentalPlaybackUrl) {
+      nextSources.push({
+        id: "instrumental",
+        label: "Instrumental",
+        url: instrumentalPlaybackUrl,
+        color: TRACK_COLORS.instrumental,
+      });
+    }
+
+    return nextSources;
+  }, [instrumentalPlaybackUrl, vocalPlaybackUrl]);
+  const { tracks, isLoading, error } = useRegionPlaylistTracks(sources, regions);
+  const [playlistTracks, setPlaylistTracks] = useState<ClipTrack[]>(tracks);
+  const pendingOperationRef = useRef<PendingTimelineOperation | null>(null);
+  const persistTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setPlaylistTracks(tracks);
+  }, [tracks]);
+
+  useEffect(() => {
+    return () => {
+      if (persistTimerRef.current !== null) {
+        window.clearTimeout(persistTimerRef.current);
+      }
+    };
+  }, []);
+
+  const persistTimelineOperation = useCallback(() => {
+    const operation = pendingOperationRef.current;
+    pendingOperationRef.current = null;
+
+    if (!operation || disabled) {
+      return;
+    }
+
+    if (operation.type === "resize") {
+      onResizeRegion(operation.regionId, operation.startMs, operation.endMs);
+      return;
+    }
+
+    onMoveRegion(operation.regionId, operation.targetIndex);
+  }, [disabled, onMoveRegion, onResizeRegion]);
+
+  const handleTracksChange = useCallback(
+    (nextTracks: ClipTrack[]) => {
+      const mirroredTracks = mirrorRegionClipEdits(nextTracks);
+      setPlaylistTracks(mirroredTracks);
+
+      const operation = resolveTimelineOperation(mirroredTracks, regions);
+
+      if (!operation || disabled) {
+        return;
+      }
+
+      pendingOperationRef.current = operation;
+
+      if (persistTimerRef.current !== null) {
+        window.clearTimeout(persistTimerRef.current);
+      }
+
+      persistTimerRef.current = window.setTimeout(
+        persistTimelineOperation,
+        PERSIST_DEBOUNCE_MS,
+      );
+    },
+    [disabled, persistTimelineOperation, regions],
+  );
+
+  const handleEnterEdit = useCallback(() => {
+    const targetRegion =
+      regions.find((region) => region.id === selectedRegionId) ?? regions[0];
+
+    if (targetRegion) {
+      onSelectRegion(targetRegion.id);
+      seekTimeline(targetRegion.startMs);
+    }
+
+    document.getElementById("editor-timeline")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [onSelectRegion, regions, selectedRegionId]);
 
   return (
-    <div className={styles.timelineBlock}>
+    <div className={styles.timelineBlock} id="editor-timeline">
       <div className={styles.timelineHeader}>
-        <p className={styles.blockLabel}>Timeline</p>
-        <TransportControls disabled={disabled} />
+        <div className={styles.timelineTitleRow}>
+          <p className={styles.blockLabel}>Timeline</p>
+          <button
+            className={styles.timelineEditButton}
+            disabled={disabled || playlistTracks.length === 0}
+            type="button"
+            onClick={handleEnterEdit}
+          >
+            Edit
+          </button>
+        </div>
+        <TransportControls disabled={disabled || playlistTracks.length === 0} />
       </div>
 
-      {waveformUrl ? (
-        <WaveformSurface
-          disabled={disabled}
-          waveformUrl={waveformUrl}
-          regions={regions}
-          selectedRegionId={selectedRegionId}
-          onResizeRegion={onResizeRegion}
-          onSelectRegion={onSelectRegion}
-        />
-      ) : (
-        <p className={styles.panelHint}>Загрузка waveform...</p>
-      )}
+      {error ? <p className={styles.error}>{error}</p> : null}
+      {isLoading ? <p className={styles.panelHint}>Загрузка waveform...</p> : null}
+
+      {playlistTracks.length > 0 ? (
+        <Tooltip
+          block
+          content="Цветные клипы являются частью аудио timeline, а не внешним overlay"
+        >
+          <div className={styles.playlistShell}>
+            <WaveformPlaylistProvider
+              automaticScroll
+              controls={{ show: false, width: 0 }}
+              samplesPerPixel={2048}
+              timescale
+              tracks={playlistTracks}
+              waveHeight={96}
+              onTracksChange={handleTracksChange}
+            >
+              <PlaylistTransportBridge />
+              <PlaylistTrackStateBridge sources={sources} />
+              <ClipInteractionProvider>
+                <Waveform interactiveClips showClipHeaders showFades />
+              </ClipInteractionProvider>
+            </WaveformPlaylistProvider>
+          </div>
+        </Tooltip>
+      ) : null}
 
       <p className={styles.timelineHint}>
-        Клик по timeline перемещает playhead. Перетаскивание границ выбранного
-        фрагмента сохраняет новые bounds.
+        Timeline собран из нативных clips: duplicate, cut и split меняют
+        структуру дорожки без внешних overlay-слоев. Drag и trim сохраняются как
+        операции редактора.
       </p>
     </div>
   );

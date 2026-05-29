@@ -64,10 +64,6 @@ export function AiCommandPanel({
       <Tooltip content="Опишите изменение простыми словами. AI не меняет трек напрямую, а создает безопасную команду">
           <h3 className={styles.panelTitle}>AI action assistant</h3>
           </Tooltip>
-        <p className={styles.panelHint}>
-          AI преобразует ваш запрос в безопасную JSON-операцию для выбранного
-          фрагмента
-        </p>
           <div className={styles.presetRow}>
             {AI_PRESETS.map((preset) => (
               <button

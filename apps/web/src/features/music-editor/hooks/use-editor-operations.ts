@@ -203,6 +203,17 @@ export function useEditorOperations() {
     [applyOperation, setError],
   );
 
+  const moveRegionToIndex = useCallback(
+    (regionId: string, targetIndex: number) => {
+      void applyOperation({
+        type: "MOVE_REGION",
+        regionId,
+        targetIndex,
+      });
+    },
+    [applyOperation],
+  );
+
   const cutRegion = useCallback(() => {
     if (!selectedRegionId) {
       setError("Выберите регион для cut");
@@ -226,6 +237,7 @@ export function useEditorOperations() {
     resizeRegion,
     fadeRegion,
     moveRegion,
+    moveRegionToIndex,
     cutRegion,
   };
 }

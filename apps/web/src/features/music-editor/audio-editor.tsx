@@ -1,14 +1,13 @@
 "use client";
 
 import { ApiError } from "@ai-music/api-client";
-import {  useState } from "react";
+import { useEffect, useState } from "react";
 import { AiCommandPanel } from "@/features/music-editor/ai-command-panel";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
 import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
 import { useEditorAiActions } from "@/features/music-editor/hooks/use-editor-ai-actions";
 import { useEditorOperations } from "@/features/music-editor/hooks/use-editor-operations";
 import { useEditorPolling } from "@/features/music-editor/hooks/use-editor-polling";
-import { useStemPlayback } from "@/features/music-editor/hooks/use-stem-playback";
 import { MixerPanel } from "@/features/music-editor/mixer-panel";
 import { RegionToolbar } from "@/features/music-editor/region-toolbar";
 import { RenderButton } from "@/features/music-editor/render-button";
@@ -27,14 +26,27 @@ interface AudioEditorProps {
   songId: string;
 }
 
-function StemPlaybackBridge({
+interface PlaybackUrls {
+  vocal: string | null;
+  instrumental: string | null;
+}
+
+function PlaybackUrlBridge({
   vocalPlaybackUrl,
   instrumentalPlaybackUrl,
+  onChange,
 }: {
   vocalPlaybackUrl: string | null;
   instrumentalPlaybackUrl: string | null;
+  onChange: (urls: PlaybackUrls) => void;
 }) {
-  useStemPlayback(vocalPlaybackUrl, instrumentalPlaybackUrl);
+  useEffect(() => {
+    onChange({
+      vocal: vocalPlaybackUrl,
+      instrumental: instrumentalPlaybackUrl,
+    });
+  }, [instrumentalPlaybackUrl, onChange, vocalPlaybackUrl]);
+
   return null;
 }
 
@@ -77,6 +89,7 @@ export function AudioEditor({ songId }: AudioEditorProps) {
     duplicateRegion,
     fadeRegion,
     moveRegion,
+    moveRegionToIndex,
     cutRegion,
     resizeRegion,
     undo,
@@ -98,6 +111,10 @@ export function AudioEditor({ songId }: AudioEditorProps) {
   const [isRendering, setIsRendering] = useState(false);
   const [regeneratePrompt, setRegeneratePrompt] = useState("");
   const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
+  const [playbackUrls, setPlaybackUrls] = useState<PlaybackUrls>({
+    vocal: null,
+    instrumental: null,
+  });
 
   async function handleRender() {
     setIsRendering(true);
@@ -170,9 +187,10 @@ export function AudioEditor({ songId }: AudioEditorProps) {
         {(vocalPlaybackUrl) => (
           <AuthenticatedBlobUrl src={instrumentalTrack?.audioUrl ?? null}>
             {(instrumentalPlaybackUrl) => (
-              <StemPlaybackBridge
+              <PlaybackUrlBridge
                 instrumentalPlaybackUrl={instrumentalPlaybackUrl}
                 vocalPlaybackUrl={vocalPlaybackUrl}
+                onChange={setPlaybackUrls}
               />
             )}
           </AuthenticatedBlobUrl>
@@ -183,9 +201,12 @@ export function AudioEditor({ songId }: AudioEditorProps) {
         <div className={styles.mainColumn}>
           <WaveformTimeline
             disabled={controlsDisabled}
+            instrumentalPlaybackUrl={playbackUrls.instrumental}
+            onMoveRegion={moveRegionToIndex}
+            onResizeRegion={resizeRegion}
             regions={regions}
             selectedRegionId={selectedRegionId}
-            onResizeRegion={resizeRegion}
+            vocalPlaybackUrl={playbackUrls.vocal}
             onSelectRegion={setSelectedRegion}
           />
 

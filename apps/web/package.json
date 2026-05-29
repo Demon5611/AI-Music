@@ -13,12 +13,17 @@
     "@ai-music/api-client": "workspace:*",
     "@ai-music/shared": "workspace:*",
     "@clerk/nextjs": "^6.36.5",
+    "@dnd-kit/abstract": "^0.3.2",
+    "@dnd-kit/dom": "^0.3.2",
+    "@dnd-kit/react": "^0.3.2",
     "@tanstack/react-query": "^5.100.14",
+    "@waveform-playlist/browser": "^13.0.0",
+    "@waveform-playlist/core": "^12.2.0",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "styled-components": "^6.4.2",
     "tone": "^15.1.22",
-    "wavesurfer.js": "^7.12.7",
     "zustand": "^5.0.13"
   },
   "devDependencies": {
