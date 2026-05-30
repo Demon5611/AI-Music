@@ -35,6 +35,13 @@ export interface DeleteRegionOperation {
   regionId: string;
 }
 
+export interface DeleteRangeOperation {
+  type: "DELETE_RANGE";
+  regionId: string;
+  startMs: number;
+  endMs: number;
+}
+
 /** @deprecated Renamed to DeleteRegionOperation. */
 export type CutRegionOperation = DeleteRegionOperation;
 
@@ -101,6 +108,7 @@ export type EditOperation =
   | SetVolumeOperation
   | MuteTrackOperation
   | DeleteRegionOperation
+  | DeleteRangeOperation
   | SplitRegionOperation
   | MoveRegionOperation
   | MoveTrackRegionOperation

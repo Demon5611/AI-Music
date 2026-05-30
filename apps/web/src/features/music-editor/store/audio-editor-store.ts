@@ -28,6 +28,17 @@ export interface StemMediaElements {
 
 export type TrackSelectionSource = "panel" | "timeline";
 
+export interface TimelineSelectionSec {
+  startSec: number;
+  endSec: number;
+}
+
+export interface TimelineSelectionContext {
+  regionId: string;
+  layoutStartSec: number;
+  layoutEndSec: number;
+}
+
 interface AudioEditorState {
   songId: string | null;
   selectedRegionId: string | null;
@@ -56,6 +67,8 @@ interface AudioEditorState {
 
   aiCommandText: string;
   aiCommandPreview: EditOperation | null;
+  timelineSelectionSec: TimelineSelectionSec | null;
+  timelineSelectionContext: TimelineSelectionContext | null;
 
   hydrate: (state: EditorStateDto) => void;
   setSelectedRegion: (id: string | null) => void;
@@ -84,6 +97,12 @@ interface AudioEditorState {
 
   setAiCommandText: (value: string) => void;
   setAiCommandPreview: (operation: EditOperation | null) => void;
+  setTimelineSelection: (
+    selection: {
+      sec: TimelineSelectionSec;
+      context: TimelineSelectionContext | null;
+    } | null,
+  ) => void;
 }
 
 const DEFAULT_PREVIEW: PreviewTrackState = {
@@ -164,6 +183,8 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
 
   aiCommandText: "",
   aiCommandPreview: null,
+  timelineSelectionSec: null,
+  timelineSelectionContext: null,
 
   hydrate: (state) => {
     set((current) => {
@@ -282,6 +303,15 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
 
   setAiCommandText: (value) => set({ aiCommandText: value }),
   setAiCommandPreview: (operation) => set({ aiCommandPreview: operation }),
+  setTimelineSelection: (selection) =>
+    set(
+      selection
+        ? {
+            timelineSelectionSec: selection.sec,
+            timelineSelectionContext: selection.context,
+          }
+        : { timelineSelectionSec: null, timelineSelectionContext: null },
+    ),
 }));
 
 export function selectSelectedRegion(state: AudioEditorState): SongRegionDto | null {

@@ -1,6 +1,9 @@
 import type { EditOperation, SongRegionDto } from "../types/music-editor.js";
 
-const SPLIT_EDGE_PADDING_MS = 100;
+export const RANGE_EDGE_PADDING_MS = 100;
+export const MIN_RANGE_DELETE_MS = 100;
+export const TIMELINE_SELECTION_COLLAPSE_SEC = 0.05;
+
 const CLIP_LAYOUT_GAP_MS = 60;
 
 interface RegionLayoutRange {
@@ -109,6 +112,19 @@ export function findRegionAtLayoutMs(
   return null;
 }
 
+export function layoutMsToSourceMs(
+  region: SongRegionDto,
+  layoutStartMs: number,
+  layoutEndMs: number,
+  layoutMs: number,
+): number {
+  const layoutDurationMs = layoutEndMs - layoutStartMs;
+  const sourceDurationMs = region.endMs - region.startMs;
+  const ratio = (layoutMs - layoutStartMs) / layoutDurationMs;
+
+  return Math.round(region.startMs + ratio * sourceDurationMs);
+}
+
 export function resolveSplitAtMsFromLayoutPlayhead(
   region: SongRegionDto,
   layoutStartMs: number,
@@ -132,8 +148,8 @@ export function resolveSplitAtMsFromLayoutPlayhead(
   const splitAtMs = Math.round(region.startMs + ratio * sourceDurationMs);
 
   if (
-    splitAtMs <= region.startMs + SPLIT_EDGE_PADDING_MS ||
-    splitAtMs >= region.endMs - SPLIT_EDGE_PADDING_MS
+    splitAtMs <= region.startMs + RANGE_EDGE_PADDING_MS ||
+    splitAtMs >= region.endMs - RANGE_EDGE_PADDING_MS
   ) {
     return {
       error: "Playhead is too close to the region edge for split",
@@ -160,5 +176,106 @@ export function resolveSplitAtMsForEditor(
     layout.layoutStartMs,
     layout.layoutEndMs,
     playheadLayoutMs,
+  );
+}
+
+export type DeleteRangeResolution =
+  | { fullRegion: true }
+  | { fullRegion: false; startMs: number; endMs: number };
+
+export function resolveDeleteRangeFromLayoutSelection(
+  region: SongRegionDto,
+  layoutStartMs: number,
+  layoutEndMs: number,
+  selectionStartLayoutMs: number,
+  selectionEndLayoutMs: number,
+): DeleteRangeResolution | { error: string } {
+  const selectionMinLayoutMs = Math.min(selectionStartLayoutMs, selectionEndLayoutMs);
+  const selectionMaxLayoutMs = Math.max(selectionStartLayoutMs, selectionEndLayoutMs);
+  const clippedMinLayoutMs = Math.max(selectionMinLayoutMs, layoutStartMs);
+  const clippedMaxLayoutMs = Math.min(selectionMaxLayoutMs, layoutEndMs);
+
+  if (clippedMaxLayoutMs - clippedMinLayoutMs < MIN_RANGE_DELETE_MS) {
+    return { error: "Selection is too short or outside the region" };
+  }
+
+  const startMs = layoutMsToSourceMs(
+    region,
+    layoutStartMs,
+    layoutEndMs,
+    clippedMinLayoutMs,
+  );
+  const endMs = layoutMsToSourceMs(
+    region,
+    layoutStartMs,
+    layoutEndMs,
+    clippedMaxLayoutMs,
+  );
+
+  if (endMs - startMs < MIN_RANGE_DELETE_MS) {
+    return { error: "Selected range is too short to delete" };
+  }
+
+  const coversFullRegion =
+    startMs <= region.startMs + RANGE_EDGE_PADDING_MS &&
+    endMs >= region.endMs - RANGE_EDGE_PADDING_MS;
+
+  if (coversFullRegion) {
+    return { fullRegion: true };
+  }
+
+  const removesFromStart =
+    startMs <= region.startMs + RANGE_EDGE_PADDING_MS &&
+    endMs < region.endMs - RANGE_EDGE_PADDING_MS;
+  const removesFromEnd =
+    endMs >= region.endMs - RANGE_EDGE_PADDING_MS &&
+    startMs > region.startMs + RANGE_EDGE_PADDING_MS;
+  const removesMiddle =
+    startMs > region.startMs + RANGE_EDGE_PADDING_MS &&
+    endMs < region.endMs - RANGE_EDGE_PADDING_MS;
+
+  if (!removesFromStart && !removesFromEnd && !removesMiddle) {
+    return { error: "Selection is too close to the region edge" };
+  }
+
+  if (removesFromStart && endMs >= region.endMs - RANGE_EDGE_PADDING_MS) {
+    return { error: "Selection is too close to the region edge" };
+  }
+
+  if (removesFromEnd && startMs <= region.startMs + RANGE_EDGE_PADDING_MS) {
+    return { error: "Selection is too close to the region edge" };
+  }
+
+  return { fullRegion: false, startMs, endMs };
+}
+
+export function resolveDeleteRangeForEditor(
+  regions: SongRegionDto[],
+  operations: EditOperation[],
+  region: SongRegionDto,
+  selectionStartLayoutMs: number,
+  selectionEndLayoutMs: number,
+): DeleteRangeResolution | { error: string } {
+  const layout = computeRegionLayoutRangeMs(regions, operations, region.id);
+
+  if (!layout) {
+    return { error: "Unable to resolve region layout on timeline" };
+  }
+
+  return resolveDeleteRangeFromLayoutSelection(
+    region,
+    layout.layoutStartMs,
+    layout.layoutEndMs,
+    selectionStartLayoutMs,
+    selectionEndLayoutMs,
+  );
+}
+
+export function isTimelineRangeSelection(
+  selectionStartSec: number,
+  selectionEndSec: number,
+): boolean {
+  return (
+    Math.abs(selectionEndSec - selectionStartSec) > TIMELINE_SELECTION_COLLAPSE_SEC
   );
 }

@@ -108,6 +108,7 @@ export type {
   ApplyOperationBody,
   AudioTrackDto,
   DeleteRegionOperation,
+  DeleteRangeOperation,
   EditOperation,
   EditorStateDto,
   EditorTrackId,

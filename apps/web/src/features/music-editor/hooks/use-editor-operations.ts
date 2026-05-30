@@ -3,6 +3,9 @@
 import type { EditOperation, EditorTrackId } from "@ai-music/shared";
 import {
   findRegionAtLayoutMs,
+  isTimelineRangeSelection,
+  resolveDeleteRangeForEditor,
+  resolveDeleteRangeFromLayoutSelection,
   resolveSplitAtMsForEditor,
 } from "@ai-music/shared";
 import { useCallback } from "react";
@@ -284,16 +287,83 @@ export function useEditorOperations() {
   );
 
   const deleteRegion = useCallback(() => {
-    if (!selectedRegionId) {
+    const state = useAudioEditorStore.getState();
+    const selection = state.timelineSelectionSec;
+    const selectionContext = state.timelineSelectionContext;
+    const hasRangeSelection =
+      selection !== null &&
+      isTimelineRangeSelection(selection.startSec, selection.endSec);
+
+    let region = selectSelectedRegion(state);
+
+    if (hasRangeSelection && selectionContext?.regionId) {
+      region =
+        state.regions.find((item) => item.id === selectionContext.regionId) ??
+        region;
+    }
+
+    if (!region) {
       setError("Выберите region для удаления");
       return;
     }
 
+    if (!hasRangeSelection) {
+      void applyOperation({
+        type: "DELETE_REGION",
+        regionId: region.id,
+      });
+      return;
+    }
+
+    const hasClipLayout =
+      selectionContext !== null &&
+      selectionContext.regionId === region.id &&
+      selectionContext.layoutEndSec > selectionContext.layoutStartSec;
+
+    const rangeResult = hasClipLayout
+      ? resolveDeleteRangeFromLayoutSelection(
+          region,
+          selectionContext.layoutStartSec * 1000,
+          selectionContext.layoutEndSec * 1000,
+          selection.startSec * 1000,
+          selection.endSec * 1000,
+        )
+      : resolveDeleteRangeForEditor(
+          state.regions,
+          state.operations,
+          region,
+          selection.startSec * 1000,
+          selection.endSec * 1000,
+        );
+
+    if ("error" in rangeResult) {
+      setError(
+        rangeResult.error === "Selection is too short or outside the region"
+          ? "Выделите фрагмент внутри выбранного region на timeline"
+          : rangeResult.error === "Selected range is too short to delete"
+            ? "Выделенный фрагмент слишком короткий для удаления"
+            : rangeResult.error === "Selection is too close to the region edge"
+              ? "Выделение слишком близко к краю region — удалится весь блок или используйте Split"
+              : "Не удалось определить диапазон для удаления",
+      );
+      return;
+    }
+
+    if (rangeResult.fullRegion) {
+      void applyOperation({
+        type: "DELETE_REGION",
+        regionId: region.id,
+      });
+      return;
+    }
+
     void applyOperation({
-      type: "DELETE_REGION",
-      regionId: selectedRegionId,
+      type: "DELETE_RANGE",
+      regionId: region.id,
+      startMs: rangeResult.startMs,
+      endMs: rangeResult.endMs,
     });
-  }, [applyOperation, selectedRegionId, setError]);
+  }, [applyOperation, setError]);
 
   return {
     applyOperation,

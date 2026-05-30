@@ -9,7 +9,7 @@ import type { ClipTrack } from "@waveform-playlist/core";
 import type { EditorTrackId } from "@ai-music/shared";
 import { useEffect, useRef, type RefObject } from "react";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
-import { parseTimelineClipId } from "@/features/music-editor/utils/waveform-playlist-utils";
+import { parseTimelineClipId, resolveTimelineSelectionMatch } from "@/features/music-editor/utils/waveform-playlist-utils";
 
 interface PlaylistRegionBridgeProps {
   selectedRegionId: string | null;
@@ -48,60 +48,21 @@ function resolveRegionFromTimelineSelection(
   selectionEndSec: number,
   playlistTrackId: string | null,
 ): { regionId: string; trackId: EditorTrackId } | null {
-  const selectionMinSec = Math.min(selectionStartSec, selectionEndSec);
-  const selectionMaxSec = Math.max(selectionStartSec, selectionEndSec);
-  const centerSec = (selectionMinSec + selectionMaxSec) / 2;
+  const match = resolveTimelineSelectionMatch(
+    tracks,
+    sampleRate,
+    selectionStartSec,
+    selectionEndSec,
+    { playlistTrackId },
+  );
 
-  const track =
-    (playlistTrackId
-      ? tracks.find((item) => item.id === playlistTrackId)
-      : undefined) ?? tracks[0];
-
-  if (!track) {
-    return null;
-  }
-
-  let bestMatch: {
-    regionId: string;
-    trackId: EditorTrackId;
-    score: number;
-  } | null = null;
-
-  for (const clip of track.clips) {
-    const parsed = parseTimelineClipId(clip.id);
-
-    if (!parsed) {
-      continue;
-    }
-
-    const layoutStartSec = clip.startSample / sampleRate;
-    const layoutEndSec = (clip.startSample + clip.durationSamples) / sampleRate;
-    const overlapSec =
-      Math.min(selectionMaxSec, layoutEndSec) - Math.max(selectionMinSec, layoutStartSec);
-    const containsCenter = centerSec >= layoutStartSec && centerSec <= layoutEndSec;
-
-    if (overlapSec <= 0 && !containsCenter) {
-      continue;
-    }
-
-    const score = overlapSec > 0 ? overlapSec : 0.001;
-
-    if (!bestMatch || score > bestMatch.score) {
-      bestMatch = {
-        regionId: parsed.regionId,
-        trackId: parsed.trackId,
-        score,
-      };
-    }
-  }
-
-  if (!bestMatch) {
+  if (!match) {
     return null;
   }
 
   return {
-    regionId: bestMatch.regionId,
-    trackId: bestMatch.trackId,
+    regionId: match.regionId,
+    trackId: match.trackId,
   };
 }
 

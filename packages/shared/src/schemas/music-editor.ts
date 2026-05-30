@@ -21,6 +21,13 @@ export const DeleteRegionOperationSchema = z.object({
   regionId: z.string().min(1),
 });
 
+export const DeleteRangeOperationSchema = z.object({
+  type: z.literal("DELETE_RANGE"),
+  regionId: z.string().min(1),
+  startMs: z.number().int().min(0),
+  endMs: z.number().int().min(1),
+});
+
 export function normalizeLegacyEditOperation(input: unknown): unknown {
   if (
     input &&
@@ -99,6 +106,7 @@ export const EditOperationSchema = z.preprocess(
     SetVolumeOperationSchema,
     MuteTrackOperationSchema,
     DeleteRegionOperationSchema,
+    DeleteRangeOperationSchema,
     SplitRegionOperationSchema,
     MoveRegionOperationSchema,
     MoveTrackRegionOperationSchema,

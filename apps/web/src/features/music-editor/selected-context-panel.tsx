@@ -13,6 +13,9 @@ export function SelectedContextPanel() {
   const selectedRegion = useAudioEditorStore(selectSelectedRegion);
   const linkedTracks = useAudioEditorStore((state) => state.linkedTracks);
   const selectedTrackId = useAudioEditorStore((state) => state.selectedTrackId);
+  const timelineSelectionSec = useAudioEditorStore(
+    (state) => state.timelineSelectionSec,
+  );
   const tracks = useAudioEditorStore((state) => state.tracks);
 
   const trackLabel = linkedTracks
@@ -34,11 +37,21 @@ export function SelectedContextPanel() {
               Time:{" "}
               {formatTimeRangeMs(selectedRegion.startMs, selectedRegion.endMs)}
             </span>
+            {timelineSelectionSec ? (
+              <span>
+                Selection:{" "}
+                {formatTimeRangeMs(
+                  Math.round(timelineSelectionSec.startSec * 1000),
+                  Math.round(timelineSelectionSec.endSec * 1000),
+                )}
+              </span>
+            ) : null}
           </div>
         ) : (
           <p className={styles.panelHint}>
-            Кликните timeline, чтобы выбрать регион под playhead, затем примените
-            Region actions. Split режет в позиции playhead.
+            Кликните timeline, чтобы выбрать регион. Выделите фрагмент на
+            waveform и нажмите Delete, чтобы вырезать его. Split режет в позиции
+            playhead.
           </p>
         )}
       </div>

@@ -16,6 +16,7 @@ import { useRegionPlaylistTracks } from "@/features/music-editor/hooks/use-regio
 import { PlaylistPlayheadRestoreBridge } from "@/features/music-editor/playlist-playhead-restore-bridge";
 import { PlaylistRegionBridge } from "@/features/music-editor/playlist-region-bridge";
 import { PlaylistSelectedRegionHighlight } from "@/features/music-editor/playlist-selected-region-highlight";
+import { PlaylistTimelineSelectionBridge } from "@/features/music-editor/playlist-timeline-selection-bridge";
 import { TransportControls } from "@/features/music-editor/transport-controls";
 import {
   useAudioEditorStore,
@@ -558,6 +559,7 @@ export function WaveformTimeline({
                 providerKey={timelineProviderKey}
               />
               <PlaylistTransportBridge />
+              <PlaylistTimelineSelectionBridge />
               <PlaylistTrackStateBridge sources={sources} />
               <PlaylistActiveTrackBridge sources={sources} />
               <PlaylistSelectedRegionHighlight
@@ -583,7 +585,8 @@ export function WaveformTimeline({
         {linkedTracks
           ? "Linked mode: drag и trim применяются синхронно к Vocal и Instrumental."
           : "Independent mode: drag и trim применяются только к дорожке, которую вы редактируете."}{" "}
-        Клик по timeline выбирает регион под playhead. Split режет в позиции playhead.
+        Клик по timeline выбирает регион под playhead. Выделите фрагмент на waveform
+        и нажмите Delete, чтобы вырезать его. Split режет в позиции playhead.
       </p>
     </div>
   );

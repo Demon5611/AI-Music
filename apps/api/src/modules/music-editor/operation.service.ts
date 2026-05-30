@@ -16,6 +16,10 @@ import {
   type OperationUndoMeta,
   type StoredEditOperation,
 } from "./undo-meta.resolver.js";
+import {
+  applyDeleteRangeMutation,
+  reverseDeleteRangeMutation,
+} from "./delete-range.mutation.js";
 
 interface SelectionContext {
   selectedRegionId?: string | null;
@@ -56,6 +60,7 @@ function normalizeStoredEditOperation(
 function isRegionMutation(operation: EditOperation | StoredEditOperation): boolean {
   return [
     "DELETE_REGION",
+    "DELETE_RANGE",
     "SPLIT_REGION",
     "MOVE_REGION",
     "DUPLICATE_REGION",
@@ -255,6 +260,10 @@ export async function applyRegionMutation(
       return undoMeta;
     }
 
+    case "DELETE_RANGE": {
+      return applyDeleteRangeMutation(songId, operation, db);
+    }
+
     case "SPLIT_REGION": {
       const region = regionMap.get(operation.regionId);
 
@@ -399,6 +408,16 @@ export async function reverseRegionMutation(
         songId,
         deleteRegionSnapshot,
         restoredRegionId,
+        db,
+      );
+      return;
+    }
+
+    case "DELETE_RANGE": {
+      await reverseDeleteRangeMutation(
+        songId,
+        normalizedOperation,
+        undoMeta,
         db,
       );
       return;

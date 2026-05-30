@@ -93,7 +93,7 @@ export function RegionToolbar({
           <RegionActionButton
             disabled={actionsDisabled}
             label="Delete"
-            tooltip="Удалить выбранный region из версии"
+            tooltip="Удалить выделенный фрагмент на timeline или весь region, если выделения нет"
             variant="destructive"
             onClick={onDelete}
           />

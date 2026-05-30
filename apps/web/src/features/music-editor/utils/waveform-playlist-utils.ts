@@ -226,6 +226,133 @@ export function buildRegionTrack(
   });
 }
 
+export interface TimelineSelectionMatch {
+  regionId: string;
+  trackId: EditorTrackId;
+  layoutStartSec: number;
+  layoutEndSec: number;
+}
+
+function scoreClipSelectionOverlap(
+  selectionMinSec: number,
+  selectionMaxSec: number,
+  centerSec: number,
+  layoutStartSec: number,
+  layoutEndSec: number,
+): number | null {
+  const overlapSec =
+    Math.min(selectionMaxSec, layoutEndSec) - Math.max(selectionMinSec, layoutStartSec);
+  const containsCenter = centerSec >= layoutStartSec && centerSec <= layoutEndSec;
+
+  if (overlapSec <= 0 && !containsCenter) {
+    return null;
+  }
+
+  return overlapSec > 0 ? overlapSec : 0.001;
+}
+
+export function resolveTimelineSelectionMatch(
+  tracks: ClipTrack[],
+  sampleRate: number,
+  selectionStartSec: number,
+  selectionEndSec: number,
+  options?: {
+    playlistTrackId?: string | null;
+    preferredRegionId?: string | null;
+  },
+): TimelineSelectionMatch | null {
+  if (!tracks.length || sampleRate <= 0) {
+    return null;
+  }
+
+  const selectionMinSec = Math.min(selectionStartSec, selectionEndSec);
+  const selectionMaxSec = Math.max(selectionStartSec, selectionEndSec);
+  const centerSec = (selectionMinSec + selectionMaxSec) / 2;
+  const playlistTrackId = options?.playlistTrackId;
+  const preferredRegionId = options?.preferredRegionId;
+  const searchTracks =
+    playlistTrackId !== undefined && playlistTrackId !== null
+      ? tracks.filter((track) => track.id === playlistTrackId)
+      : tracks;
+  const tracksToSearch = searchTracks.length > 0 ? searchTracks : tracks;
+
+  if (preferredRegionId) {
+    for (const track of tracksToSearch) {
+      for (const clip of track.clips) {
+        const parsed = parseTimelineClipId(clip.id);
+
+        if (!parsed || parsed.regionId !== preferredRegionId) {
+          continue;
+        }
+
+        const layoutStartSec = clip.startSample / sampleRate;
+        const layoutEndSec =
+          (clip.startSample + clip.durationSamples) / sampleRate;
+        const score = scoreClipSelectionOverlap(
+          selectionMinSec,
+          selectionMaxSec,
+          centerSec,
+          layoutStartSec,
+          layoutEndSec,
+        );
+
+        if (score !== null) {
+          return {
+            regionId: parsed.regionId,
+            trackId: parsed.trackId,
+            layoutStartSec,
+            layoutEndSec,
+          };
+        }
+      }
+    }
+  }
+
+  let bestMatch: (TimelineSelectionMatch & { score: number }) | null = null;
+
+  for (const track of tracksToSearch) {
+    for (const clip of track.clips) {
+      const parsed = parseTimelineClipId(clip.id);
+
+      if (!parsed) {
+        continue;
+      }
+
+      const layoutStartSec = clip.startSample / sampleRate;
+      const layoutEndSec =
+        (clip.startSample + clip.durationSamples) / sampleRate;
+      const score = scoreClipSelectionOverlap(
+        selectionMinSec,
+        selectionMaxSec,
+        centerSec,
+        layoutStartSec,
+        layoutEndSec,
+      );
+
+      if (score === null) {
+        continue;
+      }
+
+      if (!bestMatch || score > bestMatch.score) {
+        bestMatch = {
+          regionId: parsed.regionId,
+          trackId: parsed.trackId,
+          layoutStartSec,
+          layoutEndSec,
+          score,
+        };
+      }
+    }
+  }
+
+  if (!bestMatch) {
+    return null;
+  }
+
+  const { score: _score, ...match } = bestMatch;
+  return match;
+}
+
 export function parseTimelineClipId(
   clipId: string,
 ): { trackId: EditorTrackId; regionId: string } | null {

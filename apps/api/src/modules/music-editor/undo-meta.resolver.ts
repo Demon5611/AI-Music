@@ -16,6 +16,14 @@ export interface OperationUndoMeta {
   /** @deprecated Renamed to deleteRegionSnapshot. */
   cutRegionSnapshot?: OperationUndoMeta["deleteRegionSnapshot"];
   previousIndex?: number;
+  deleteRangeUndo?: {
+    kind: "trim_start" | "trim_end" | "middle";
+    previousStartMs?: number;
+    previousEndMs?: number;
+    leftRegionId?: string;
+    rightRegionId?: string;
+    mergedEndMs?: number;
+  };
 }
 
 export function resolveDeleteRegionSnapshot(
