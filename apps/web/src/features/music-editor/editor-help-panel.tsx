@@ -1,10 +1,16 @@
 "use client";
 
+import { useHintsVisibility } from "@/shared/providers/hints-visibility-provider";
 import { useState } from "react";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 
 export function EditorHelpPanel() {
+  const { hintsVisible } = useHintsVisibility();
   const [open, setOpen] = useState(false);
+
+  if (!hintsVisible) {
+    return null;
+  }
 
   return (
     <div className={styles.helpPanel}>

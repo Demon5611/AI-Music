@@ -7,6 +7,7 @@ import { useClientMounted } from "@/shared/hooks/use-client-mounted";
 import { AiCommandPanel } from "@/features/music-editor/ai-command-panel";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
 import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
+import { EditorHeader } from "@/features/music-editor/editor-header";
 import { useEditorAiActions } from "@/features/music-editor/hooks/use-editor-ai-actions";
 import { useEditorOperations } from "@/features/music-editor/hooks/use-editor-operations";
 import { useEditorPolling } from "@/features/music-editor/hooks/use-editor-polling";
@@ -18,6 +19,10 @@ import { TrackLane } from "@/features/music-editor/track-lane";
 import { VoiceTransferDialog } from "@/features/music-editor/voice-transfer-dialog";
 import { AuthenticatedBlobUrl } from "@/shared/ui/authenticated-blob-url";
 import { useApi } from "@/shared/providers/api-provider";
+import {
+  HintsVisibilityProvider,
+  useHintsVisibility,
+} from "@/shared/providers/hints-visibility-provider";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 import { useEditorTransportShortcuts } from "./hooks/use-editor-transport-shortcuts";
 import { useEditorInitialLoad } from "./hooks/use-editor-initial-load";
@@ -167,8 +172,17 @@ function resolveErrorMessage(error: unknown): string {
 }
 
 export function AudioEditor({ songId }: AudioEditorProps) {
+  return (
+    <HintsVisibilityProvider>
+      <AudioEditorContent songId={songId} />
+    </HintsVisibilityProvider>
+  );
+}
+
+function AudioEditorContent({ songId }: AudioEditorProps) {
   const api = useApi();
   const router = useRouter();
+  const { hintsVisible } = useHintsVisibility();
   const hydrate = useAudioEditorStore((state) => state.hydrate);
   const setError = useAudioEditorStore((state) => state.setError);
   const regions = useAudioEditorStore((state) => state.regions);
@@ -258,10 +272,8 @@ export function AudioEditor({ songId }: AudioEditorProps) {
   })();
 
   return (
-    <section className={styles.section}>
-      <div>
-        <h1 className={styles.title}>{title || "Audio Editor"}</h1>
-      </div>
+    <section className={`${styles.section} ${hintsVisible ? "" : styles.hintsHidden}`}>
+      <EditorHeader title={title || "Audio Editor"} />
 
       <EditorHelpPanel />
 
