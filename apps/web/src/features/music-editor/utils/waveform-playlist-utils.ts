@@ -29,6 +29,85 @@ export const AUDIO_CONTEXT_OPTIONS = { sampleRate: 48_000 };
 export const TRACK_WAVE_HEIGHT = 72;
 /** Visual gap between adjacent clips on the timeline layout (seconds). */
 export const CLIP_LAYOUT_GAP_SEC = 0.06;
+const DEFAULT_SAMPLES_PER_PIXEL = 2048;
+const MIN_SAMPLES_PER_PIXEL = 64;
+const MAX_SAMPLES_PER_PIXEL = 16_384;
+export const FIT_ZOOM_BASE = 100;
+const STANDARD_ZOOM_LEVELS = [
+  64, 128, 256, 512, 1024, 2048, 4096, 8192, 16_384,
+] as const;
+
+export interface TimelineZoomSettings {
+  samplesPerPixel: number;
+  zoomLevels: number[];
+}
+
+function clampZoom(zoom: number): number {
+  return Math.min(200, Math.max(10, zoom));
+}
+
+function buildTimelineZoomLevels(fitSamplesPerPixel: number): number[] {
+  return [...new Set([...STANDARD_ZOOM_LEVELS, fitSamplesPerPixel])].sort(
+    (left, right) => left - right,
+  );
+}
+
+function resolveFitZoomLevelIndex(
+  zoomLevels: number[],
+  fitSamplesPerPixel: number,
+  zoom: number,
+): number {
+  let fitIndex = zoomLevels.indexOf(fitSamplesPerPixel);
+
+  if (fitIndex < 0) {
+    fitIndex = zoomLevels.reduce((bestIndex, level, index, levels) => {
+      const currentDistance = Math.abs(levels[bestIndex] - fitSamplesPerPixel);
+      const nextDistance = Math.abs(level - fitSamplesPerPixel);
+      return nextDistance < currentDistance ? index : bestIndex;
+    }, 0);
+  }
+
+  const offsetSteps = Math.round((FIT_ZOOM_BASE - clampZoom(zoom)) / 10);
+  return Math.min(
+    zoomLevels.length - 1,
+    Math.max(0, fitIndex + offsetSteps),
+  );
+}
+
+export function computeFitSamplesPerPixel(
+  tracks: ClipTrack[],
+  containerWidthPx: number,
+): number {
+  const durationSec = computeTimelineLayoutDurationSec(tracks);
+
+  if (durationSec <= 0 || containerWidthPx <= 0) {
+    return DEFAULT_SAMPLES_PER_PIXEL;
+  }
+
+  const sampleRate =
+    tracks[0]?.clips[0]?.sampleRate ?? AUDIO_CONTEXT_OPTIONS.sampleRate;
+  const fitSamplesPerPixel = (durationSec * sampleRate) / containerWidthPx;
+
+  return Math.min(
+    MAX_SAMPLES_PER_PIXEL,
+    Math.max(MIN_SAMPLES_PER_PIXEL, Math.round(fitSamplesPerPixel)),
+  );
+}
+
+export function resolveTimelineZoomSettings(
+  tracks: ClipTrack[],
+  containerWidthPx: number,
+  zoom: number,
+): TimelineZoomSettings {
+  const fitSamplesPerPixel = computeFitSamplesPerPixel(tracks, containerWidthPx);
+  const zoomLevels = buildTimelineZoomLevels(fitSamplesPerPixel);
+  const samplesPerPixel =
+    containerWidthPx > 0
+      ? zoomLevels[resolveFitZoomLevelIndex(zoomLevels, fitSamplesPerPixel, zoom)]
+      : DEFAULT_SAMPLES_PER_PIXEL;
+
+  return { samplesPerPixel, zoomLevels };
+}
 
 const REGION_TIME_EPSILON_MS = 20;
 
@@ -43,6 +122,28 @@ const REGION_COLORS: Record<SongRegionDto["label"], string> = {
 
 export function dbToGain(db: number): number {
   return 10 ** (db / 20);
+}
+
+export function computeTimelineLayoutDurationSec(tracks: ClipTrack[]): number {
+  let maxEndSample = 0;
+
+  for (const track of tracks) {
+    for (const clip of track.clips) {
+      maxEndSample = Math.max(
+        maxEndSample,
+        clip.startSample + clip.durationSamples,
+      );
+    }
+  }
+
+  if (maxEndSample <= 0) {
+    return 0;
+  }
+
+  const sampleRate =
+    tracks[0]?.clips[0]?.sampleRate ?? AUDIO_CONTEXT_OPTIONS.sampleRate;
+
+  return maxEndSample / sampleRate;
 }
 
 export function sortRegions(regions: SongRegionDto[]): SongRegionDto[] {

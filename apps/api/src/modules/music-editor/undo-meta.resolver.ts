@@ -6,10 +6,12 @@ export interface OperationUndoMeta {
   previousEndMs?: number;
   duplicatedRegionId?: string;
   deleteRegionSnapshot?: {
+    id?: string;
     label: string;
     startMs: number;
     endMs: number;
     orderIndex: number;
+    replacementAudioKey?: string | null;
   };
   /** @deprecated Renamed to deleteRegionSnapshot. */
   cutRegionSnapshot?: OperationUndoMeta["deleteRegionSnapshot"];

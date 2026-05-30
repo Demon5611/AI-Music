@@ -169,10 +169,27 @@
 
 .playlistShell {
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
   background: #f8fafc;
+}
+
+.playlistShell :global([data-clip-container]:focus),
+.playlistShell :global([data-clip-container]:focus-visible),
+.playlistShell :global([data-clip-container]:focus-within),
+.playlistShell :global([data-clip-id]:focus),
+.playlistShell :global([data-clip-id]:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+.playlistShellHint {
+  margin: 0;
+  padding: 1rem;
+  color: #64748b;
+  font-size: 0.875rem;
 }
 
 .timelineHint {

@@ -141,7 +141,7 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
 
   isPlaying: false,
   currentTimeMs: 0,
-  zoom: 50,
+  zoom: 100,
   loopSelected: false,
   previewTracks: {
     vocal: { ...DEFAULT_PREVIEW },
