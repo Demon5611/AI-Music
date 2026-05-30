@@ -7,7 +7,7 @@ import {
   VOICE_CONSENT_PHRASE,
 } from "@ai-music/shared";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { readAudioDurationSec } from "@/features/voice/read-audio-duration";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
@@ -38,6 +38,8 @@ function formatRecordingTime(seconds: number): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
+type VoiceInputMode = "record" | "upload";
+
 interface VoiceUploadPanelProps {
   disabled?: boolean;
   onSuccess?: (sampleId: string) => void;
@@ -53,6 +55,12 @@ export function VoiceUploadPanel({
   const router = useRouter();
   const authReady = useAuthReady();
   const [file, setFile] = useState<File | null>(null);
+  const [fileSource, setFileSource] = useState<VoiceInputMode | null>(null);
+  const [inputMode, setInputMode] = useState<VoiceInputMode>("record");
+  const [pendingInputMode, setPendingInputMode] = useState<VoiceInputMode | null>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [previewDurationSec, setPreviewDurationSec] = useState<number | null>(null);
+  const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,6 +78,77 @@ export function VoiceUploadPanel({
   const styles = isEmbedded ? editorStyles : formStyles;
   const durationHint = `${MIN_VOICE_SAMPLE_DURATION_SEC}–${MAX_VOICE_SAMPLE_DURATION_SEC} сек`;
 
+  useEffect(() => {
+    if (!previewUrl) {
+      return;
+    }
+
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  function clearSelectedFile() {
+    setFile(null);
+    setFileSource(null);
+    setPreviewDurationSec(null);
+    setFileInputKey((value) => value + 1);
+    setError(null);
+  }
+
+  function resetVoiceInput() {
+    cancelRecording();
+    clearSelectedFile();
+    setPendingInputMode(null);
+  }
+
+  function selectUploadedFile(nextFile: File | null) {
+    if (!nextFile) {
+      clearSelectedFile();
+      return;
+    }
+
+    setFile(nextFile);
+    setFileSource("upload");
+    setPreviewDurationSec(null);
+    setError(null);
+  }
+
+  function selectRecordedFile(nextFile: File) {
+    setFile(nextFile);
+    setFileSource("record");
+    setPreviewDurationSec(null);
+    setError(null);
+  }
+
+  function requestInputMode(nextMode: VoiceInputMode) {
+    if (nextMode === inputMode) {
+      return;
+    }
+
+    if (file || isRecording) {
+      setPendingInputMode(nextMode);
+      return;
+    }
+
+    setInputMode(nextMode);
+    setError(null);
+  }
+
+  function confirmInputModeSwitch() {
+    if (!pendingInputMode) {
+      return;
+    }
+
+    const nextMode = pendingInputMode;
+    resetVoiceInput();
+    setInputMode(nextMode);
+  }
+
+  function cancelInputModeSwitch() {
+    setPendingInputMode(null);
+  }
+
   async function handleStopRecording() {
     setRecorderError(null);
     const recordedFile = await stopRecording();
@@ -79,9 +158,23 @@ export function VoiceUploadPanel({
       return;
     }
 
-    setFile(recordedFile);
-    setError(null);
+    selectRecordedFile(recordedFile);
   }
+
+  const replaceWarningMessage =
+    pendingInputMode === "upload"
+      ? "Запись будет удалена. Переключиться на загрузку файла?"
+      : pendingInputMode === "record"
+        ? "Загруженный файл будет удалён. Переключиться на запись с микрофона?"
+        : null;
+  const previewSourceLabel = fileSource === "record" ? "Запись с микрофона" : "Загруженный файл";
+
+  const previewDurationLabel =
+    previewDurationSec !== null ? formatRecordingTime(Math.round(previewDurationSec)) : null;
+  const isPreviewTooShort =
+    previewDurationSec !== null && previewDurationSec < MIN_VOICE_SAMPLE_DURATION_SEC;
+  const isPreviewTooLong =
+    previewDurationSec !== null && previewDurationSec > MAX_VOICE_SAMPLE_DURATION_SEC;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -148,73 +241,173 @@ export function VoiceUploadPanel({
         <>
           <h1 className={styles.title}>Запись голоса</h1>
           <p className={styles.description}>
-            Загрузите или запишите образец своего голоса ({durationHint}). Затем привяжите модель из
-            Kits.
+            Выберите один способ: запись с микрофона или загрузка файла ({durationHint}). Затем
+            привяжите модель из Kits.
           </p>
         </>
       ) : (
         <p className={hintClassName}>
-          Запишите или загрузите образец ({durationHint}), затем привяжите модель Kits.
+          Выберите один способ: запись с микрофона или загрузка файла ({durationHint}).
         </p>
       )}
 
       <form className={formClassName} onSubmit={handleSubmit}>
-        <div className={fieldClassName}>
-          <div className={editorStyles.ownVoiceRecordRow}>
-            {!isRecording ? (
-              <button
-                className={editorStyles.toolButton}
-                disabled={disabled || isSubmitting}
-                type="button"
-                onClick={() => void startRecording()}
-              >
-                Запись
-              </button>
-            ) : (
-              <>
-                <button
-                  className={editorStyles.toolButtonDestructive}
-                  disabled={disabled || isSubmitting}
-                  type="button"
-                  onClick={() => void handleStopRecording()}
-                >
-                  Стоп
-                </button>
-                <button
-                  className={editorStyles.toolButton}
-                  disabled={disabled || isSubmitting}
-                  type="button"
-                  onClick={cancelRecording}
-                >
-                  Отмена
-                </button>
-                <span className={editorStyles.ownVoiceRecordingLabel}>
-                  Идёт запись {formatRecordingTime(elapsedSec)}
-                </span>
-              </>
-            )}
-          </div>
+        <div
+          className={editorStyles.ownVoiceModeSwitch}
+          role="tablist"
+          aria-label="Способ ввода голоса"
+        >
+          <button
+            aria-selected={inputMode === "record"}
+            className={
+              inputMode === "record"
+                ? editorStyles.ownVoiceModeButtonActive
+                : editorStyles.ownVoiceModeButton
+            }
+            disabled={disabled || isSubmitting || isRecording}
+            role="tab"
+            type="button"
+            onClick={() => requestInputMode("record")}
+          >
+            Микрофон
+          </button>
+          <button
+            aria-selected={inputMode === "upload"}
+            className={
+              inputMode === "upload"
+                ? editorStyles.ownVoiceModeButtonActive
+                : editorStyles.ownVoiceModeButton
+            }
+            disabled={disabled || isSubmitting || isRecording}
+            role="tab"
+            type="button"
+            onClick={() => requestInputMode("upload")}
+          >
+            Файл
+          </button>
         </div>
 
-        <label className={fieldClassName}>
-          <span className={labelClassName}>Аудиофайл</span>
-          <input
-            className={inputClassName}
-            disabled={disabled || isSubmitting || isRecording}
-            type="file"
-            accept="audio/*"
-            onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null);
-              setError(null);
-            }}
-          />
-        </label>
+        {replaceWarningMessage ? (
+          <div className={editorStyles.ownVoiceReplaceWarning}>
+            <p className={editorStyles.ownVoiceReplaceWarningText}>{replaceWarningMessage}</p>
+            <div className={editorStyles.ownVoiceReplaceWarningActions}>
+              <button
+                className={editorStyles.toolButton}
+                type="button"
+                onClick={cancelInputModeSwitch}
+              >
+                Отмена
+              </button>
+              <button
+                className={editorStyles.primaryButton}
+                type="button"
+                onClick={confirmInputModeSwitch}
+              >
+                Переключить
+              </button>
+            </div>
+          </div>
+        ) : null}
 
-        {file ? (
-          <p className={hintClassName}>
-            Выбран файл: {file.name}
-            {file.size > 0 ? ` (${Math.round(file.size / 1024)} KB)` : null}
-          </p>
+        {inputMode === "record" ? (
+          <div className={fieldClassName}>
+            <span className={labelClassName}>Запись с микрофона</span>
+            <div className={editorStyles.ownVoiceRecordRow}>
+              {!isRecording ? (
+                <button
+                  className={editorStyles.toolButton}
+                  disabled={disabled || isSubmitting || Boolean(pendingInputMode)}
+                  type="button"
+                  onClick={() => void startRecording()}
+                >
+                  Запись
+                </button>
+              ) : (
+                <>
+                  <button
+                    className={editorStyles.toolButtonDestructive}
+                    disabled={disabled || isSubmitting}
+                    type="button"
+                    onClick={() => void handleStopRecording()}
+                  >
+                    Стоп
+                  </button>
+                  <button
+                    className={editorStyles.toolButton}
+                    disabled={disabled || isSubmitting}
+                    type="button"
+                    onClick={cancelRecording}
+                  >
+                    Отмена
+                  </button>
+                  <span className={editorStyles.ownVoiceRecordingLabel}>
+                    Идёт запись {formatRecordingTime(elapsedSec)}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <label className={fieldClassName}>
+            <span className={labelClassName}>Загрузка файла</span>
+            <input
+              key={fileInputKey}
+              className={inputClassName}
+              disabled={disabled || isSubmitting || Boolean(pendingInputMode)}
+              type="file"
+              accept="audio/*"
+              onChange={(event) => {
+                selectUploadedFile(event.target.files?.[0] ?? null);
+              }}
+            />
+          </label>
+        )}
+
+        {file && previewUrl ? (
+          <div className={editorStyles.ownVoicePreview}>
+            <div className={editorStyles.ownVoicePreviewHeader}>
+              <span className={labelClassName}>Предпросмотр · {previewSourceLabel}</span>
+              <button
+                className={editorStyles.toolButton}
+                disabled={disabled || isSubmitting || isRecording}
+                type="button"
+                onClick={resetVoiceInput}
+              >
+                Удалить
+              </button>
+            </div>
+            <p className={hintClassName}>
+              {file.name}
+              {file.size > 0 ? ` · ${Math.round(file.size / 1024)} KB` : null}
+              {previewDurationLabel ? ` · ${previewDurationLabel}` : null}
+            </p>
+            <audio
+              className={editorStyles.ownVoicePreviewPlayer}
+              controls
+              preload="metadata"
+              src={previewUrl}
+              onLoadedMetadata={(event) => {
+                const duration = event.currentTarget.duration;
+
+                if (Number.isFinite(duration) && duration > 0) {
+                  setPreviewDurationSec(duration);
+                }
+              }}
+            />
+            {isPreviewTooShort ? (
+              <p className={errorClassName}>
+                Минимум {MIN_VOICE_SAMPLE_DURATION_SEC} сек — запишите или загрузите длиннее.
+              </p>
+            ) : null}
+            {isPreviewTooLong ? (
+              <p className={errorClassName}>
+                Максимум {MAX_VOICE_SAMPLE_DURATION_SEC} сек — запишите или загрузите короче.
+              </p>
+            ) : null}
+            <p className={hintClassName}>
+              Файл пока только в браузере. После «Загрузить образец» он сохранится на сервере.
+            </p>
+          </div>
         ) : null}
 
         <label className={fieldClassName}>
