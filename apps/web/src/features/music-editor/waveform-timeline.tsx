@@ -140,6 +140,7 @@ function PlaylistTransportBridge() {
   const data = usePlaylistData();
   const playback = usePlaybackAnimation();
   const controlsRef = useRef(controls);
+  const playbackRef = useRef(playback);
   const setCurrentTime = useAudioEditorStore((state) => state.setCurrentTime);
   const setDuration = useAudioEditorStore((state) => state.setDuration);
   const setIsPlaying = useAudioEditorStore((state) => state.setIsPlaying);
@@ -147,9 +148,8 @@ function PlaylistTransportBridge() {
     (state) => state.setPlaybackController,
   );
 
-  useEffect(() => {
-    controlsRef.current = controls;
-  }, [controls]);
+  controlsRef.current = controls;
+  playbackRef.current = playback;
 
   useEffect(() => {
     const layoutDurationSec = computeTimelineLayoutDurationSec(data.tracks);
@@ -183,10 +183,14 @@ function PlaylistTransportBridge() {
   }, [playback.currentTime, setCurrentTime]);
 
   useEffect(() => {
+    if (!data.isReady) {
+      return;
+    }
+
     const controller: PlaybackController = {
       play: () => {
         const fallbackStartSec = useAudioEditorStore.getState().currentTimeMs / 1000;
-        const playbackStartSec = playback.currentTimeRef.current;
+        const playbackStartSec = playbackRef.current.currentTimeRef.current;
         const startSec = Number.isFinite(playbackStartSec)
           ? playbackStartSec
           : fallbackStartSec;
@@ -216,8 +220,9 @@ function PlaylistTransportBridge() {
 
     return () => {
       setPlaybackController(null);
+      setIsPlaying(false);
     };
-  }, [playback.currentTimeRef, setCurrentTime, setIsPlaying, setPlaybackController]);
+  }, [data.isReady, setCurrentTime, setIsPlaying, setPlaybackController]);
 
   return null;
 }
@@ -323,19 +328,40 @@ export function WaveformTimeline({
   const pendingOperationRef = useRef<PendingTimelineOperation | null>(null);
   const persistTimerRef = useRef<number | null>(null);
   const providerTracks = isStructuralSync ? tracks : playlistTracks;
+  const timelineInitializedRef = useRef(false);
+  const lastStableWidthRef = useRef(0);
+
+  if (stableTimelineWidthPx > 0) {
+    lastStableWidthRef.current = stableTimelineWidthPx;
+  }
+
+  const effectiveTimelineWidthPx =
+    stableTimelineWidthPx > 0
+      ? stableTimelineWidthPx
+      : lastStableWidthRef.current;
+  const canMountTimeline =
+    providerTracks.length > 0 && effectiveTimelineWidthPx > 0;
+
+  if (canMountTimeline) {
+    timelineInitializedRef.current = true;
+  }
+
+  const timelineReady =
+    providerTracks.length > 0 &&
+    (canMountTimeline || timelineInitializedRef.current);
   const fitTimelineZoom = useMemo(
     () =>
       resolveTimelineZoomSettings(
         providerTracks,
-        stableTimelineWidthPx,
+        effectiveTimelineWidthPx,
         FIT_ZOOM_BASE,
       ),
-    [providerTracks, stableTimelineWidthPx],
+    [effectiveTimelineWidthPx, providerTracks],
   );
-  const timelineReady =
-    tracks.length > 0 && !isLoading && stableTimelineWidthPx > 0;
-  const timelineProviderKey = `${regionsLayoutKey}:${stableTimelineWidthPx}`;
-  const isInitialTrackLoad = isLoading && tracks.length === 0;
+  const timelineProviderKey = `${regionsLayoutKey}:${fitTimelineZoom.samplesPerPixel}:${effectiveTimelineWidthPx}`;
+  const isInitialTrackLoad = isLoading && providerTracks.length === 0;
+  const transportDisabled =
+    disabled || providerTracks.length === 0 || isInitialTrackLoad;
 
   useLayoutEffect(() => {
     return () => {
@@ -494,22 +520,22 @@ export function WaveformTimeline({
             className={
               linkedTracks ? styles.timelineModeButtonActive : styles.timelineModeButton
             }
-            disabled={disabled || tracks.length === 0 || isLoading}
+            disabled={transportDisabled}
             type="button"
             onClick={() => setLinkedTracks(!linkedTracks)}
           >
             {linkedTracks ? "Linked tracks" : "Independent tracks"}
           </button>
         </div>
-        <TransportControls disabled={disabled || tracks.length === 0 || isLoading} />
+        <TransportControls disabled={transportDisabled} />
       </div>
 
       {error ? <p className={styles.error}>{error}</p> : null}
       {isInitialTrackLoad ? <p className={styles.panelHint}>Загрузка waveform...</p> : null}
 
-      {tracks.length > 0 || isInitialTrackLoad ? (
+      {providerTracks.length > 0 || isInitialTrackLoad ? (
           <div className={styles.playlistShell} ref={playlistShellRef}>
-            {!isLoading && !timelineReady ? (
+            {!canMountTimeline && timelineReady ? (
               <p className={styles.playlistShellHint}>Подготовка timeline...</p>
             ) : null}
             {timelineReady ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import { ApiError } from "@ai-music/api-client";
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { useClientMounted } from "@/shared/hooks/use-client-mounted";
 import { AiCommandPanel } from "@/features/music-editor/ai-command-panel";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
@@ -140,11 +140,19 @@ function PlaybackUrlBridge({
   instrumentalPlaybackUrl: string | null;
   onChange: (urls: PlaybackUrls) => void;
 }) {
+  const lastUrlsRef = useRef<PlaybackUrls>({
+    vocal: null,
+    instrumental: null,
+  });
+
   useEffect(() => {
-    onChange({
-      vocal: vocalPlaybackUrl,
-      instrumental: instrumentalPlaybackUrl,
-    });
+    const nextUrls: PlaybackUrls = {
+      vocal: vocalPlaybackUrl ?? lastUrlsRef.current.vocal,
+      instrumental: instrumentalPlaybackUrl ?? lastUrlsRef.current.instrumental,
+    };
+
+    lastUrlsRef.current = nextUrls;
+    onChange(nextUrls);
   }, [instrumentalPlaybackUrl, onChange, vocalPlaybackUrl]);
 
   return null;

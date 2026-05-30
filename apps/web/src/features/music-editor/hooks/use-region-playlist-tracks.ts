@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClipTrack } from "@waveform-playlist/core";
 import type { EditOperation, EditorTrackId, SongRegionDto } from "@ai-music/shared";
 import {
@@ -13,6 +13,28 @@ function buildSourcesKey(sources: TimelineStemSource[]): string {
   return sources.map((source) => `${source.id}:${source.url}`).join("|");
 }
 
+function buildBufferCacheKey(sourceId: EditorTrackId, url: string): string {
+  return `${sourceId}::${url}`;
+}
+
+const stemBufferCache = new Map<string, AudioBuffer>();
+
+function readCachedBuffers(
+  sources: TimelineStemSource[],
+): Map<EditorTrackId, AudioBuffer> {
+  const cached = new Map<EditorTrackId, AudioBuffer>();
+
+  for (const source of sources) {
+    const buffer = stemBufferCache.get(buildBufferCacheKey(source.id, source.url));
+
+    if (buffer) {
+      cached.set(source.id, buffer);
+    }
+  }
+
+  return cached;
+}
+
 function useStemAudioBuffers(sources: TimelineStemSource[]): {
   buffersBySourceId: Map<EditorTrackId, AudioBuffer>;
   isLoading: boolean;
@@ -20,20 +42,39 @@ function useStemAudioBuffers(sources: TimelineStemSource[]): {
   ready: boolean;
 } {
   const sourcesKey = buildSourcesKey(sources);
+  const sourcesRef = useRef(sources);
+  sourcesRef.current = sources;
+  const initialCachedBuffers = readCachedBuffers(sources);
   const [buffersBySourceId, setBuffersBySourceId] = useState<
     Map<EditorTrackId, AudioBuffer>
-  >(new Map());
-  const [isLoading, setIsLoading] = useState(false);
+  >(initialCachedBuffers);
+  const [isLoading, setIsLoading] = useState(
+    sources.length > 0 && initialCachedBuffers.size !== sources.length,
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sources.length === 0) {
+    const currentSources = sourcesRef.current;
+
+    if (currentSources.length === 0) {
       setBuffersBySourceId(new Map());
       setIsLoading(false);
       setError(null);
       return;
     }
 
+    const cachedBuffers = readCachedBuffers(currentSources);
+
+    if (cachedBuffers.size === currentSources.length) {
+      setBuffersBySourceId(cachedBuffers);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
+    setBuffersBySourceId((current) =>
+      cachedBuffers.size > 0 ? cachedBuffers : current,
+    );
     setIsLoading(true);
     setError(null);
 
@@ -43,7 +84,14 @@ function useStemAudioBuffers(sources: TimelineStemSource[]): {
     async function loadBuffers(): Promise<void> {
       try {
         const entries = await Promise.all(
-          sources.map(async (source) => {
+          currentSources.map(async (source) => {
+            const cacheKey = buildBufferCacheKey(source.id, source.url);
+            const cachedBuffer = stemBufferCache.get(cacheKey);
+
+            if (cachedBuffer) {
+              return [source.id, cachedBuffer] as const;
+            }
+
             const response = await fetch(source.url, {
               signal: abortController.signal,
             });
@@ -54,6 +102,7 @@ function useStemAudioBuffers(sources: TimelineStemSource[]): {
 
             const arrayBuffer = await response.arrayBuffer();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            stemBufferCache.set(cacheKey, audioBuffer);
 
             return [source.id, audioBuffer] as const;
           }),
@@ -66,7 +115,6 @@ function useStemAudioBuffers(sources: TimelineStemSource[]): {
         }
 
         setError(loadError instanceof Error ? loadError.message : "Audio load failed");
-        setBuffersBySourceId(new Map());
       } finally {
         if (!abortController.signal.aborted) {
           setIsLoading(false);
@@ -80,7 +128,7 @@ function useStemAudioBuffers(sources: TimelineStemSource[]): {
       abortController.abort();
       void audioContext.close();
     };
-  }, [sources, sourcesKey]);
+  }, [sourcesKey]);
 
   const ready =
     !isLoading &&
@@ -101,26 +149,37 @@ export function useRegionPlaylistTracks(
 } {
   const { buffersBySourceId, isLoading, error, ready } =
     useStemAudioBuffers(sources);
+  const lastStableTracksRef = useRef<ClipTrack[]>([]);
 
   const tracks = useMemo(() => {
-    if (!ready || regions.length === 0) {
+    if (regions.length === 0) {
+      lastStableTracksRef.current = [];
       return [];
     }
 
-    return sources.map((source) => {
-      const audioBuffer = buffersBySourceId.get(source.id);
+    if (!ready) {
+      return lastStableTracksRef.current;
+    }
 
-      if (!audioBuffer) {
-        return null;
-      }
+    const nextTracks = sources
+      .map((source) => {
+        const audioBuffer = buffersBySourceId.get(source.id);
 
-      return buildRegionTrack(source, audioBuffer, regions, operations);
-    }).filter((track): track is ClipTrack => track !== null);
+        if (!audioBuffer) {
+          return null;
+        }
+
+        return buildRegionTrack(source, audioBuffer, regions, operations);
+      })
+      .filter((track): track is ClipTrack => track !== null);
+
+    lastStableTracksRef.current = nextTracks;
+    return nextTracks;
   }, [buffersBySourceId, operations, ready, regions, sources]);
 
   return {
     tracks,
-    isLoading: isLoading || (sources.length > 0 && regions.length > 0 && !ready),
+    isLoading: isLoading && lastStableTracksRef.current.length === 0,
     error,
   };
 }

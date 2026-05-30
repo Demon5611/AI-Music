@@ -46,10 +46,44 @@ function clampZoom(zoom: number): number {
   return Math.min(200, Math.max(10, zoom));
 }
 
+function snapToNearestZoomLevel(value: number, levels: number[]): number {
+  if (levels.length === 0) {
+    return DEFAULT_SAMPLES_PER_PIXEL;
+  }
+
+  return levels.reduce((best, level) =>
+    Math.abs(level - value) < Math.abs(best - value) ? level : best,
+  levels[0]);
+}
+
 function buildTimelineZoomLevels(fitSamplesPerPixel: number): number[] {
-  return [...new Set([...STANDARD_ZOOM_LEVELS, fitSamplesPerPixel])].sort(
+  const snappedFit = snapToNearestZoomLevel(fitSamplesPerPixel, [
+    ...STANDARD_ZOOM_LEVELS,
+  ]);
+
+  return [...new Set([...STANDARD_ZOOM_LEVELS, snappedFit])].sort(
     (left, right) => left - right,
   );
+}
+
+function normalizeZoomSettings(
+  samplesPerPixel: number,
+  zoomLevels: number[],
+): TimelineZoomSettings {
+  const uniqueLevels = [...new Set(zoomLevels)].sort((left, right) => left - right);
+
+  if (uniqueLevels.includes(samplesPerPixel)) {
+    return { samplesPerPixel, zoomLevels: uniqueLevels };
+  }
+
+  const snapped = snapToNearestZoomLevel(samplesPerPixel, uniqueLevels);
+
+  return {
+    samplesPerPixel: snapped,
+    zoomLevels: [...new Set([...uniqueLevels, snapped])].sort(
+      (left, right) => left - right,
+    ),
+  };
 }
 
 function resolveFitZoomLevelIndex(
@@ -88,10 +122,12 @@ export function computeFitSamplesPerPixel(
     tracks[0]?.clips[0]?.sampleRate ?? AUDIO_CONTEXT_OPTIONS.sampleRate;
   const fitSamplesPerPixel = (durationSec * sampleRate) / containerWidthPx;
 
-  return Math.min(
+  const clamped = Math.min(
     MAX_SAMPLES_PER_PIXEL,
     Math.max(MIN_SAMPLES_PER_PIXEL, Math.round(fitSamplesPerPixel)),
   );
+
+  return snapToNearestZoomLevel(clamped, [...STANDARD_ZOOM_LEVELS]);
 }
 
 export function resolveTimelineZoomSettings(
@@ -106,7 +142,7 @@ export function resolveTimelineZoomSettings(
       ? zoomLevels[resolveFitZoomLevelIndex(zoomLevels, fitSamplesPerPixel, zoom)]
       : DEFAULT_SAMPLES_PER_PIXEL;
 
-  return { samplesPerPixel, zoomLevels };
+  return normalizeZoomSettings(samplesPerPixel, zoomLevels);
 }
 
 const REGION_TIME_EPSILON_MS = 20;
