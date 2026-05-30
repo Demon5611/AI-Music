@@ -223,6 +223,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const { isProcessing } = useEditorPolling(songId);
   const { title } = useEditorInitialLoad(songId);
   const [isRendering, setIsRendering] = useState(false);
+  const [renderError, setRenderError] = useState<string | null>(null);
   const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
   const [playbackUrls, setPlaybackUrls] = useState<PlaybackUrls>({
     vocal: null,
@@ -232,13 +233,16 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   async function handleRender() {
     setIsRendering(true);
     setError(null);
+    setRenderError(null);
 
     try {
       await api.musicEditor.render(songId);
       const state = await api.musicEditor.getEditorState(songId);
       hydrate(state);
     } catch (renderError) {
-      setError(resolveErrorMessage(renderError));
+      const message = resolveErrorMessage(renderError);
+      setRenderError(message);
+      setError(message);
     } finally {
       setIsRendering(false);
     }
@@ -363,6 +367,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
           <RenderButton
             disabled={controlsDisabled}
             isRendering={isRendering}
+            renderError={renderError}
             songTitle={title || "track"}
             versions={versions}
             onRender={() => void handleRender()}

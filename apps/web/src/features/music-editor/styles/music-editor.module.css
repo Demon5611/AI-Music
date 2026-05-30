@@ -634,6 +634,13 @@
   gap: 0.5rem;
 }
 
+.renderStatus {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
 .aiPrompt {
   width: 100%;
   min-height: 88px;
