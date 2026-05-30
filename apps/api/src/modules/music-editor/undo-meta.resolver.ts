@@ -5,13 +5,21 @@ export interface OperationUndoMeta {
   previousStartMs?: number;
   previousEndMs?: number;
   duplicatedRegionId?: string;
-  cutRegionSnapshot?: {
+  deleteRegionSnapshot?: {
     label: string;
     startMs: number;
     endMs: number;
     orderIndex: number;
   };
+  /** @deprecated Renamed to deleteRegionSnapshot. */
+  cutRegionSnapshot?: OperationUndoMeta["deleteRegionSnapshot"];
   previousIndex?: number;
+}
+
+export function resolveDeleteRegionSnapshot(
+  undoMeta?: OperationUndoMeta,
+): OperationUndoMeta["deleteRegionSnapshot"] | undefined {
+  return undoMeta?.deleteRegionSnapshot ?? undoMeta?.cutRegionSnapshot;
 }
 
 export type StoredEditOperation = EditOperation & {

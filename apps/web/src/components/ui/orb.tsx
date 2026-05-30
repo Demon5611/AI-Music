@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef } from "react"
 import { useTexture } from "@react-three/drei"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
+import type { AgentState } from "@/shared/ui/elevenlabs/agent-state"
 
-export type AgentState = null | "thinking" | "listening" | "talking"
+export type { AgentState }
 
 type OrbProps = {
   colors?: [string, string]

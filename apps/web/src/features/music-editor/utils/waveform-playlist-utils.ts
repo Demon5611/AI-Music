@@ -27,6 +27,8 @@ export type PendingTimelineOperation =
 
 export const AUDIO_CONTEXT_OPTIONS = { sampleRate: 48_000 };
 export const TRACK_WAVE_HEIGHT = 72;
+/** Visual gap between adjacent clips on the timeline layout (seconds). */
+export const CLIP_LAYOUT_GAP_SEC = 0.06;
 
 const REGION_TIME_EPSILON_MS = 20;
 
@@ -67,7 +69,7 @@ export function buildRegionTrack(
       color: REGION_COLORS[region.label],
     });
 
-    cursorSec += durationSec;
+    cursorSec += durationSec + CLIP_LAYOUT_GAP_SEC;
 
     return {
       ...clip,
@@ -87,7 +89,9 @@ export function buildRegionTrack(
   });
 }
 
-function parseClipId(clipId: string): { trackId: EditorTrackId; regionId: string } | null {
+export function parseTimelineClipId(
+  clipId: string,
+): { trackId: EditorTrackId; regionId: string } | null {
   if (clipId.startsWith("vocal-")) {
     return { trackId: "vocal", regionId: clipId.slice("vocal-".length) };
   }
@@ -103,7 +107,7 @@ function parseClipId(clipId: string): { trackId: EditorTrackId; regionId: string
 }
 
 function extractRegionId(clipId: string): string | null {
-  return parseClipId(clipId)?.regionId ?? null;
+  return parseTimelineClipId(clipId)?.regionId ?? null;
 }
 
 export function resolveTrackRegions(
@@ -232,7 +236,7 @@ export function resolveTimelineOperation(
 
   for (const track of tracks) {
     for (const clip of track.clips) {
-      const clipRef = parseClipId(clip.id);
+      const clipRef = parseTimelineClipId(clip.id);
 
       if (!clipRef) {
         continue;
@@ -267,7 +271,7 @@ export function resolveTimelineOperation(
   }
 
   for (const track of tracks) {
-    const firstClipRef = track.clips[0] ? parseClipId(track.clips[0].id) : null;
+    const firstClipRef = track.clips[0] ? parseTimelineClipId(track.clips[0].id) : null;
 
     if (!firstClipRef) {
       continue;

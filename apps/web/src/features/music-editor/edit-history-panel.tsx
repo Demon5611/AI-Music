@@ -39,8 +39,8 @@ function formatOperationLabel(
       return `Move — ${regionLabel}`;
     case "MOVE_TRACK_REGION":
       return `Move ${operation.trackId} — ${regionLabel}`;
-    case "CUT_REGION":
-      return `Cut — ${regionLabel}`;
+    case "DELETE_REGION":
+      return `Delete — ${regionLabel}`;
     case "RESIZE_REGION":
       return `Resize — ${regionLabel}`;
     case "RESIZE_TRACK_REGION":

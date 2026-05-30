@@ -1,3 +1,4 @@
+export type { AgentState } from "@/shared/ui/elevenlabs/agent-state";
 export { AiProcessingStatus } from "@/shared/ui/elevenlabs/ai-processing-status";
 export { AudioPreviewPlayer } from "@/shared/ui/elevenlabs/audio-preview-player";
 export {

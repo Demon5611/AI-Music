@@ -244,14 +244,14 @@ export function useEditorOperations() {
     [applyOperation],
   );
 
-  const cutRegion = useCallback(() => {
+  const deleteRegion = useCallback(() => {
     if (!selectedRegionId) {
-      setError("Выберите регион для cut");
+      setError("Выберите region для удаления");
       return;
     }
 
     void applyOperation({
-      type: "CUT_REGION",
+      type: "DELETE_REGION",
       regionId: selectedRegionId,
     });
   }, [applyOperation, selectedRegionId, setError]);
@@ -270,6 +270,6 @@ export function useEditorOperations() {
     moveRegion,
     moveRegionToIndex,
     moveTrackRegionToIndex,
-    cutRegion,
+    deleteRegion,
   };
 }

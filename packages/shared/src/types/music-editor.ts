@@ -30,10 +30,13 @@ export interface MuteTrackOperation {
   muted: boolean;
 }
 
-export interface CutRegionOperation {
-  type: "CUT_REGION";
+export interface DeleteRegionOperation {
+  type: "DELETE_REGION";
   regionId: string;
 }
+
+/** @deprecated Renamed to DeleteRegionOperation. */
+export type CutRegionOperation = DeleteRegionOperation;
 
 export interface SplitRegionOperation {
   type: "SPLIT_REGION";
@@ -97,7 +100,7 @@ export interface RegenerateRegionOperation {
 export type EditOperation =
   | SetVolumeOperation
   | MuteTrackOperation
-  | CutRegionOperation
+  | DeleteRegionOperation
   | SplitRegionOperation
   | MoveRegionOperation
   | MoveTrackRegionOperation

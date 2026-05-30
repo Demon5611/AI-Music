@@ -9,6 +9,7 @@ import type {
   SongStemDto,
   SongVersionDto,
 } from "@ai-music/shared";
+import { normalizeLegacyEditOperation } from "@ai-music/shared";
 import type { Prisma, Song, SongRegion, SongStem, SongVersion } from "@ai-music/db";
 import { resolveApiBaseUrl } from "../music/music-record.service.js";
 
@@ -171,7 +172,9 @@ export function parseOperations(
   return operations
     .filter((operation) => operation.undoneAt === null)
     .map((operation) =>
-      stripUndoMeta(operation.payloadJson as unknown as EditOperation),
+      normalizeLegacyEditOperation(
+        stripUndoMeta(operation.payloadJson as unknown as EditOperation),
+      ) as EditOperation,
     );
 }
 
@@ -187,7 +190,9 @@ function parseUndoneOperations(
       return rightTime - leftTime;
     })
     .map((operation) =>
-      stripUndoMeta(operation.payloadJson as unknown as EditOperation),
+      normalizeLegacyEditOperation(
+        stripUndoMeta(operation.payloadJson as unknown as EditOperation),
+      ) as EditOperation,
     );
 }
 

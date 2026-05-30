@@ -16,10 +16,23 @@ export const MuteTrackOperationSchema = z.object({
   muted: z.boolean(),
 });
 
-export const CutRegionOperationSchema = z.object({
-  type: z.literal("CUT_REGION"),
+export const DeleteRegionOperationSchema = z.object({
+  type: z.literal("DELETE_REGION"),
   regionId: z.string().min(1),
 });
+
+export function normalizeLegacyEditOperation(input: unknown): unknown {
+  if (
+    input &&
+    typeof input === "object" &&
+    "type" in input &&
+    input.type === "CUT_REGION"
+  ) {
+    return { ...input, type: "DELETE_REGION" };
+  }
+
+  return input;
+}
 
 export const SplitRegionOperationSchema = z.object({
   type: z.literal("SPLIT_REGION"),
@@ -80,20 +93,23 @@ export const RegenerateRegionOperationSchema = z.object({
   prompt: z.string().min(1).max(500),
 });
 
-export const EditOperationSchema = z.discriminatedUnion("type", [
-  SetVolumeOperationSchema,
-  MuteTrackOperationSchema,
-  CutRegionOperationSchema,
-  SplitRegionOperationSchema,
-  MoveRegionOperationSchema,
-  MoveTrackRegionOperationSchema,
-  DuplicateRegionOperationSchema,
-  ResizeRegionOperationSchema,
-  ResizeTrackRegionOperationSchema,
-  FadeOperationSchema,
-  ReplaceVocalOperationSchema,
-  RegenerateRegionOperationSchema,
-]);
+export const EditOperationSchema = z.preprocess(
+  normalizeLegacyEditOperation,
+  z.discriminatedUnion("type", [
+    SetVolumeOperationSchema,
+    MuteTrackOperationSchema,
+    DeleteRegionOperationSchema,
+    SplitRegionOperationSchema,
+    MoveRegionOperationSchema,
+    MoveTrackRegionOperationSchema,
+    DuplicateRegionOperationSchema,
+    ResizeRegionOperationSchema,
+    ResizeTrackRegionOperationSchema,
+    FadeOperationSchema,
+    ReplaceVocalOperationSchema,
+    RegenerateRegionOperationSchema,
+  ]),
+);
 
 export const AiEditCommandSchema = z.object({
   operation: EditOperationSchema,

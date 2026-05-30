@@ -11,6 +11,7 @@ import {
 } from "./edit-operation.repository.js";
 import { getCurrentVersion, getSongForUser } from "./song-editor.service.js";
 import {
+  resolveDeleteRegionSnapshot,
   resolveDuplicatedRegionId,
   resolveMovePreviousIndex,
   resolveResizeBounds,
@@ -36,14 +37,31 @@ const noopLogger: UndoLogContext = {
 
 const MIN_REGION_LENGTH_MS = 100;
 
-function isRegionMutation(operation: EditOperation): boolean {
+function resolveOperationType(type: string): string {
+  return type === "CUT_REGION" ? "DELETE_REGION" : type;
+}
+
+function normalizeStoredEditOperation(
+  operation: StoredEditOperation,
+): StoredEditOperation {
+  if ((operation.type as string) !== "CUT_REGION") {
+    return operation;
+  }
+
+  return {
+    ...operation,
+    type: "DELETE_REGION",
+  } as StoredEditOperation;
+}
+
+function isRegionMutation(operation: EditOperation | StoredEditOperation): boolean {
   return [
-    "CUT_REGION",
+    "DELETE_REGION",
     "SPLIT_REGION",
     "MOVE_REGION",
     "DUPLICATE_REGION",
     "RESIZE_REGION",
-  ].includes(operation.type);
+  ].includes(resolveOperationType(operation.type));
 }
 
 function assertValidResizeBounds(
@@ -110,7 +128,7 @@ function buildUndoMeta(
   const regionMap = new Map(regions.map((region) => [region.id, region]));
 
   switch (operation.type) {
-    case "CUT_REGION": {
+    case "DELETE_REGION": {
       const region = regionMap.get(operation.regionId);
 
       if (!region) {
@@ -118,7 +136,7 @@ function buildUndoMeta(
       }
 
       return {
-        cutRegionSnapshot: {
+        deleteRegionSnapshot: {
           label: region.label,
           startMs: region.startMs,
           endMs: region.endMs,
@@ -179,7 +197,7 @@ export async function applyRegionMutation(
   const regionMap = new Map(regions.map((region) => [region.id, region]));
 
   switch (operation.type) {
-    case "CUT_REGION": {
+    case "DELETE_REGION": {
       const region = regionMap.get(operation.regionId);
 
       if (!region) {
@@ -308,14 +326,21 @@ export async function reverseRegionMutation(
   operation: StoredEditOperation,
   log: UndoLogContext = noopLogger,
 ): Promise<void> {
-  const undoMeta = operation.undoMeta;
+  const normalizedOperation = normalizeStoredEditOperation(operation);
+  const undoMeta = normalizedOperation.undoMeta;
 
-  switch (operation.type) {
-    case "CUT_REGION": {
-      if (!undoMeta?.cutRegionSnapshot) {
+  switch (normalizedOperation.type) {
+    case "DELETE_REGION": {
+      const deleteRegionSnapshot = resolveDeleteRegionSnapshot(undoMeta);
+
+      if (!deleteRegionSnapshot) {
         log.warn(
-          { songId, operationType: operation.type, regionId: operation.regionId },
-          "undo: skipped region reversal, missing cut snapshot",
+          {
+            songId,
+            operationType: normalizedOperation.type,
+            regionId: normalizedOperation.regionId,
+          },
+          "undo: skipped region reversal, missing delete snapshot",
         );
         return;
       }
@@ -323,10 +348,10 @@ export async function reverseRegionMutation(
       await prisma.songRegion.create({
         data: {
           songId,
-          label: undoMeta.cutRegionSnapshot.label,
-          startMs: undoMeta.cutRegionSnapshot.startMs,
-          endMs: undoMeta.cutRegionSnapshot.endMs,
-          orderIndex: undoMeta.cutRegionSnapshot.orderIndex,
+          label: deleteRegionSnapshot.label,
+          startMs: deleteRegionSnapshot.startMs,
+          endMs: deleteRegionSnapshot.endMs,
+          orderIndex: deleteRegionSnapshot.orderIndex,
         },
       });
       await reindexRegions(songId);
@@ -336,13 +361,17 @@ export async function reverseRegionMutation(
     case "SPLIT_REGION": {
       const previousEndMs = await resolveSplitPreviousEndMs(
         songId,
-        operation.splitAtMs,
+        normalizedOperation.splitAtMs,
         undoMeta,
       );
 
       if (previousEndMs === undefined) {
         log.warn(
-          { songId, operationType: operation.type, regionId: operation.regionId },
+          {
+            songId,
+            operationType: normalizedOperation.type,
+            regionId: normalizedOperation.regionId,
+          },
           "undo: skipped region reversal, missing split metadata",
         );
         return;
@@ -351,7 +380,7 @@ export async function reverseRegionMutation(
       const splitRegion = await prisma.songRegion.findFirst({
         where: {
           songId,
-          startMs: operation.splitAtMs,
+          startMs: normalizedOperation.splitAtMs,
         },
       });
 
@@ -360,7 +389,7 @@ export async function reverseRegionMutation(
       }
 
       await prisma.songRegion.update({
-        where: { id: operation.regionId },
+        where: { id: normalizedOperation.regionId },
         data: { endMs: previousEndMs },
       });
       await reindexRegions(songId);
@@ -374,9 +403,9 @@ export async function reverseRegionMutation(
         log.warn(
           {
             songId,
-            operationType: operation.type,
-            regionId: operation.regionId,
-            targetIndex: operation.targetIndex,
+            operationType: normalizedOperation.type,
+            regionId: normalizedOperation.regionId,
+            targetIndex: normalizedOperation.targetIndex,
           },
           "undo: skipped region reversal, missing move metadata",
         );
@@ -385,7 +414,7 @@ export async function reverseRegionMutation(
 
       await applyRegionMutation(songId, {
         type: "MOVE_REGION",
-        regionId: operation.regionId,
+        regionId: normalizedOperation.regionId,
         targetIndex: previousIndex,
       });
       return;
@@ -394,13 +423,17 @@ export async function reverseRegionMutation(
     case "DUPLICATE_REGION": {
       const duplicatedRegionId = await resolveDuplicatedRegionId(
         songId,
-        operation.regionId,
+        normalizedOperation.regionId,
         undoMeta,
       );
 
       if (!duplicatedRegionId) {
         log.warn(
-          { songId, operationType: operation.type, regionId: operation.regionId },
+          {
+            songId,
+            operationType: normalizedOperation.type,
+            regionId: normalizedOperation.regionId,
+          },
           "undo: skipped region reversal, duplicate region not found",
         );
         return;
@@ -415,20 +448,24 @@ export async function reverseRegionMutation(
 
     case "RESIZE_REGION": {
       const previousBounds = await resolveResizeBounds(
-        operation.regionId,
+        normalizedOperation.regionId,
         undoMeta,
       );
 
       if (!previousBounds) {
         log.warn(
-          { songId, operationType: operation.type, regionId: operation.regionId },
+          {
+            songId,
+            operationType: normalizedOperation.type,
+            regionId: normalizedOperation.regionId,
+          },
           "undo: skipped region reversal, missing resize metadata",
         );
         return;
       }
 
       await prisma.songRegion.update({
-        where: { id: operation.regionId },
+        where: { id: normalizedOperation.regionId },
         data: {
           startMs: previousBounds.startMs,
           endMs: previousBounds.endMs,
@@ -571,7 +608,9 @@ export async function undoLastOperation(
     throw new BadRequestError("Nothing to undo");
   }
 
-  const payload = lastOperation.payloadJson as unknown as StoredEditOperation;
+  const payload = normalizeStoredEditOperation(
+    lastOperation.payloadJson as unknown as StoredEditOperation,
+  );
 
   log.info(
     {
@@ -612,7 +651,9 @@ export async function redoLastOperation(userId: string, songId: string) {
     throw new BadRequestError("Nothing to redo");
   }
 
-  const payload = lastUndone.payloadJson as unknown as StoredEditOperation;
+  const payload = normalizeStoredEditOperation(
+    lastUndone.payloadJson as unknown as StoredEditOperation,
+  );
   const { undoMeta: previousUndoMeta, ...operation } = payload;
 
   let nextUndoMeta = previousUndoMeta;

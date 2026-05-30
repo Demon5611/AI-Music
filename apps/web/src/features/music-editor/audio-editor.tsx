@@ -15,12 +15,23 @@ import { SelectedContextPanel } from "@/features/music-editor/selected-context-p
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
 import { TrackLane } from "@/features/music-editor/track-lane";
 import { VoiceTransferDialog } from "@/features/music-editor/voice-transfer-dialog";
-import { WaveformTimeline } from "@/features/music-editor/waveform-timeline";
 import { AuthenticatedBlobUrl } from "@/shared/ui/authenticated-blob-url";
 import { useApi } from "@/shared/providers/api-provider";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 import { useEditorTransportShortcuts } from "./hooks/use-editor-transport-shortcuts";
 import { useEditorInitialLoad } from "./hooks/use-editor-initial-load";
+import dynamic from "next/dynamic";
+
+const WaveformTimeline = dynamic(
+  () =>
+    import("@/features/music-editor/waveform-timeline").then(
+      (module) => module.WaveformTimeline,
+    ),
+  {
+    ssr: false,
+    loading: () => <p className={styles.panelHint}>Загрузка timeline...</p>,
+  },
+);
 
 interface AudioEditorProps {
   songId: string;
@@ -91,7 +102,7 @@ export function AudioEditor({ songId }: AudioEditorProps) {
     moveRegion,
     moveRegionToIndex,
     moveTrackRegionToIndex,
-    cutRegion,
+    deleteRegion,
     resizeRegion,
     resizeTrackRegion,
     undo,
@@ -240,7 +251,7 @@ export function AudioEditor({ songId }: AudioEditorProps) {
           <RegionToolbar
             disabled={controlsDisabled}
             regionSelected={Boolean(selectedRegionId)}
-            onCut={cutRegion}
+            onDelete={deleteRegion}
             onDuplicate={duplicateRegion}
             onExtend={() => void extendSong()}
             onFadeIn={() => fadeRegion("in")}

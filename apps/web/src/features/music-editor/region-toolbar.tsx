@@ -7,7 +7,7 @@ interface RegionToolbarProps {
   disabled: boolean;
   regionSelected: boolean;
   onSplit: () => void;
-  onCut: () => void;
+  onDelete: () => void;
   onDuplicate: () => void;
   onFadeIn: () => void;
   onFadeOut: () => void;
@@ -59,7 +59,7 @@ export function RegionToolbar({
   disabled,
   regionSelected,
   onSplit,
-  onCut,
+  onDelete,
   onDuplicate,
   onFadeIn,
   onFadeOut,
@@ -92,10 +92,10 @@ export function RegionToolbar({
           />
           <RegionActionButton
             disabled={actionsDisabled}
-            label="Cut"
-            tooltip="Удалить выбранный фрагмент из версии"
+            label="Delete"
+            tooltip="Удалить выбранный region из версии"
             variant="destructive"
-            onClick={onCut}
+            onClick={onDelete}
           />
           <RegionActionButton
             disabled={actionsDisabled}

@@ -11,6 +11,7 @@ import {
 } from "@waveform-playlist/browser";
 import type { ClipTrack } from "@waveform-playlist/core";
 import type { EditOperation, EditorTrackId, SongRegionDto } from "@ai-music/shared";
+import { PlaylistRegionBridge } from "@/features/music-editor/playlist-region-bridge";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { TransportControls } from "@/features/music-editor/transport-controls";
 import {
@@ -271,6 +272,7 @@ export function WaveformTimeline({
     operations,
   );
   const [playlistTracks, setPlaylistTracks] = useState<ClipTrack[]>(tracks);
+  const playlistShellRef = useRef<HTMLDivElement>(null);
   const pendingOperationRef = useRef<PendingTimelineOperation | null>(null);
   const persistTimerRef = useRef<number | null>(null);
 
@@ -404,7 +406,7 @@ export function WaveformTimeline({
           block
           content="Цветные клипы являются частью аудио timeline, а не внешним overlay"
         >
-          <div className={styles.playlistShell}>
+          <div className={styles.playlistShell} ref={playlistShellRef}>
             <WaveformPlaylistProvider
               automaticScroll
               controls={{ show: false, width: 0 }}
@@ -417,8 +419,13 @@ export function WaveformTimeline({
             >
               <PlaylistTransportBridge />
               <PlaylistTrackStateBridge sources={sources} />
-              <ClipInteractionProvider>
-                <Waveform interactiveClips showClipHeaders showFades />
+              <PlaylistRegionBridge
+                containerRef={playlistShellRef}
+                selectedRegionId={selectedRegionId}
+                onSelectRegion={onSelectRegion}
+              />
+              <ClipInteractionProvider touchOptimized>
+                <Waveform interactiveClips showClipHeaders touchOptimized />
               </ClipInteractionProvider>
             </WaveformPlaylistProvider>
           </div>
@@ -428,7 +435,8 @@ export function WaveformTimeline({
       <p className={styles.timelineHint}>
         {linkedTracks
           ? "Linked mode: drag и trim применяются синхронно к Vocal и Instrumental."
-          : "Independent mode: drag и trim применяются только к дорожке, которую вы редактируете."}
+          : "Independent mode: drag и trim применяются только к дорожке, которую вы редактируете."}{" "}
+        Клик по заголовку клипа выбирает region и снимает розовое выделение времени.
       </p>
     </div>
   );

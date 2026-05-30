@@ -1,10 +1,18 @@
 "use client";
 
-import type { AgentState } from "@/components/ui/orb";
-import { Orb } from "@/components/ui/orb";
+import dynamic from "next/dynamic";
 import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
+import type { AgentState } from "@/shared/ui/elevenlabs/agent-state";
 import styles from "@/shared/ui/elevenlabs/elevenlabs-ui.module.css";
+
+const Orb = dynamic(
+  () => import("@/components/ui/orb").then((module) => module.Orb),
+  {
+    ssr: false,
+    loading: () => <div className={styles.orbPlaceholder} />,
+  },
+);
 
 interface AiProcessingStatusProps {
   label: string;

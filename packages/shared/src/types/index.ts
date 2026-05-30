@@ -107,6 +107,7 @@ export type {
   RegenerateRegionBody,
   ApplyOperationBody,
   AudioTrackDto,
+  DeleteRegionOperation,
   EditOperation,
   EditorStateDto,
   EditorTrackId,

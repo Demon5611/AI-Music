@@ -20,7 +20,7 @@ export function EditorHelpPanel() {
         {open ? (
           <ol className={styles.helpList}>
             <li>Кликните по timeline, чтобы переместить playhead</li>
-            <li>Кликните по цветному фрагменту, чтобы выбрать его</li>
+            <li>Кликните по заголовку цветного клипа, чтобы выбрать region</li>
             <li>Выберите дорожку Vocal или Instrumental</li>
             <li>Примените действие: volume, fade, split, duplicate</li>
             <li>Нажмите Render version</li>
