@@ -2,6 +2,7 @@
 
 import { ApiError } from "@ai-music/api-client";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { useRouter } from "next/navigation";
 import { useClientMounted } from "@/shared/hooks/use-client-mounted";
 import { AiCommandPanel } from "@/features/music-editor/ai-command-panel";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
@@ -24,9 +25,7 @@ import dynamic from "next/dynamic";
 
 const WaveformTimeline = dynamic(
   () =>
-    import("@/features/music-editor/waveform-timeline").then(
-      (module) => module.WaveformTimeline,
-    ),
+    import("@/features/music-editor/waveform-timeline").then((module) => module.WaveformTimeline),
   {
     ssr: false,
     loading: () => <p className={styles.panelHint}>Загрузка timeline...</p>,
@@ -37,9 +36,7 @@ function TimelinePlaceholder() {
   return <p className={styles.panelHint}>Загрузка timeline...</p>;
 }
 
-function DeferredWaveformTimeline(
-  props: ComponentProps<typeof WaveformTimeline>,
-) {
+function DeferredWaveformTimeline(props: ComponentProps<typeof WaveformTimeline>) {
   const mounted = useClientMounted();
 
   if (!mounted) {
@@ -98,9 +95,7 @@ function EditorPreparationStatus({
   );
   const elapsedLabel = formatElapsedTime(elapsedSeconds);
   const estimateLabel = formatElapsedTime(EDITOR_PREPARATION_ESTIMATE_SEC);
-  const rootClassName = compact
-    ? styles.preparationStatusCompact
-    : styles.preparationStatus;
+  const rootClassName = compact ? styles.preparationStatusCompact : styles.preparationStatus;
 
   return (
     <div className={rootClassName}>
@@ -123,9 +118,7 @@ function EditorPreparationStatus({
           max={100}
           value={mounted ? progress : 0}
         />
-        <span className={styles.preparationProgressValue}>
-          {mounted ? `${progress}%` : "0%"}
-        </span>
+        <span className={styles.preparationProgressValue}>{mounted ? `${progress}%` : "0%"}</span>
       </div>
     </div>
   );
@@ -175,6 +168,7 @@ function resolveErrorMessage(error: unknown): string {
 
 export function AudioEditor({ songId }: AudioEditorProps) {
   const api = useApi();
+  const router = useRouter();
   const hydrate = useAudioEditorStore((state) => state.hydrate);
   const setError = useAudioEditorStore((state) => state.setError);
   const regions = useAudioEditorStore((state) => state.regions);
@@ -314,11 +308,7 @@ export function AudioEditor({ songId }: AudioEditorProps) {
             ) : null}
             <div className={styles.trackList}>
               {tracks.map((track) => (
-                <TrackLane
-                  key={track.id}
-                  disabled={trackControlsDisabled}
-                  track={track}
-                />
+                <TrackLane key={track.id} disabled={trackControlsDisabled} track={track} />
               ))}
             </div>
           </div>
@@ -335,10 +325,9 @@ export function AudioEditor({ songId }: AudioEditorProps) {
             onFadeOut={() => fadeRegion("out")}
             onMoveLeft={() => moveRegion("left")}
             onMoveRight={() => moveRegion("right")}
-            onRegenerate={() =>
-              void regenerateRegion("Regenerate this section with fresh energy")
-            }
+            onRegenerate={() => void regenerateRegion("Regenerate this section with fresh energy")}
             onReplaceVocal={() => setVoiceDialogOpen(true)}
+            onOwnVoiceUploaded={(sampleId) => router.push(`/consent?id=${sampleId}`)}
             onSplit={splitRegion}
           />
         </div>

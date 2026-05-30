@@ -86,6 +86,8 @@ export const FadeOperationSchema = z.object({
   regionId: z.string().min(1),
   fadeType: z.enum(["in", "out"]),
   durationMs: z.number().int().min(100).max(10_000),
+  rangeStartMs: z.number().int().min(0).optional(),
+  rangeEndMs: z.number().int().min(1).optional(),
 });
 
 export const ReplaceVocalOperationSchema = z.object({

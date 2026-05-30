@@ -26,10 +26,6 @@ export function RenderButton({
   );
 
   return (
-    <Tooltip
-      block
-      content="Финальный render применит все операции и создаст новую версию трека"
-    >
       <div className={styles.panel}>
         <h3 className={styles.panelTitle}>Render version</h3>
         <p className={styles.panelHint}>
@@ -67,6 +63,5 @@ export function RenderButton({
           </div>
         ) : null}
       </div>
-    </Tooltip>
   );
 }

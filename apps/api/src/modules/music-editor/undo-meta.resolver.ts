@@ -23,6 +23,8 @@ export interface OperationUndoMeta {
     leftRegionId?: string;
     rightRegionId?: string;
     mergedEndMs?: number;
+    tailStartMs?: number;
+    deletedMiddleRegionId?: string;
   };
 }
 

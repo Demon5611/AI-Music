@@ -90,6 +90,9 @@ export interface FadeOperation {
   regionId: string;
   fadeType: "in" | "out";
   durationMs: number;
+  /** Source ms bounds for partial fade. Defaults to full region. */
+  rangeStartMs?: number;
+  rangeEndMs?: number;
 }
 
 export interface ReplaceVocalOperation {

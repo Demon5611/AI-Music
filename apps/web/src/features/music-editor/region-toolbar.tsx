@@ -1,5 +1,6 @@
 "use client";
 
+import { VoiceUploadPanel } from "@/features/voice/voice-upload-panel";
 import { Tooltip, DisabledTooltipWrap } from "@/shared/ui/tooltip";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 
@@ -14,6 +15,7 @@ interface RegionToolbarProps {
   onMoveLeft: () => void;
   onMoveRight: () => void;
   onReplaceVocal: () => void;
+  onOwnVoiceUploaded: (sampleId: string) => void;
   onExtend: () => void;
   onRegenerate: () => void;
 }
@@ -45,11 +47,7 @@ function RegionActionButton({
   );
 
   if (disabled) {
-    return (
-      <DisabledTooltipWrap content={tooltip}>
-        {button}
-      </DisabledTooltipWrap>
-    );
+    return <DisabledTooltipWrap content={tooltip}>{button}</DisabledTooltipWrap>;
   }
 
   return <Tooltip content={tooltip}>{button}</Tooltip>;
@@ -66,6 +64,7 @@ export function RegionToolbar({
   onMoveLeft,
   onMoveRight,
   onReplaceVocal,
+  onOwnVoiceUploaded,
   onExtend,
   onRegenerate,
 }: RegionToolbarProps) {
@@ -73,16 +72,13 @@ export function RegionToolbar({
 
   return (
     <div className={styles.panel}>
-      <h3 className={styles.panelTitle}>Region actions</h3>
+      <h3 className={styles.panelTitle}>Basic edit</h3>
 
       {!regionSelected ? (
-        <p className={styles.panelHint}>
-          Сначала выберите фрагмент на timeline
-        </p>
+        <p className={styles.panelHint}>Сначала выберите фрагмент на timeline</p>
       ) : null}
 
       <div className={styles.toolbarSection}>
-        <p className={styles.toolbarSectionTitle}>Basic edit</p>
         <div className={styles.toolbarGrid}>
           <RegionActionButton
             disabled={actionsDisabled}
@@ -103,12 +99,6 @@ export function RegionToolbar({
             tooltip="Создать копию выбранного фрагмента"
             onClick={onDuplicate}
           />
-        </div>
-      </div>
-
-      <div className={styles.toolbarSection}>
-        <p className={styles.toolbarSectionTitle}>Fade</p>
-        <div className={styles.toolbarGrid}>
           <RegionActionButton
             disabled={actionsDisabled}
             label="Fade in"
@@ -121,12 +111,6 @@ export function RegionToolbar({
             tooltip="Плавно уменьшить громкость в конце фрагмента"
             onClick={onFadeOut}
           />
-        </div>
-      </div>
-
-      <div className={styles.toolbarSection}>
-        <p className={styles.toolbarSectionTitle}>Arrangement</p>
-        <div className={styles.toolbarGrid}>
           <RegionActionButton
             disabled={actionsDisabled}
             label="Move left"
@@ -148,7 +132,7 @@ export function RegionToolbar({
           <RegionActionButton
             disabled={actionsDisabled}
             label="Replace vocal"
-            tooltip="Заменить голос в выбранном фрагменте через Kits voice transfer"
+            tooltip="Заменить дорожку Vocal через Kits voice transfer"
             variant="ai"
             onClick={onReplaceVocal}
           />
@@ -167,6 +151,14 @@ export function RegionToolbar({
             onClick={onRegenerate}
           />
         </div>
+      </div>
+      <div className={styles.toolbarSection}>
+        <p className={styles.toolbarSectionTitle}>Заменить дорожку Vocal своим вокалом</p>
+        <VoiceUploadPanel
+          disabled={actionsDisabled}
+          variant="embedded"
+          onSuccess={onOwnVoiceUploaded}
+        />
       </div>
     </div>
   );

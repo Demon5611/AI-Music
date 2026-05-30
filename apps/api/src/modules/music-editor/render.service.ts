@@ -96,7 +96,8 @@ function resolveRegionGainDb(
 function resolveFadeFilters(
   trackId: "vocal" | "instrumental",
   regionId: string,
-  durationSec: number,
+  regionStartMs: number,
+  regionEndMs: number,
   operations: EditOperation[],
 ): string[] {
   const filters: string[] = [];
@@ -110,12 +111,25 @@ function resolveFadeFilters(
       continue;
     }
 
-    const fadeSec = operation.durationMs / 1000;
+    const rangeStartMs = operation.rangeStartMs ?? regionStartMs;
+    const rangeEndMs = operation.rangeEndMs ?? regionEndMs;
+    const rangeLengthMs = Math.max(0, rangeEndMs - rangeStartMs);
+
+    if (rangeLengthMs <= 0) {
+      continue;
+    }
+
+    const fadeSec = Math.min(operation.durationMs / 1000, rangeLengthMs / 1000);
 
     if (operation.fadeType === "in") {
-      filters.push(`afade=t=in:st=0:d=${fadeSec}`);
+      const startSec = Math.max(0, (rangeStartMs - regionStartMs) / 1000);
+      filters.push(`afade=t=in:st=${startSec}:d=${fadeSec}`);
     } else {
-      filters.push(`afade=t=out:st=${Math.max(durationSec - fadeSec, 0)}:d=${fadeSec}`);
+      const startSec = Math.max(
+        0,
+        (rangeEndMs - regionStartMs) / 1000 - fadeSec,
+      );
+      filters.push(`afade=t=out:st=${startSec}:d=${fadeSec}`);
     }
   }
 
@@ -239,7 +253,13 @@ async function renderStemTrack({
     const gainDb = resolveRegionGainDb(trackId, region.id, operations);
     const filters = [
       `volume=${gainDb}dB`,
-      ...resolveFadeFilters(trackId, region.id, durationSec, operations),
+      ...resolveFadeFilters(
+        trackId,
+        region.id,
+        region.startMs,
+        region.endMs,
+        operations,
+      ),
     ];
 
     if (trackId === "vocal" && region.replacementAudioKey) {

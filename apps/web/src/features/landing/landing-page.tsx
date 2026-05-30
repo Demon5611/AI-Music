@@ -8,20 +8,17 @@ export function LandingPage() {
       <p className={styles.eyebrow}>AI Music MVP</p>
       <h1 className={styles.title}>Создай песню своим голосом</h1>
       <p className={styles.subtitle}>
-        Prompt, стиль, запись голоса — и через несколько минут готовый трек
-        с voice transfer.
+        Prompt, стиль, запись голоса — и через несколько минут готовый трек с voice transfer.
       </p>
       <div className={styles.actions}>
-        <Link href="/create" className={styles.primaryAction}>
+        <Link href="/music-test" className={styles.primaryAction}>
           Создать трек
         </Link>
         <Link href="/pricing" className={styles.secondaryAction}>
           Тарифы
         </Link>
       </div>
-      <p className={styles.note}>
-        {FREE_DEMO_CREDITS} demo credits для новых пользователей
-      </p>
+      <p className={styles.note}>{FREE_DEMO_CREDITS} demo credits для новых пользователей</p>
     </section>
   );
 }

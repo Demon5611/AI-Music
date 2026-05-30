@@ -2,10 +2,13 @@
 
 import type { EditOperation, EditorTrackId } from "@ai-music/shared";
 import {
+  DEFAULT_FADE_DURATION_MS,
   findRegionAtLayoutMs,
   isTimelineRangeSelection,
   resolveDeleteRangeForEditor,
   resolveDeleteRangeFromLayoutSelection,
+  resolveSourceRangeForEditor,
+  resolveSourceRangeForLayoutSelection,
   resolveSplitAtMsForEditor,
 } from "@ai-music/shared";
 import { useCallback } from "react";
@@ -21,6 +24,72 @@ function buildSelectionPayload() {
   return {
     selectedRegionId: state.selectedRegionId,
     selectedTrackId: state.selectedTrackId,
+  };
+}
+
+function resolveOperationTrackId(
+  state: ReturnType<typeof useAudioEditorStore.getState>,
+): EditorTrackId | null {
+  if (state.selectedTrackId) {
+    return state.selectedTrackId;
+  }
+
+  if (state.linkedTracks) {
+    return "vocal";
+  }
+
+  return null;
+}
+
+function resolveFadeSourceRange(
+  state: ReturnType<typeof useAudioEditorStore.getState>,
+  region: NonNullable<ReturnType<typeof selectSelectedRegion>>,
+):
+  | { rangeStartMs: number; rangeEndMs: number }
+  | { fullRegion: true }
+  | { error: string } {
+  const selection = state.timelineSelectionSec;
+  const selectionContext = state.timelineSelectionContext;
+  const hasRangeSelection =
+    selection !== null &&
+    isTimelineRangeSelection(selection.startSec, selection.endSec);
+
+  if (!hasRangeSelection || !selection) {
+    return { fullRegion: true };
+  }
+
+  const hasClipLayout =
+    selectionContext !== null &&
+    selectionContext.regionId === region.id &&
+    selectionContext.layoutEndSec > selectionContext.layoutStartSec;
+
+  const rangeResult = hasClipLayout
+    ? resolveSourceRangeForLayoutSelection(
+        region,
+        selectionContext.layoutStartSec * 1000,
+        selectionContext.layoutEndSec * 1000,
+        selection.startSec * 1000,
+        selection.endSec * 1000,
+      )
+    : resolveSourceRangeForEditor(
+        state.regions,
+        state.operations,
+        region,
+        selection.startSec * 1000,
+        selection.endSec * 1000,
+      );
+
+  if ("error" in rangeResult) {
+    return { error: rangeResult.error };
+  }
+
+  if ("fullRegion" in rangeResult) {
+    return { fullRegion: true };
+  }
+
+  return {
+    rangeStartMs: rangeResult.startMs,
+    rangeEndMs: rangeResult.endMs,
   };
 }
 
@@ -223,20 +292,54 @@ export function useEditorOperations() {
 
   const fadeRegion = useCallback(
     (fadeType: "in" | "out") => {
-      if (!selectedRegionId || !selectedTrackId) {
-        setError("Выберите регион и дорожку");
+      const state = useAudioEditorStore.getState();
+      const selectionContext = state.timelineSelectionContext;
+      let region = selectSelectedRegion(state);
+
+      if (selectionContext?.regionId) {
+        region =
+          state.regions.find((item) => item.id === selectionContext.regionId) ??
+          region;
+      }
+
+      if (!region) {
+        setError("Выберите region для fade");
+        return;
+      }
+
+      const trackId = resolveOperationTrackId(state);
+
+      if (!trackId) {
+        setError("Выберите дорожку для fade");
+        return;
+      }
+
+      const fadeRange = resolveFadeSourceRange(state, region);
+
+      if ("error" in fadeRange) {
+        setError(
+          fadeRange.error === "Selection is too short or outside the region"
+            ? "Выделите фрагмент внутри region на timeline"
+            : "Не удалось определить диапазон для fade",
+        );
         return;
       }
 
       void applyOperation({
         type: "FADE",
-        trackId: selectedTrackId,
-        regionId: selectedRegionId,
+        trackId,
+        regionId: region.id,
         fadeType,
-        durationMs: 800,
+        durationMs: DEFAULT_FADE_DURATION_MS,
+        ...("rangeStartMs" in fadeRange
+          ? {
+              rangeStartMs: fadeRange.rangeStartMs,
+              rangeEndMs: fadeRange.rangeEndMs,
+            }
+          : {}),
       });
     },
-    [applyOperation, selectedRegionId, selectedTrackId, setError],
+    [applyOperation, setError],
   );
 
   const moveRegion = useCallback(

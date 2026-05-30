@@ -64,7 +64,7 @@ export function KitsModelLinkPanel() {
       await api.voiceSamples.linkKitsModel(sampleId, {
         kitsVoiceModelId: modelId,
       });
-      router.push("/create");
+      router.push("/music-test");
     } catch (submitError) {
       setError(resolveErrorMessage(submitError));
     } finally {
@@ -81,9 +81,9 @@ export function KitsModelLinkPanel() {
     return (
       <section className={styles.section}>
         <h1 className={styles.title}>Привязка модели Kits</h1>
-        <p className={styles.error}>Сначала загрузите образец голоса.</p>
-        <Link href="/voice" className={styles.submit}>
-          Перейти к загрузке
+        <p className={styles.error}>Сначала загрузите образец голоса в Music Test.</p>
+        <Link href="/music-test" className={styles.submit}>
+          Перейти к Music Test
         </Link>
       </section>
     );
@@ -132,9 +132,7 @@ export function KitsModelLinkPanel() {
                   key={model.id}
                   type="button"
                   className={`${styles.modelOption} ${
-                    selectedModelId === model.id
-                      ? styles.modelOptionSelected
-                      : ""
+                    selectedModelId === model.id ? styles.modelOptionSelected : ""
                   }`}
                   onClick={() => handleSelectModel(model)}
                 >
@@ -146,16 +144,10 @@ export function KitsModelLinkPanel() {
         ) : null}
 
         {modelsQuery.error ? (
-          <p className={styles.hint}>
-            Список моделей недоступен — введите ID вручную.
-          </p>
+          <p className={styles.hint}>Список моделей недоступен — введите ID вручную.</p>
         ) : null}
 
-        <button
-          className={styles.submit}
-          type="submit"
-          disabled={isSubmitting}
-        >
+        <button className={styles.submit} type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Сохранение..." : "Привязать модель"}
         </button>
       </form>

@@ -183,6 +183,72 @@ export type DeleteRangeResolution =
   | { fullRegion: true }
   | { fullRegion: false; startMs: number; endMs: number };
 
+export function resolveSourceRangeForLayoutSelection(
+  region: SongRegionDto,
+  layoutStartMs: number,
+  layoutEndMs: number,
+  selectionStartLayoutMs: number,
+  selectionEndLayoutMs: number,
+): { startMs: number; endMs: number } | { fullRegion: true } | { error: string } {
+  const selectionMinLayoutMs = Math.min(selectionStartLayoutMs, selectionEndLayoutMs);
+  const selectionMaxLayoutMs = Math.max(selectionStartLayoutMs, selectionEndLayoutMs);
+  const clippedMinLayoutMs = Math.max(selectionMinLayoutMs, layoutStartMs);
+  const clippedMaxLayoutMs = Math.min(selectionMaxLayoutMs, layoutEndMs);
+
+  if (clippedMaxLayoutMs - clippedMinLayoutMs < MIN_RANGE_DELETE_MS) {
+    return { error: "Selection is too short or outside the region" };
+  }
+
+  const startMs = layoutMsToSourceMs(
+    region,
+    layoutStartMs,
+    layoutEndMs,
+    clippedMinLayoutMs,
+  );
+  const endMs = layoutMsToSourceMs(
+    region,
+    layoutStartMs,
+    layoutEndMs,
+    clippedMaxLayoutMs,
+  );
+
+  if (endMs - startMs < MIN_RANGE_DELETE_MS) {
+    return { error: "Selected range is too short" };
+  }
+
+  const coversFullRegion =
+    startMs <= region.startMs + RANGE_EDGE_PADDING_MS &&
+    endMs >= region.endMs - RANGE_EDGE_PADDING_MS;
+
+  if (coversFullRegion) {
+    return { fullRegion: true };
+  }
+
+  return { startMs, endMs };
+}
+
+export function resolveSourceRangeForEditor(
+  regions: SongRegionDto[],
+  operations: EditOperation[],
+  region: SongRegionDto,
+  selectionStartLayoutMs: number,
+  selectionEndLayoutMs: number,
+): { startMs: number; endMs: number } | { fullRegion: true } | { error: string } {
+  const layout = computeRegionLayoutRangeMs(regions, operations, region.id);
+
+  if (!layout) {
+    return { error: "Unable to resolve region layout on timeline" };
+  }
+
+  return resolveSourceRangeForLayoutSelection(
+    region,
+    layout.layoutStartMs,
+    layout.layoutEndMs,
+    selectionStartLayoutMs,
+    selectionEndLayoutMs,
+  );
+}
+
 export function resolveDeleteRangeFromLayoutSelection(
   region: SongRegionDto,
   layoutStartMs: number,

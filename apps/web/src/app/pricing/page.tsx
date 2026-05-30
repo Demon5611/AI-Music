@@ -5,7 +5,7 @@ export default function PricingPage() {
     <PlaceholderPage
       title="Тарифы"
       description="Starter, Creator, Pro — покупка credits через Stripe."
-      actionHref="/create"
+      actionHref="/music-test"
       actionLabel="Создать трек"
     />
   );

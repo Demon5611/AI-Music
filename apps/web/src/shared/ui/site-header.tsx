@@ -1,21 +1,12 @@
 "use client";
 
-import {
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { env } from "@/shared/config/env";
 import styles from "./site-header.module.css";
 
 const NAV_ITEMS = [
-  { href: "/create", label: "Create" },
-  { href: "/voice", label: "Voice" },
   { href: "/music-test", label: "Music Test" },
-  { href: "/kits-test", label: "Kits Test" },
   { href: "/profile", label: "Profile" },
   { href: "/pricing", label: "Pricing" },
 ] as const;

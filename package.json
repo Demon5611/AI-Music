@@ -9,6 +9,8 @@
     "build": "turbo build",
     "build:packages": "turbo build --filter=@ai-music/shared --filter=@ai-music/api-client --filter=@ai-music/ai-providers --filter=@ai-music/db",
     "lint": "turbo lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "turbo typecheck",
     "db:generate": "pnpm --filter @ai-music/db generate",
     "db:push": "pnpm --filter @ai-music/db push",
@@ -17,6 +19,7 @@
   },
   "devDependencies": {
     "eslint": "^9.28.0",
+    "prettier": "^3.8.3",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3"
   },

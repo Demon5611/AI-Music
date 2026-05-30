@@ -1,9 +1,15 @@
 "use client";
 
-import type { KitsVoiceModel } from "@ai-music/shared";
-import { useEffect, useState } from "react";
+import type { KitsPaginationMeta, KitsVoiceModel } from "@ai-music/shared";
+import { useDeferredValue, useEffect, useState } from "react";
 import { useApi } from "@/shared/providers/api-provider";
 import { AiProcessingStatus, LoadingPanel } from "@/shared/ui/elevenlabs";
+import {
+  filterKitsVoiceModels,
+  isKitsVoiceModelSearchActive,
+  KITS_VOICE_MODELS_MAX_SEARCH_PAGES,
+  KITS_VOICE_MODELS_PAGE_SIZE,
+} from "@/features/music-editor/utils/kits-voice-models";
 import styles from "@/features/music-editor/styles/music-editor.module.css";
 
 interface VoiceTransferDialogProps {
@@ -11,6 +17,19 @@ interface VoiceTransferDialogProps {
   disabled: boolean;
   onClose: () => void;
   onConfirm: (voiceModelId: number) => Promise<void>;
+}
+
+async function fetchVoiceModelsPage(
+  listVoiceModels: (params: { page: number; perPage: number }) => Promise<{
+    data: KitsVoiceModel[];
+    meta: KitsPaginationMeta;
+  }>,
+  page: number,
+) {
+  return listVoiceModels({
+    page,
+    perPage: KITS_VOICE_MODELS_PAGE_SIZE,
+  });
 }
 
 export function VoiceTransferDialog({
@@ -21,7 +40,12 @@ export function VoiceTransferDialog({
 }: VoiceTransferDialogProps) {
   const api = useApi();
   const [models, setModels] = useState<KitsVoiceModel[]>([]);
-  const [selectedId, setSelectedId] = useState("");
+  const [paginationMeta, setPaginationMeta] = useState<KitsPaginationMeta | null>(null);
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const isSearchActive = isKitsVoiceModelSearchActive(deferredSearchQuery);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [manualId, setManualId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,29 +55,73 @@ export function VoiceTransferDialog({
     if (!open) {
       return;
     }
-  
+
+    setPage(1);
+    setSearchQuery("");
+    setSelectedId(null);
+    setManualId("");
+    setError(null);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
     let cancelled = false;
-  
+
     void Promise.resolve().then(async () => {
-      if (cancelled) return;
-  
       setIsLoading(true);
       setError(null);
-  
+
       try {
-        const response = await api.kits.listVoiceModels({
-          myModels: true,
-          perPage: 20,
-        });
-        if (cancelled) return;
+        if (isSearchActive) {
+          const firstPage = await fetchVoiceModelsPage(api.kits.listVoiceModels, 1);
+
+          if (cancelled) {
+            return;
+          }
+
+          const pagesToLoad = Math.min(firstPage.meta.lastPage, KITS_VOICE_MODELS_MAX_SEARCH_PAGES);
+          const pageResponses = await Promise.all(
+            Array.from({ length: pagesToLoad }, (_, index) => {
+              const pageNumber = index + 1;
+
+              if (pageNumber === 1) {
+                return Promise.resolve(firstPage);
+              }
+
+              return fetchVoiceModelsPage(api.kits.listVoiceModels, pageNumber);
+            }),
+          );
+
+          if (cancelled) {
+            return;
+          }
+
+          const catalog = pageResponses.flatMap((response) => response.data ?? []);
+          setModels(filterKitsVoiceModels(catalog, deferredSearchQuery));
+          setPaginationMeta(null);
+          return;
+        }
+
+        const response = await fetchVoiceModelsPage(api.kits.listVoiceModels, page);
+
+        if (cancelled) {
+          return;
+        }
+
         setModels(response.data ?? []);
+        setPaginationMeta(response.meta);
       } catch (loadError) {
         if (!cancelled) {
           setError(
             loadError instanceof Error
               ? loadError.message
-              : "Не удалось загрузить voice models",
+              : "Не удалось загрузить каталог голосов Kits",
           );
+          setModels([]);
+          setPaginationMeta(null);
         }
       } finally {
         if (!cancelled) {
@@ -61,21 +129,27 @@ export function VoiceTransferDialog({
         }
       }
     });
-  
+
     return () => {
       cancelled = true;
     };
-  }, [api, open]);
+  }, [api, deferredSearchQuery, isSearchActive, open, page]);
 
   if (!open) {
     return null;
   }
 
+  function handleSelectModel(modelId: number) {
+    setSelectedId(modelId);
+    setManualId("");
+    setError(null);
+  }
+
   async function handleConfirm() {
-    const voiceModelId = Number(selectedId || manualId);
+    const voiceModelId = selectedId ?? Number(manualId);
 
     if (!Number.isFinite(voiceModelId) || voiceModelId <= 0) {
-      setError("Укажите voice model id");
+      setError("Выберите голос из каталога или укажите voice model id");
       return;
     }
 
@@ -86,55 +160,124 @@ export function VoiceTransferDialog({
       await onConfirm(voiceModelId);
       onClose();
     } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Voice transfer failed",
-      );
+      setError(submitError instanceof Error ? submitError.message : "Voice transfer failed");
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  const catalogHint = isSearchActive
+    ? `Поиск по первым ${KITS_VOICE_MODELS_MAX_SEARCH_PAGES} страницам каталога (название, теги, id).`
+    : "Каталог royalty-free голосов";
+
   return (
     <div className={styles.dialogBackdrop}>
-      <div className={styles.dialogCard}>
+      <div className={styles.dialogCardWide}>
         <h3 className={styles.panelTitle}>Заменить вокал (Kits)</h3>
+        <p className={styles.dialogHint}>{catalogHint}</p>
+
+        <label className={styles.fieldLabel}>
+          Поиск
+          <input
+            className={styles.textInput}
+            disabled={disabled || isSubmitting}
+            placeholder="Pop Female, LoFi, 1014961..."
+            value={searchQuery}
+            onChange={(event) => {
+              setSearchQuery(event.target.value);
+              setPage(1);
+            }}
+          />
+        </label>
+
         {isLoading ? <LoadingPanel lines={2} /> : null}
         {isSubmitting ? (
-          <AiProcessingStatus
-            agentState="thinking"
-            label="Конвертация вокала..."
-          />
+          <AiProcessingStatus agentState="thinking" label="Конвертация вокала..." />
         ) : null}
-        {models.length > 0 ? (
-          <label className={styles.fieldLabel}>
-            Voice model
-            <select
-              className={styles.selectInput}
-              disabled={disabled || isSubmitting}
-              value={selectedId}
-              onChange={(event) => setSelectedId(event.target.value)}
-            >
-              <option value="">Выберите модель</option>
+
+        {!isLoading && models.length > 0 ? (
+          <div className={styles.voiceModelListSection}>
+            <p className={styles.voiceModelListTitle}>
+              {isSearchActive
+                ? `Найдено: ${models.length}`
+                : `Голоса на странице: ${models.length}`}
+            </p>
+            <div className={styles.voiceModelList}>
               {models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.title} (#{model.id})
-                </option>
+                <button
+                  key={model.id}
+                  className={
+                    selectedId === model.id
+                      ? styles.voiceModelOptionSelected
+                      : styles.voiceModelOption
+                  }
+                  disabled={disabled || isSubmitting}
+                  type="button"
+                  onClick={() => handleSelectModel(model.id)}
+                >
+                  <span className={styles.voiceModelOptionTitle}>{model.title}</span>
+                  <span className={styles.voiceModelOptionMeta}>ID {model.id}</span>
+                  {model.tags.length > 0 ? (
+                    <span className={styles.voiceModelOptionTags}>
+                      {model.tags.slice(0, 4).join(", ")}
+                    </span>
+                  ) : null}
+                </button>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
         ) : null}
+
+        {!isLoading && models.length === 0 && !error ? (
+          <p className={styles.dialogHint}>
+            {isSearchActive
+              ? "Ничего не найдено. Измените запрос или укажите id вручную."
+              : "Каталог пуст на этой странице."}
+          </p>
+        ) : null}
+
+        {!isSearchActive && paginationMeta ? (
+          <div className={styles.voiceModelPagination}>
+            <button
+              className={styles.toolButton}
+              disabled={disabled || isSubmitting || paginationMeta.currentPage <= 1}
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              Назад
+            </button>
+            <span className={styles.voiceModelPaginationLabel}>
+              Страница {paginationMeta.currentPage} из {paginationMeta.lastPage}
+              {paginationMeta.total > 0 ? ` (${paginationMeta.total} голосов)` : null}
+            </span>
+            <button
+              className={styles.toolButton}
+              disabled={
+                disabled || isSubmitting || paginationMeta.currentPage >= paginationMeta.lastPage
+              }
+              type="button"
+              onClick={() => setPage((current) => Math.min(paginationMeta.lastPage, current + 1))}
+            >
+              Далее
+            </button>
+          </div>
+        ) : null}
+
         <label className={styles.fieldLabel}>
           Или введите Kits voice model id
           <input
             className={styles.textInput}
             disabled={disabled || isSubmitting}
+            inputMode="numeric"
             placeholder="1014961"
             value={manualId}
-            onChange={(event) => setManualId(event.target.value)}
+            onChange={(event) => {
+              setManualId(event.target.value);
+              setSelectedId(null);
+            }}
           />
         </label>
+
         {error ? <p className={styles.error}>{error}</p> : null}
         <div className={styles.dialogActions}>
           <button

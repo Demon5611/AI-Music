@@ -171,8 +171,55 @@ export async function applyDeleteRangeMutation(
       leftRegionId: region.id,
       rightRegionId: tailRegionId,
       mergedEndMs,
+      tailStartMs: endMs,
+      deletedMiddleRegionId: middleRegionId,
     },
   };
+}
+
+async function resolveDeleteRangeTailRegion(
+  songId: string,
+  rangeUndo: NonNullable<OperationUndoMeta["deleteRangeUndo"]>,
+  leftRegionEndMs: number,
+  db: PrismaClientOrTransaction,
+): Promise<{ id: string } | null> {
+  if (
+    rangeUndo.rightRegionId &&
+    rangeUndo.rightRegionId !== rangeUndo.deletedMiddleRegionId
+  ) {
+    const tailById = await db.songRegion.findUnique({
+      where: { id: rangeUndo.rightRegionId },
+    });
+
+    if (tailById) {
+      return tailById;
+    }
+  }
+
+  if (rangeUndo.tailStartMs !== undefined) {
+    const tailByStart = await db.songRegion.findFirst({
+      where: {
+        songId,
+        startMs: rangeUndo.tailStartMs,
+      },
+    });
+
+    if (tailByStart) {
+      return tailByStart;
+    }
+  }
+
+  if (rangeUndo.mergedEndMs !== undefined) {
+    return db.songRegion.findFirst({
+      where: {
+        songId,
+        startMs: leftRegionEndMs,
+        endMs: rangeUndo.mergedEndMs,
+      },
+    });
+  }
+
+  return null;
 }
 
 export async function reverseDeleteRangeMutation(
@@ -213,16 +260,35 @@ export async function reverseDeleteRangeMutation(
 
   if (
     !rangeUndo.leftRegionId ||
-    !rangeUndo.rightRegionId ||
     rangeUndo.mergedEndMs === undefined
   ) {
     throw new BadRequestError("Cannot undo delete range: missing middle metadata");
   }
 
+  const leftRegion = await db.songRegion.findUnique({
+    where: { id: rangeUndo.leftRegionId },
+  });
+
+  if (!leftRegion || leftRegion.songId !== songId) {
+    throw new BadRequestError("Cannot undo delete range: left region not found");
+  }
+
+  const previousLeftEndMs = leftRegion.endMs;
+  const tailRegion = await resolveDeleteRangeTailRegion(
+    songId,
+    rangeUndo,
+    previousLeftEndMs,
+    db,
+  );
+
   await db.songRegion.update({
     where: { id: rangeUndo.leftRegionId },
     data: { endMs: rangeUndo.mergedEndMs },
   });
-  await db.songRegion.delete({ where: { id: rangeUndo.rightRegionId } });
+
+  if (tailRegion && tailRegion.id !== rangeUndo.leftRegionId) {
+    await db.songRegion.delete({ where: { id: tailRegion.id } });
+  }
+
   await reindexRegions(songId, db);
 }

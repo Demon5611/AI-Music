@@ -4,6 +4,12 @@ import {
   type ClipTrack,
 } from "@waveform-playlist/core";
 import type { EditOperation, EditorTrackId, SongRegionDto } from "@ai-music/shared";
+import {
+  regionFadeEnvelopeHasEffect,
+  resolveFadeGainAtRegionMs,
+  resolveRegionFadeEnvelope,
+  type RegionFadeEnvelope,
+} from "@ai-music/shared";
 import { selectRegionLabel } from "@/features/music-editor/store/audio-editor-store";
 
 export interface TimelineStemSource {
@@ -196,15 +202,27 @@ export function buildRegionTrack(
   const trackRegions = resolveTrackRegions(source.id, regions, operations);
   const clips = trackRegions.map((region) => {
     const durationSec = Math.max((region.endMs - region.startMs) / 1000, 0.1);
-    const clip = createClipFromSeconds({
-      audioBuffer,
-      startTime: cursorSec,
-      offset: region.startMs / 1000,
-      duration: durationSec,
-      gain: 1,
-      name: selectRegionLabel(region),
-      color: REGION_COLORS[region.label],
-    });
+    const fadeEnvelope = resolveRegionFadeEnvelope(source.id, region, operations);
+    const hasFade = regionFadeEnvelopeHasEffect(fadeEnvelope);
+    const clip = hasFade
+      ? createClipFromSeconds({
+          audioBuffer: bakeRegionFadeIntoBuffer(audioBuffer, region, fadeEnvelope),
+          startTime: cursorSec,
+          offset: 0,
+          duration: durationSec,
+          gain: 1,
+          name: selectRegionLabel(region),
+          color: REGION_COLORS[region.label],
+        })
+      : createClipFromSeconds({
+          audioBuffer,
+          startTime: cursorSec,
+          offset: region.startMs / 1000,
+          duration: durationSec,
+          gain: 1,
+          name: selectRegionLabel(region),
+          color: REGION_COLORS[region.label],
+        });
 
     cursorSec += durationSec + CLIP_LAYOUT_GAP_SEC;
 
@@ -224,6 +242,35 @@ export function buildRegionTrack(
     color: source.color,
     height: TRACK_WAVE_HEIGHT,
   });
+}
+
+function bakeRegionFadeIntoBuffer(
+  audioBuffer: AudioBuffer,
+  region: SongRegionDto,
+  envelope: RegionFadeEnvelope,
+): AudioBuffer {
+  const sampleRate = audioBuffer.sampleRate;
+  const startSample = Math.floor((region.startMs / 1000) * sampleRate);
+  const endSample = Math.floor((region.endMs / 1000) * sampleRate);
+  const length = Math.max(1, endSample - startSample);
+  const baked = new AudioBuffer({
+    length,
+    numberOfChannels: audioBuffer.numberOfChannels,
+    sampleRate,
+  });
+
+  for (let channel = 0; channel < audioBuffer.numberOfChannels; channel += 1) {
+    const input = audioBuffer.getChannelData(channel);
+    const output = baked.getChannelData(channel);
+
+    for (let index = 0; index < length; index += 1) {
+      const regionRelativeMs = (index / sampleRate) * 1000;
+      const gain = resolveFadeGainAtRegionMs(regionRelativeMs, envelope);
+      output[index] = input[startSample + index] * gain;
+    }
+  }
+
+  return baked;
 }
 
 export interface TimelineSelectionMatch {

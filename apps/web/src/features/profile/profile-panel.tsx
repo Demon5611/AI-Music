@@ -48,8 +48,8 @@ export function ProfilePanel() {
         <p className={styles.error}>{resolveErrorMessage(error)}</p>
         {!env.isClerkEnabled ? (
           <p className={styles.hint}>
-            Убедитесь, что API запущен (`pnpm dev:api`) и Docker с Postgres
-            поднят (`pnpm docker:up`).
+            Убедитесь, что API запущен (`pnpm dev:api`) и Docker с Postgres поднят (`pnpm
+            docker:up`).
           </p>
         ) : null}
       </div>
@@ -89,7 +89,7 @@ export function ProfilePanel() {
       </dl>
 
       <div className={styles.actions}>
-        <Link href="/create" className={styles.primaryLink}>
+        <Link href="/music-test" className={styles.primaryLink}>
           Создать трек
         </Link>
         <Link href="/pricing" className={styles.secondaryLink}>
