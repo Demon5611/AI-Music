@@ -207,6 +207,24 @@ export function parseTimelineClipId(
   return null;
 }
 
+export function resolvePlaylistTrackForEditorTrack(
+  tracks: ClipTrack[],
+  trackId: EditorTrackId,
+  sources: TimelineStemSource[] = [],
+): ClipTrack | null {
+  const sourceIndex = sources.findIndex((source) => source.id === trackId);
+
+  if (sourceIndex >= 0 && tracks[sourceIndex]) {
+    return tracks[sourceIndex];
+  }
+
+  return (
+    tracks.find((track) =>
+      track.clips.some((clip) => parseTimelineClipId(clip.id)?.trackId === trackId),
+    ) ?? null
+  );
+}
+
 function extractRegionId(clipId: string): string | null {
   return parseTimelineClipId(clipId)?.regionId ?? null;
 }

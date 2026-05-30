@@ -117,7 +117,9 @@ export function PlaylistRegionBridge({
     usePlaylistState();
   const controlsRef = useRef(controls);
   const onSelectRegionRef = useRef(onSelectRegion);
-  const setSelectedTrack = useAudioEditorStore((state) => state.setSelectedTrack);
+  const selectTrackFromTimeline = useAudioEditorStore(
+    (state) => state.selectTrackFromTimeline,
+  );
   const skipSelectionSyncRef = useRef(false);
 
   useEffect(() => {
@@ -160,19 +162,33 @@ export function PlaylistRegionBridge({
       playlistTrackId,
     );
 
-    if (!match || match.regionId === selectedRegionId) {
+    if (!match) {
       return;
     }
 
-    onSelectRegionRef.current(match.regionId);
-    setSelectedTrack(match.trackId);
+    const editorState = useAudioEditorStore.getState();
+    const regionChanged = match.regionId !== editorState.selectedRegionId;
+
+    if (regionChanged) {
+      onSelectRegionRef.current(match.regionId);
+      selectTrackFromTimeline(match.trackId);
+      return;
+    }
+
+    if (editorState.trackSelectionSource !== "timeline") {
+      return;
+    }
+
+    if (match.trackId !== editorState.selectedTrackId) {
+      selectTrackFromTimeline(match.trackId);
+    }
   }, [
     playlistTrackId,
     sampleRate,
     selectedRegionId,
     selectionEnd,
     selectionStart,
-    setSelectedTrack,
+    selectTrackFromTimeline,
     tracks,
   ]);
 
@@ -212,7 +228,7 @@ export function PlaylistRegionBridge({
 
       skipSelectionSyncRef.current = true;
       onSelectRegionRef.current(parsed.regionId);
-      setSelectedTrack(parsed.trackId);
+      selectTrackFromTimeline(parsed.trackId);
     }
 
     container.addEventListener("pointerdown", handlePointerDown, true);
@@ -220,7 +236,7 @@ export function PlaylistRegionBridge({
     return () => {
       container.removeEventListener("pointerdown", handlePointerDown, true);
     };
-  }, [containerRef, setSelectedTrack]);
+  }, [containerRef, selectTrackFromTimeline]);
 
   return null;
 }

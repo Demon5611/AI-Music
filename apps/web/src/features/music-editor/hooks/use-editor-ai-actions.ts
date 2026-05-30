@@ -9,6 +9,7 @@ export function useEditorAiActions() {
   const songId = useAudioEditorStore((state) => state.songId);
   const selectedRegionId = useAudioEditorStore((state) => state.selectedRegionId);
   const selectedTrackId = useAudioEditorStore((state) => state.selectedTrackId);
+  const currentTimeMs = useAudioEditorStore((state) => state.currentTimeMs);
   const hydrate = useAudioEditorStore((state) => state.hydrate);
   const setBusy = useAudioEditorStore((state) => state.setBusy);
   const setError = useAudioEditorStore((state) => state.setError);
@@ -36,6 +37,7 @@ export function useEditorAiActions() {
           prompt,
           selectedRegionId,
           selectedTrackId,
+          playheadLayoutMs: currentTimeMs,
           apply: false,
         });
 
@@ -51,6 +53,7 @@ export function useEditorAiActions() {
       api,
       selectedRegionId,
       selectedTrackId,
+      currentTimeMs,
       setAiCommandPreview,
       setBusy,
       setError,

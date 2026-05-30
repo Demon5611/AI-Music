@@ -11,11 +11,13 @@ import styles from "@/features/music-editor/styles/music-editor.module.css";
 
 export function SelectedContextPanel() {
   const selectedRegion = useAudioEditorStore(selectSelectedRegion);
+  const linkedTracks = useAudioEditorStore((state) => state.linkedTracks);
   const selectedTrackId = useAudioEditorStore((state) => state.selectedTrackId);
   const tracks = useAudioEditorStore((state) => state.tracks);
 
-  const trackLabel =
-    tracks.find((track) => track.id === selectedTrackId)?.label ?? "—";
+  const trackLabel = linkedTracks
+    ? "Vocal + Instrumental"
+    : tracks.find((track) => track.id === selectedTrackId)?.label ?? "—";
 
   return (
     <Tooltip
@@ -35,7 +37,8 @@ export function SelectedContextPanel() {
           </div>
         ) : (
           <p className={styles.panelHint}>
-            Выберите фрагмент на timeline, чтобы применить действие
+            Кликните timeline, чтобы выбрать регион под playhead, затем примените
+            Region actions. Split режет в позиции playhead.
           </p>
         )}
       </div>

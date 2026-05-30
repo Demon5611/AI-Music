@@ -110,7 +110,7 @@ async function reindexRegions(
 ): Promise<void> {
   const regions = await db.songRegion.findMany({
     where: { songId },
-    orderBy: { orderIndex: "asc" },
+    orderBy: [{ orderIndex: "asc" }, { startMs: "asc" }],
   });
 
   await Promise.all(
@@ -118,6 +118,47 @@ async function reindexRegions(
       db.songRegion.update({
         where: { id: region.id },
         data: { orderIndex: index },
+      }),
+    ),
+  );
+}
+
+async function restoreDeletedRegionAtIndex(
+  songId: string,
+  snapshot: NonNullable<OperationUndoMeta["deleteRegionSnapshot"]>,
+  regionId: string,
+  db: PrismaClientOrTransaction,
+): Promise<void> {
+  const existingRegions = await db.songRegion.findMany({
+    where: { songId },
+    orderBy: [{ orderIndex: "asc" }, { startMs: "asc" }],
+    select: { id: true },
+  });
+  const insertIndex = Math.min(
+    Math.max(snapshot.orderIndex, 0),
+    existingRegions.length,
+  );
+
+  await db.songRegion.create({
+    data: {
+      id: regionId,
+      songId,
+      label: snapshot.label,
+      startMs: snapshot.startMs,
+      endMs: snapshot.endMs,
+      orderIndex: insertIndex,
+      replacementAudioKey: snapshot.replacementAudioKey ?? null,
+    },
+  });
+
+  const orderedRegionIds = existingRegions.map((region) => region.id);
+  orderedRegionIds.splice(insertIndex, 0, regionId);
+
+  await Promise.all(
+    orderedRegionIds.map((id, orderIndex) =>
+      db.songRegion.update({
+        where: { id },
+        data: { orderIndex },
       }),
     ),
   );
@@ -354,18 +395,12 @@ export async function reverseRegionMutation(
       const restoredRegionId =
         deleteRegionSnapshot.id ?? normalizedOperation.regionId;
 
-      await db.songRegion.create({
-        data: {
-          id: restoredRegionId,
-          songId,
-          label: deleteRegionSnapshot.label,
-          startMs: deleteRegionSnapshot.startMs,
-          endMs: deleteRegionSnapshot.endMs,
-          orderIndex: deleteRegionSnapshot.orderIndex,
-          replacementAudioKey: deleteRegionSnapshot.replacementAudioKey ?? null,
-        },
-      });
-      await reindexRegions(songId, db);
+      await restoreDeletedRegionAtIndex(
+        songId,
+        deleteRegionSnapshot,
+        restoredRegionId,
+        db,
+      );
       return;
     }
 

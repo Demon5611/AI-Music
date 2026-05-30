@@ -132,6 +132,7 @@ export const AiCommandBodySchema = z.object({
   prompt: z.string().min(1).max(500),
   selectedRegionId: z.string().nullable().optional(),
   selectedTrackId: editorTrackIdSchema.nullable().optional(),
+  playheadLayoutMs: z.number().int().min(0).optional(),
   apply: z.boolean().optional(),
 });
 

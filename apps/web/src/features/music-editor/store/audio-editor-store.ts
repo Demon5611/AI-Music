@@ -26,10 +26,14 @@ export interface StemMediaElements {
   instrumental: HTMLAudioElement | null;
 }
 
+export type TrackSelectionSource = "panel" | "timeline";
+
 interface AudioEditorState {
   songId: string | null;
   selectedRegionId: string | null;
   selectedTrackId: EditorTrackId | null;
+  linkedTracks: boolean;
+  trackSelectionSource: TrackSelectionSource;
   regions: SongRegionDto[];
   tracks: EditorStateDto["tracks"];
   operations: EditOperation[];
@@ -56,6 +60,9 @@ interface AudioEditorState {
   hydrate: (state: EditorStateDto) => void;
   setSelectedRegion: (id: string | null) => void;
   setSelectedTrack: (id: EditorTrackId | null) => void;
+  selectTrackFromPanel: (id: EditorTrackId) => void;
+  selectTrackFromTimeline: (id: EditorTrackId) => void;
+  setLinkedTracks: (value: boolean) => void;
   setOperations: (operations: EditOperation[]) => void;
   setBusy: (value: boolean) => void;
   setError: (message: string | null) => void;
@@ -127,6 +134,8 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
   songId: null,
   selectedRegionId: null,
   selectedTrackId: null,
+  linkedTracks: false,
+  trackSelectionSource: "timeline",
   regions: [],
   tracks: [],
   operations: [],
@@ -188,6 +197,17 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
 
   setSelectedRegion: (id) => set({ selectedRegionId: id }),
   setSelectedTrack: (id) => set({ selectedTrackId: id }),
+  selectTrackFromPanel: (id) =>
+    set({
+      selectedTrackId: id,
+      trackSelectionSource: "panel",
+    }),
+  selectTrackFromTimeline: (id) =>
+    set({
+      selectedTrackId: id,
+      trackSelectionSource: "timeline",
+    }),
+  setLinkedTracks: (value) => set({ linkedTracks: value }),
   setOperations: (operations) => set({ operations, undoneOperations: [] }),
   setBusy: (value) => set({ isBusy: value }),
   setError: (message) => set({ error: message }),
@@ -274,4 +294,11 @@ export function selectSelectedRegion(state: AudioEditorState): SongRegionDto | n
 
 export function selectRegionLabel(region: SongRegionDto): string {
   return region.label.charAt(0).toUpperCase() + region.label.slice(1);
+}
+
+export function isTrackSelected(
+  state: Pick<AudioEditorState, "linkedTracks" | "selectedTrackId">,
+  trackId: EditorTrackId,
+): boolean {
+  return state.linkedTracks || state.selectedTrackId === trackId;
 }

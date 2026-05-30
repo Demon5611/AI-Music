@@ -1,14 +1,14 @@
 "use client";
 
 import { ApiError } from "@ai-music/api-client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
+import { useClientMounted } from "@/shared/hooks/use-client-mounted";
 import { AiCommandPanel } from "@/features/music-editor/ai-command-panel";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
 import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
 import { useEditorAiActions } from "@/features/music-editor/hooks/use-editor-ai-actions";
 import { useEditorOperations } from "@/features/music-editor/hooks/use-editor-operations";
 import { useEditorPolling } from "@/features/music-editor/hooks/use-editor-polling";
-import { MixerPanel } from "@/features/music-editor/mixer-panel";
 import { RegionToolbar } from "@/features/music-editor/region-toolbar";
 import { RenderButton } from "@/features/music-editor/render-button";
 import { SelectedContextPanel } from "@/features/music-editor/selected-context-panel";
@@ -33,6 +33,22 @@ const WaveformTimeline = dynamic(
   },
 );
 
+function TimelinePlaceholder() {
+  return <p className={styles.panelHint}>Загрузка timeline...</p>;
+}
+
+function DeferredWaveformTimeline(
+  props: ComponentProps<typeof WaveformTimeline>,
+) {
+  const mounted = useClientMounted();
+
+  if (!mounted) {
+    return <TimelinePlaceholder />;
+  }
+
+  return <WaveformTimeline {...props} />;
+}
+
 interface AudioEditorProps {
   songId: string;
 }
@@ -40,6 +56,79 @@ interface AudioEditorProps {
 interface PlaybackUrls {
   vocal: string | null;
   instrumental: string | null;
+}
+
+const EDITOR_PREPARATION_ESTIMATE_SEC = 60;
+
+function formatElapsedTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+}
+
+function useElapsedSeconds(): number {
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setElapsedSeconds((value) => value + 1);
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, []);
+
+  return elapsedSeconds;
+}
+
+function EditorPreparationStatus({
+  message,
+  compact = false,
+}: {
+  message: string;
+  compact?: boolean;
+}) {
+  const mounted = useClientMounted();
+  const elapsedSeconds = useElapsedSeconds();
+  const progress = Math.min(
+    95,
+    Math.round((elapsedSeconds / EDITOR_PREPARATION_ESTIMATE_SEC) * 100),
+  );
+  const elapsedLabel = formatElapsedTime(elapsedSeconds);
+  const estimateLabel = formatElapsedTime(EDITOR_PREPARATION_ESTIMATE_SEC);
+  const rootClassName = compact
+    ? styles.preparationStatusCompact
+    : styles.preparationStatus;
+
+  return (
+    <div className={rootClassName}>
+      <div className={styles.preparationHeader}>
+        <span className={styles.preparationSpinner} aria-hidden="true" />
+        <div>
+          <p className={styles.preparationTitle}>{message}</p>
+          <p className={styles.preparationMeta}>
+            {mounted
+              ? `Прошло ${elapsedLabel}. Обычно это занимает до ${estimateLabel}.`
+              : "Подготовка может занять до минуты."}
+          </p>
+        </div>
+      </div>
+
+      <div className={styles.preparationProgressRow}>
+        <progress
+          aria-label="Подготовка"
+          className={styles.preparationProgress}
+          max={100}
+          value={mounted ? progress : 0}
+        />
+        <span className={styles.preparationProgressValue}>
+          {mounted ? `${progress}%` : "0%"}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function PlaybackUrlBridge({
@@ -87,15 +176,11 @@ export function AudioEditor({ songId }: AudioEditorProps) {
   const songStatus = useAudioEditorStore((state) => state.songStatus);
   const pendingAction = useAudioEditorStore((state) => state.pendingAction);
   const selectedRegionId = useAudioEditorStore((state) => state.selectedRegionId);
-  const selectedTrackId = useAudioEditorStore((state) => state.selectedTrackId);
   const setSelectedRegion = useAudioEditorStore((state) => state.setSelectedRegion);
-  const setSelectedTrack = useAudioEditorStore((state) => state.setSelectedTrack);
   const isBusy = useAudioEditorStore((state) => state.isBusy);
   const error = useAudioEditorStore((state) => state.error);
 
   const {
-    setVolume,
-    muteTrack,
     splitRegion,
     duplicateRegion,
     fadeRegion,
@@ -122,7 +207,6 @@ export function AudioEditor({ songId }: AudioEditorProps) {
   const { isProcessing } = useEditorPolling(songId);
   const { title } = useEditorInitialLoad(songId);
   const [isRendering, setIsRendering] = useState(false);
-  const [regeneratePrompt, setRegeneratePrompt] = useState("");
   const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
   const [playbackUrls, setPlaybackUrls] = useState<PlaybackUrls>({
     vocal: null,
@@ -142,13 +226,6 @@ export function AudioEditor({ songId }: AudioEditorProps) {
     } finally {
       setIsRendering(false);
     }
-  }
-
-  async function handleRegenerate() {
-    const prompt = regeneratePrompt.trim() || "Regenerate this section with fresh energy";
-
-    await regenerateRegion(prompt);
-    setRegeneratePrompt("");
   }
 
   const vocalTrack = tracks.find((track) => track.id === "vocal");
@@ -182,17 +259,13 @@ export function AudioEditor({ songId }: AudioEditorProps) {
     <section className={styles.section}>
       <div>
         <h1 className={styles.title}>{title || "Audio Editor"}</h1>
-        <p className={styles.description}>
-          Интерактивный waveform-редактор с AI-командами, extend/regenerate и
-          voice transfer.
-        </p>
       </div>
 
       <EditorHelpPanel />
 
       {!editorReady ? (
         <div className={styles.statusCard}>
-          <p className={styles.panelHint}>{statusMessage}</p>
+          <EditorPreparationStatus key={statusMessage} message={statusMessage} />
         </div>
       ) : null}
 
@@ -212,7 +285,7 @@ export function AudioEditor({ songId }: AudioEditorProps) {
 
       <div className={styles.layout}>
         <div className={styles.mainColumn}>
-          <WaveformTimeline
+          <DeferredWaveformTimeline
             disabled={controlsDisabled}
             instrumentalPlaybackUrl={playbackUrls.instrumental}
             onMoveRegion={moveRegionToIndex}
@@ -229,18 +302,14 @@ export function AudioEditor({ songId }: AudioEditorProps) {
           <div className={styles.panel}>
             <h3 className={styles.panelTitle}>Tracks</h3>
             {!stemsReady ? (
-              <p className={styles.panelHint}>
-                Идет разделение трека на вокал и музыку...
-              </p>
+              <EditorPreparationStatus compact key={statusMessage} message={statusMessage} />
             ) : null}
             <div className={styles.trackList}>
               {tracks.map((track) => (
                 <TrackLane
                   key={track.id}
                   disabled={trackControlsDisabled}
-                  selected={selectedTrackId === track.id}
                   track={track}
-                  onSelect={() => setSelectedTrack(track.id)}
                 />
               ))}
             </div>
@@ -258,21 +327,12 @@ export function AudioEditor({ songId }: AudioEditorProps) {
             onFadeOut={() => fadeRegion("out")}
             onMoveLeft={() => moveRegion("left")}
             onMoveRight={() => moveRegion("right")}
-            onRegenerate={() => void handleRegenerate()}
+            onRegenerate={() =>
+              void regenerateRegion("Regenerate this section with fresh energy")
+            }
             onReplaceVocal={() => setVoiceDialogOpen(true)}
             onSplit={splitRegion}
           />
-
-          <div className={styles.panel}>
-            <h3 className={styles.panelTitle}>Regenerate prompt</h3>
-            <input
-              className={styles.textInput}
-              disabled={controlsDisabled || !selectedRegionId}
-              placeholder="Новый prompt для выбранного региона"
-              value={regeneratePrompt}
-              onChange={(event) => setRegeneratePrompt(event.target.value)}
-            />
-          </div>
         </div>
 
         <div className={styles.sideColumn}>
@@ -282,17 +342,6 @@ export function AudioEditor({ songId }: AudioEditorProps) {
             onCancelPreview={cancelAiPreview}
             onConfirm={confirmAiCommand}
             onPreview={previewAiCommand}
-          />
-
-          <MixerPanel
-            disabled={trackControlsDisabled}
-            operations={operations}
-            selectedRegionId={selectedRegionId}
-            selectedTrackId={selectedTrackId}
-            tracks={tracks}
-            onApplyGain={(trackId, gainDb) => setVolume(trackId, gainDb)}
-            onMuteTrack={(trackId) => muteTrack(trackId, true)}
-            onSelectTrack={setSelectedTrack}
           />
 
           <EditHistoryPanel

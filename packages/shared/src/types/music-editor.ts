@@ -210,6 +210,7 @@ export interface AiCommandBody {
   prompt: string;
   selectedRegionId?: string | null;
   selectedTrackId?: EditorTrackId | null;
+  playheadLayoutMs?: number;
   apply?: boolean;
 }
 

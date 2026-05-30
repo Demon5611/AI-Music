@@ -3,11 +3,16 @@ import type {
   AiEditCommand,
   EditOperation,
   EditorTrackId,
+  SongRegionDto,
+  SongRegionLabel,
 } from "@ai-music/shared";
-import { AiEditCommandSchema } from "@ai-music/shared";
+import {
+  AiEditCommandSchema,
+  resolveSplitAtMsForEditor,
+} from "@ai-music/shared";
 import { BadRequestError } from "../../common/errors.js";
 import { applyOperation } from "./operation.service.js";
-import { toEditorStateDto } from "./song-editor.mapper.js";
+import { toEditorStateDto, parseOperations } from "./song-editor.mapper.js";
 import { getCurrentVersion, getSongForUser } from "./song-editor.service.js";
 
 interface ParseContext {
@@ -15,6 +20,9 @@ interface ParseContext {
   selectedTrackId: EditorTrackId | null;
   regionStartMs?: number;
   regionEndMs?: number;
+  playheadLayoutMs?: number;
+  regions: SongRegionDto[];
+  operations: EditOperation[];
 }
 
 function normalizePrompt(prompt: string): string {
@@ -92,23 +100,34 @@ export function parseNaturalLanguageCommand(
 
   if (/^split|раздел|разбей/.test(text)) {
     const regionId = requireRegionId(context);
+    const region = context.regions.find((item) => item.id === regionId);
 
-    if (!context.regionEndMs || context.regionStartMs === undefined) {
+    if (!region) {
       throw new BadRequestError("Не удалось определить границы региона");
     }
 
-    const splitAtMs = Math.round(
-      (context.regionStartMs + context.regionEndMs) / 2,
+    const playheadLayoutMs = context.playheadLayoutMs ?? 0;
+    const splitResult = resolveSplitAtMsForEditor(
+      context.regions,
+      context.operations,
+      region,
+      playheadLayoutMs,
     );
+
+    if ("error" in splitResult) {
+      throw new BadRequestError(
+        "Не удалось выполнить split: поставьте playhead внутри выбранного региона",
+      );
+    }
 
     return {
       operation: {
         type: "SPLIT_REGION",
         regionId,
-        splitAtMs,
+        splitAtMs: splitResult.splitAtMs,
       },
       confidence: 0.88,
-      explanation: "Делю выбранный регион пополам",
+      explanation: "Делю выбранный регион в позиции playhead",
     };
   }
 
@@ -206,15 +225,28 @@ export async function executeAiCommand(
   body: AiCommandBody,
 ) {
   const song = await getSongForUser(userId, songId);
+  const version = await getCurrentVersion(song.id);
+  const operations = parseOperations(version.operations);
   const region = body.selectedRegionId
     ? song.regions.find((item) => item.id === body.selectedRegionId)
     : null;
+  const regions: SongRegionDto[] = song.regions.map((item) => ({
+    id: item.id,
+    label: item.label as SongRegionLabel,
+    startMs: item.startMs,
+    endMs: item.endMs,
+    orderIndex: item.orderIndex,
+    hasReplacement: Boolean(item.replacementAudioKey),
+  }));
 
   const parsed = parseNaturalLanguageCommand(body.prompt, {
     selectedRegionId: body.selectedRegionId ?? null,
     selectedTrackId: body.selectedTrackId ?? null,
     regionStartMs: region?.startMs,
     regionEndMs: region?.endMs,
+    playheadLayoutMs: body.playheadLayoutMs,
+    regions,
+    operations,
   });
 
   let operation = normalizeMoveTargetIndex(
@@ -258,11 +290,11 @@ export async function executeAiCommand(
     },
   );
 
-  const version = await getCurrentVersion(updatedSong.id);
+  const updatedVersion = await getCurrentVersion(updatedSong.id);
 
   return {
     command,
     applied: true,
-    editorState: toEditorStateDto(updatedSong, version),
+    editorState: toEditorStateDto(updatedSong, updatedVersion),
   };
 }

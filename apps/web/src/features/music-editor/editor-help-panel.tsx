@@ -19,8 +19,8 @@ export function EditorHelpPanel() {
         </button>
         {open ? (
           <ol className={styles.helpList}>
-            <li>Кликните по timeline, чтобы переместить playhead</li>
-            <li>Выделите фрагмент на timeline или кликните заголовок клипа</li>
+            <li>Кликните timeline, чтобы выбрать регион под playhead</li>
+            <li>Split и другие Region actions применяются к выбранному региону</li>
             <li>Выберите дорожку Vocal или Instrumental</li>
             <li>Примените действие: volume, fade, split, duplicate</li>
             <li>Нажмите Render version</li>

@@ -87,7 +87,7 @@ export function RegionToolbar({
           <RegionActionButton
             disabled={actionsDisabled}
             label="Split"
-            tooltip="Разделить выбранный фрагмент на две части"
+            tooltip="Разделить выбранный фрагмент в позиции playhead на timeline"
             onClick={onSplit}
           />
           <RegionActionButton

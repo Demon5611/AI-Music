@@ -1,6 +1,10 @@
 "use client";
 
 import type { EditOperation, EditorTrackId } from "@ai-music/shared";
+import {
+  findRegionAtLayoutMs,
+  resolveSplitAtMsForEditor,
+} from "@ai-music/shared";
 import { useCallback } from "react";
 import { useApi } from "@/shared/providers/api-provider";
 import {
@@ -121,19 +125,54 @@ export function useEditorOperations() {
   );
 
   const splitRegion = useCallback(() => {
-    const region = selectSelectedRegion(useAudioEditorStore.getState());
+    const state = useAudioEditorStore.getState();
+    let region = selectSelectedRegion(state);
 
     if (!region) {
-      setError("Выберите регион для split");
-      return;
+      const layoutMatch = findRegionAtLayoutMs(
+        state.regions,
+        state.operations,
+        state.currentTimeMs,
+      );
+
+      if (!layoutMatch) {
+        setError("Поставьте playhead внутри региона или выберите фрагмент на timeline");
+        return;
+      }
+
+      region =
+        state.regions.find((item) => item.id === layoutMatch.regionId) ?? null;
+
+      if (!region) {
+        setError("Не удалось определить регион для split");
+        return;
+      }
     }
 
-    const splitAtMs = Math.round((region.startMs + region.endMs) / 2);
+    const splitResult = resolveSplitAtMsForEditor(
+      state.regions,
+      state.operations,
+      region,
+      state.currentTimeMs,
+    );
+
+    if ("error" in splitResult) {
+      setError(
+        splitResult.error === "Playhead must be inside the selected region on the timeline"
+          ? "Поставьте playhead внутри выбранного региона на timeline"
+          : splitResult.error === "Playhead is too close to the region edge for split"
+            ? "Playhead слишком близко к краю региона для split"
+            : splitResult.error === "Region is too short for split"
+              ? "Регион слишком короткий для split"
+              : "Не удалось выполнить split в позиции playhead",
+      );
+      return;
+    }
 
     void applyOperation({
       type: "SPLIT_REGION",
       regionId: region.id,
-      splitAtMs,
+      splitAtMs: splitResult.splitAtMs,
     });
   }, [applyOperation, setError]);
 

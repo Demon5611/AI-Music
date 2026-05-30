@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   ClipInteractionProvider,
   Waveform,
@@ -8,23 +8,25 @@ import {
   usePlaybackAnimation,
   usePlaylistControls,
   usePlaylistData,
+  usePlaylistState,
 } from "@waveform-playlist/browser";
 import type { ClipTrack } from "@waveform-playlist/core";
 import type { EditOperation, EditorTrackId, SongRegionDto } from "@ai-music/shared";
+import { useRegionPlaylistTracks } from "@/features/music-editor/hooks/use-region-playlist-tracks";
+import { PlaylistPlayheadRestoreBridge } from "@/features/music-editor/playlist-playhead-restore-bridge";
 import { PlaylistRegionBridge } from "@/features/music-editor/playlist-region-bridge";
-import { Tooltip } from "@/shared/ui/tooltip";
+import { PlaylistSelectedRegionHighlight } from "@/features/music-editor/playlist-selected-region-highlight";
 import { TransportControls } from "@/features/music-editor/transport-controls";
 import {
   useAudioEditorStore,
   type PlaybackController,
 } from "@/features/music-editor/store/audio-editor-store";
-import { seekTimeline } from "@/features/music-editor/utils/timeline-sync";
 import {
   AUDIO_CONTEXT_OPTIONS,
-  buildRegionTrack,
   computeTimelineLayoutDurationSec,
   dbToGain,
   mirrorRegionClipEdits,
+  resolvePlaylistTrackForEditorTrack,
   resolveTimelineOperation,
   resolveTimelineZoomSettings,
   FIT_ZOOM_BASE,
@@ -63,82 +65,6 @@ const TRACK_COLORS: Record<EditorTrackId, string> = {
 };
 
 const PERSIST_DEBOUNCE_MS = 450;
-
-function useRegionPlaylistTracks(
-  sources: TimelineStemSource[],
-  regions: SongRegionDto[],
-  operations: EditOperation[],
-): {
-  tracks: ClipTrack[];
-  isLoading: boolean;
-  error: string | null;
-} {
-  const [tracks, setTracks] = useState<ClipTrack[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (sources.length === 0 || regions.length === 0) {
-      setTracks([]);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    setTracks([]);
-    setIsLoading(true);
-    setError(null);
-
-    const abortController = new AbortController();
-    const audioContext = new window.AudioContext(AUDIO_CONTEXT_OPTIONS);
-
-    async function loadTracks(): Promise<void> {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const nextTracks = await Promise.all(
-          sources.map(async (source) => {
-            const response = await fetch(source.url, {
-              signal: abortController.signal,
-            });
-
-            if (!response.ok) {
-              throw new Error(`Audio request failed: ${response.status}`);
-            }
-
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-            return buildRegionTrack(source, audioBuffer, regions, operations);
-          }),
-        );
-
-        setTracks(nextTracks);
-      } catch (loadError) {
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        setError(loadError instanceof Error ? loadError.message : "Audio load failed");
-        setTracks([]);
-      } finally {
-        if (!abortController.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadTracks();
-
-    return () => {
-      abortController.abort();
-      void audioContext.close();
-    };
-  }, [operations, regions, sources]);
-
-  return { tracks, isLoading, error };
-}
 
 function PlaylistTimelineZoomBridge({ providerKey }: { providerKey: string }) {
   const controls = usePlaylistControls();
@@ -213,12 +139,17 @@ function PlaylistTransportBridge() {
   const controls = usePlaylistControls();
   const data = usePlaylistData();
   const playback = usePlaybackAnimation();
+  const controlsRef = useRef(controls);
   const setCurrentTime = useAudioEditorStore((state) => state.setCurrentTime);
   const setDuration = useAudioEditorStore((state) => state.setDuration);
   const setIsPlaying = useAudioEditorStore((state) => state.setIsPlaying);
   const setPlaybackController = useAudioEditorStore(
     (state) => state.setPlaybackController,
   );
+
+  useEffect(() => {
+    controlsRef.current = controls;
+  }, [controls]);
 
   useEffect(() => {
     const layoutDurationSec = computeTimelineLayoutDurationSec(data.tracks);
@@ -241,7 +172,14 @@ function PlaylistTransportBridge() {
       return;
     }
 
-    setCurrentTime(Math.round(playback.currentTime * 1000));
+    const playbackMs = Math.round(playback.currentTime * 1000);
+    const storeMs = useAudioEditorStore.getState().currentTimeMs;
+
+    if (playbackMs === 0 && storeMs > 0) {
+      return;
+    }
+
+    setCurrentTime(playbackMs);
   }, [playback.currentTime, setCurrentTime]);
 
   useEffect(() => {
@@ -253,22 +191,22 @@ function PlaylistTransportBridge() {
           ? playbackStartSec
           : fallbackStartSec;
         setCurrentTime(Math.round(startSec * 1000));
-        void controls.play(startSec).then(() => setIsPlaying(true));
+        void controlsRef.current.play(startSec).then(() => setIsPlaying(true));
       },
       pause: () => {
-        controls.pause();
+        controlsRef.current.pause();
         setIsPlaying(false);
       },
       stop: () => {
-        controls.stop();
-        controls.setCurrentTime(0);
+        controlsRef.current.stop();
+        controlsRef.current.setCurrentTime(0);
         setCurrentTime(0);
         setIsPlaying(false);
       },
       seek: (ms) => {
         const timeSec = ms / 1000;
-        controls.seekTo(timeSec);
-        controls.setCurrentTime(timeSec);
+        controlsRef.current.seekTo(timeSec);
+        controlsRef.current.setCurrentTime(timeSec);
         setCurrentTime(ms);
       },
       setZoom: () => undefined,
@@ -279,12 +217,51 @@ function PlaylistTransportBridge() {
     return () => {
       setPlaybackController(null);
     };
+  }, [playback.currentTimeRef, setCurrentTime, setIsPlaying, setPlaybackController]);
+
+  return null;
+}
+
+function PlaylistActiveTrackBridge({ sources }: { sources: TimelineStemSource[] }) {
+  const controls = usePlaylistControls();
+  const { tracks, isReady } = usePlaylistData();
+  const { selectedTrackId: playlistTrackId } = usePlaylistState();
+  const selectedTrackId = useAudioEditorStore((state) => state.selectedTrackId);
+  const trackSelectionSource = useAudioEditorStore(
+    (state) => state.trackSelectionSource,
+  );
+  const linkedTracks = useAudioEditorStore((state) => state.linkedTracks);
+
+  useEffect(() => {
+    if (
+      !isReady ||
+      linkedTracks ||
+      trackSelectionSource !== "panel" ||
+      !selectedTrackId
+    ) {
+      return;
+    }
+
+    const playlistTrack = resolvePlaylistTrackForEditorTrack(
+      tracks,
+      selectedTrackId,
+      sources,
+    );
+
+    if (!playlistTrack || playlistTrack.id === playlistTrackId) {
+      return;
+    }
+
+    controls.setSelectedTrackId(playlistTrack.id);
   }, [
     controls,
-    playback.currentTimeRef,
-    setCurrentTime,
-    setIsPlaying,
-    setPlaybackController,
+    isReady,
+    linkedTracks,
+    playlistTrackId,
+    selectedTrackId,
+    sources,
+    trackSelectionSource,
+    tracks,
   ]);
 
   return null;
@@ -303,7 +280,8 @@ export function WaveformTimeline({
   onMoveTrackRegion,
   disabled,
 }: WaveformTimelineProps) {
-  const [linkedTracks, setLinkedTracks] = useState(false);
+  const linkedTracks = useAudioEditorStore((state) => state.linkedTracks);
+  const setLinkedTracks = useAudioEditorStore((state) => state.setLinkedTracks);
   const sources = useMemo<TimelineStemSource[]>(() => {
     const nextSources: TimelineStemSource[] = [];
 
@@ -336,17 +314,7 @@ export function WaveformTimeline({
     () => regions.map((region) => region.id).join("|"),
     [regions],
   );
-  const playlistLayoutKey = useMemo(() => {
-    const tracksSignature = tracks
-      .map((track) =>
-        track.clips
-          .map((clip) => `${clip.id}:${clip.startSample}:${clip.durationSamples}`)
-          .join(","),
-      )
-      .join("|");
-
-    return `${regionsLayoutKey}::${tracksSignature}`;
-  }, [regionsLayoutKey, tracks]);
+  const preservedPlayheadMsRef = useRef(0);
   const [playlistTracks, setPlaylistTracks] = useState<ClipTrack[]>(tracks);
   const [isStructuralSync, setIsStructuralSync] = useState(false);
   const [timelineViewportWidthPx, setTimelineViewportWidthPx] = useState(0);
@@ -366,7 +334,14 @@ export function WaveformTimeline({
   );
   const timelineReady =
     tracks.length > 0 && !isLoading && stableTimelineWidthPx > 0;
-  const timelineProviderKey = `${playlistLayoutKey}:${stableTimelineWidthPx}`;
+  const timelineProviderKey = `${regionsLayoutKey}:${stableTimelineWidthPx}`;
+  const isInitialTrackLoad = isLoading && tracks.length === 0;
+
+  useLayoutEffect(() => {
+    return () => {
+      preservedPlayheadMsRef.current = useAudioEditorStore.getState().currentTimeMs;
+    };
+  }, [operations, regions]);
 
   useEffect(() => {
     setIsStructuralSync(true);
@@ -510,41 +485,18 @@ export function WaveformTimeline({
     [disabled, isStructuralSync, linkedTracks, operations, persistTimelineOperation, regions],
   );
 
-  const handleEnterEdit = useCallback(() => {
-    const targetRegion =
-      regions.find((region) => region.id === selectedRegionId) ?? regions[0];
-
-    if (targetRegion) {
-      onSelectRegion(targetRegion.id);
-      seekTimeline(targetRegion.startMs);
-    }
-
-    document.getElementById("editor-timeline")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }, [onSelectRegion, regions, selectedRegionId]);
-
   return (
     <div className={styles.timelineBlock} id="editor-timeline">
       <div className={styles.timelineHeader}>
         <div className={styles.timelineTitleRow}>
           <p className={styles.blockLabel}>Timeline</p>
           <button
-            className={styles.timelineEditButton}
-            disabled={disabled || tracks.length === 0 || isLoading}
-            type="button"
-            onClick={handleEnterEdit}
-          >
-            Edit
-          </button>
-          <button
             className={
               linkedTracks ? styles.timelineModeButtonActive : styles.timelineModeButton
             }
             disabled={disabled || tracks.length === 0 || isLoading}
             type="button"
-            onClick={() => setLinkedTracks((value) => !value)}
+            onClick={() => setLinkedTracks(!linkedTracks)}
           >
             {linkedTracks ? "Linked tracks" : "Independent tracks"}
           </button>
@@ -553,17 +505,10 @@ export function WaveformTimeline({
       </div>
 
       {error ? <p className={styles.error}>{error}</p> : null}
-      {isLoading ? <p className={styles.panelHint}>Загрузка waveform...</p> : null}
+      {isInitialTrackLoad ? <p className={styles.panelHint}>Загрузка waveform...</p> : null}
 
-      {tracks.length > 0 || isLoading ? (
-        <Tooltip
-          block
-          content="Цветные клипы являются частью аудио timeline, а не внешним overlay"
-        >
+      {tracks.length > 0 || isInitialTrackLoad ? (
           <div className={styles.playlistShell} ref={playlistShellRef}>
-            {isLoading ? (
-              <p className={styles.playlistShellHint}>Обновление timeline...</p>
-            ) : null}
             {!isLoading && !timelineReady ? (
               <p className={styles.playlistShellHint}>Подготовка timeline...</p>
             ) : null}
@@ -582,8 +527,18 @@ export function WaveformTimeline({
               onTracksChange={handleTracksChange}
             >
               <PlaylistTimelineZoomBridge providerKey={timelineProviderKey} />
+              <PlaylistPlayheadRestoreBridge
+                preservedPlayheadMsRef={preservedPlayheadMsRef}
+                providerKey={timelineProviderKey}
+              />
               <PlaylistTransportBridge />
               <PlaylistTrackStateBridge sources={sources} />
+              <PlaylistActiveTrackBridge sources={sources} />
+              <PlaylistSelectedRegionHighlight
+                containerRef={playlistShellRef}
+                regionsLayoutKey={regionsLayoutKey}
+                selectedRegionId={selectedRegionId}
+              />
               <PlaylistRegionBridge
                 containerRef={playlistShellRef}
                 regionsLayoutKey={regionsLayoutKey}
@@ -596,14 +551,13 @@ export function WaveformTimeline({
             </WaveformPlaylistProvider>
             ) : null}
           </div>
-        </Tooltip>
       ) : null}
 
       <p className={styles.timelineHint}>
         {linkedTracks
           ? "Linked mode: drag и trim применяются синхронно к Vocal и Instrumental."
           : "Independent mode: drag и trim применяются только к дорожке, которую вы редактируете."}{" "}
-        Выделение на timeline или клик по заголовку клипа активирует region actions.
+        Клик по timeline выбирает регион под playhead. Split режет в позиции playhead.
       </p>
     </div>
   );

@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  padding: 1.5rem 0 2rem;
+  padding: 1.5rem 50px 2rem;
 }
 
 .title {
@@ -47,6 +47,91 @@
   font-size: 0.875rem;
 }
 
+.preparationStatus,
+.preparationStatusCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preparationStatusCompact {
+  margin-bottom: 0.75rem;
+}
+
+.preparationHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.preparationSpinner {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  margin-top: 0.125rem;
+  border: 2px solid #bfdbfe;
+  border-top-color: #2563eb;
+  border-radius: 999px;
+  animation: preparationSpin 0.9s linear infinite;
+}
+
+.preparationTitle {
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.preparationMeta {
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.preparationProgressRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.preparationProgress {
+  flex: 1;
+  height: 0.25rem;
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.preparationProgress::-webkit-progress-bar {
+  background: #e2e8f0;
+  border-radius: 999px;
+}
+
+.preparationProgress::-webkit-progress-value {
+  background: #2563eb;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.preparationProgress::-moz-progress-bar {
+  background: #2563eb;
+  border-radius: 999px;
+}
+
+.preparationProgressValue {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes preparationSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .timelineBlock {
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
@@ -72,28 +157,6 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.timelineEditButton {
-  border: 1px solid #86efac;
-  border-radius: 0.375rem;
-  background: #ecfdf5;
-  color: #166534;
-  padding: 0.2rem 0.625rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  line-height: 1.25;
-  cursor: pointer;
-}
-
-.timelineEditButton:hover:not(:disabled) {
-  background: #dcfce7;
-  border-color: #4ade80;
-}
-
-.timelineEditButton:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .timelineModeButton,
@@ -185,6 +248,17 @@
   box-shadow: none;
 }
 
+.playlistShell :global([data-clip-container][data-editor-region-selected="true"]) {
+  outline: 2px solid #2563eb;
+  outline-offset: -1px;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.25);
+  z-index: 1;
+}
+
+.playlistShell :global([data-clip-container][data-editor-region-selected="true"] [data-clip-id]) {
+  font-weight: 600;
+}
+
 .playlistShellHint {
   margin: 0;
   padding: 1rem;
@@ -235,19 +309,12 @@
   border-radius: 0.625rem;
   padding: 0.625rem;
   background: #f8fafc;
+  cursor: pointer;
 }
 
 .trackLaneRowSelected {
   border-color: #2563eb;
   background: #eff6ff;
-}
-
-.trackLaneHeader {
-  border: none;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  padding: 0;
 }
 
 .trackLaneLabel {
@@ -278,8 +345,7 @@
   color: #1d4ed8;
 }
 
-.trackVolumeLabel,
-.mixerSliderLabel {
+.trackVolumeLabel {
   display: flex;
   align-items: center;
   gap: 0.375rem;
@@ -288,8 +354,7 @@
   min-width: 6.5rem;
 }
 
-.trackVolumeSlider,
-.mixerSlider {
+.trackVolumeSlider {
   width: 5.5rem;
 }
 
@@ -315,53 +380,6 @@
   width: var(--track-progress, 0%);
   background: linear-gradient(90deg, #94a3b8 0%, #64748b 100%);
   pointer-events: none;
-}
-
-.mixerList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.mixerRow,
-.mixerRowSelected {
-  display: grid;
-  grid-template-columns: minmax(90px, 110px) minmax(120px, 1fr) auto auto auto;
-  gap: 0.5rem;
-  align-items: center;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 0.5rem;
-  background: #f8fafc;
-}
-
-.mixerRowSelected {
-  border-color: #2563eb;
-  background: #eff6ff;
-}
-
-.mixerTrackButton {
-  border: none;
-  background: transparent;
-  text-align: left;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.mixerSavedValue {
-  font-size: 0.8125rem;
-  color: #64748b;
-  min-width: 3rem;
-}
-
-.mixerApplyButton {
-  border: 1px solid #2563eb;
-  border-radius: 0.375rem;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
 }
 
 .toolbarSection {
@@ -597,11 +615,6 @@
 
   .trackLaneRow,
   .trackLaneRowSelected {
-    grid-template-columns: 1fr;
-  }
-
-  .mixerRow,
-  .mixerRowSelected {
     grid-template-columns: 1fr;
   }
 }
