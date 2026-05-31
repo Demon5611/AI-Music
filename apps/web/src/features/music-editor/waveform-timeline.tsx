@@ -25,12 +25,15 @@ import {
 } from "@/features/music-editor/store/audio-editor-store";
 import {
   AUDIO_CONTEXT_OPTIONS,
+  clampTimeToPlaybackLoopBounds,
   computeTimelineLayoutDurationSec,
   dbToGain,
   mirrorRegionClipEdits,
+  resolvePlaybackLoopBounds,
   resolvePlaylistTrackForEditorTrack,
   resolveTimelineOperation,
   resolveTimelineZoomSettings,
+  PLAYBACK_LOOP_WRAP_EPSILON_SEC,
   FIT_ZOOM_BASE,
   PLAYLIST_TRACK_CONTROL_WIDTH,
   TRACK_WAVE_HEIGHT,
@@ -135,6 +138,8 @@ function PlaylistTransportBridge() {
   const playback = usePlaybackAnimation();
   const controlsRef = useRef(controls);
   const playbackRef = useRef(playback);
+  const tracksRef = useRef(data.tracks);
+  const sampleRateRef = useRef(data.sampleRate);
   const setCurrentTime = useAudioEditorStore((state) => state.setCurrentTime);
   const setDuration = useAudioEditorStore((state) => state.setDuration);
   const setIsPlaying = useAudioEditorStore((state) => state.setIsPlaying);
@@ -146,6 +151,11 @@ function PlaylistTransportBridge() {
   }, [controls, playback]);
 
   useEffect(() => {
+    tracksRef.current = data.tracks;
+    sampleRateRef.current = data.sampleRate;
+  }, [data.sampleRate, data.tracks]);
+
+  useEffect(() => {
     const layoutDurationSec = computeTimelineLayoutDurationSec(data.tracks);
     const durationSec = layoutDurationSec > 0 ? layoutDurationSec : data.duration;
     setDuration(Math.round(durationSec * 1000));
@@ -153,6 +163,28 @@ function PlaylistTransportBridge() {
 
   useEffect(() => {
     playback.registerFrameCallback("music-editor-playlist", ({ time }) => {
+      const editorState = useAudioEditorStore.getState();
+      const loopBounds = resolvePlaybackLoopBounds({
+        loopSelected: editorState.loopSelected,
+        selectedRegionId: editorState.selectedRegionId,
+        selectedTrackId: editorState.selectedTrackId,
+        linkedTracks: editorState.linkedTracks,
+        timelineSelectionSec: editorState.timelineSelectionSec,
+        tracks: tracksRef.current,
+        sampleRate: sampleRateRef.current,
+      });
+
+      if (
+        editorState.isPlaying &&
+        loopBounds &&
+        time >= loopBounds.endSec - PLAYBACK_LOOP_WRAP_EPSILON_SEC
+      ) {
+        controlsRef.current.seekTo(loopBounds.startSec);
+        controlsRef.current.setCurrentTime(loopBounds.startSec);
+        setCurrentTime(Math.round(loopBounds.startSec * 1000));
+        return;
+      }
+
       setCurrentTime(Math.round(time * 1000));
     });
 
@@ -183,9 +215,25 @@ function PlaylistTransportBridge() {
 
     const controller: PlaybackController = {
       play: () => {
-        const fallbackStartSec = useAudioEditorStore.getState().currentTimeMs / 1000;
+        const editorState = useAudioEditorStore.getState();
+        const fallbackStartSec = editorState.currentTimeMs / 1000;
         const playbackStartSec = playbackRef.current.currentTimeRef.current;
-        const startSec = Number.isFinite(playbackStartSec) ? playbackStartSec : fallbackStartSec;
+        let startSec = Number.isFinite(playbackStartSec) ? playbackStartSec : fallbackStartSec;
+        const loopBounds = resolvePlaybackLoopBounds({
+          loopSelected: editorState.loopSelected,
+          selectedRegionId: editorState.selectedRegionId,
+          selectedTrackId: editorState.selectedTrackId,
+          linkedTracks: editorState.linkedTracks,
+          timelineSelectionSec: editorState.timelineSelectionSec,
+          tracks: tracksRef.current,
+          sampleRate: sampleRateRef.current,
+        });
+
+        if (loopBounds) {
+          startSec = clampTimeToPlaybackLoopBounds(startSec, loopBounds);
+        }
+
+        controlsRef.current.setCurrentTime(startSec);
         setCurrentTime(Math.round(startSec * 1000));
         void controlsRef.current.play(startSec).then(() => setIsPlaying(true));
       },

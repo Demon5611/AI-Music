@@ -377,6 +377,85 @@ export function resolveTimelineSelectionMatch(
   return match;
 }
 
+export const PLAYBACK_LOOP_WRAP_EPSILON_SEC = 0.015;
+
+export interface PlaybackLoopBounds {
+  startSec: number;
+  endSec: number;
+}
+
+export function resolveRegionLayoutBounds(
+  tracks: ClipTrack[],
+  sampleRate: number,
+  regionId: string,
+  preferredTrackId?: EditorTrackId | null,
+): PlaybackLoopBounds | null {
+  if (!tracks.length || sampleRate <= 0) {
+    return null;
+  }
+
+  const preferredTrack =
+    preferredTrackId !== undefined && preferredTrackId !== null
+      ? resolvePlaylistTrackForEditorTrack(tracks, preferredTrackId)
+      : null;
+  const tracksToSearch = preferredTrack ? [preferredTrack] : tracks;
+
+  for (const track of tracksToSearch) {
+    for (const clip of track.clips) {
+      const parsed = parseTimelineClipId(clip.id);
+
+      if (!parsed || parsed.regionId !== regionId) {
+        continue;
+      }
+
+      return {
+        startSec: clip.startSample / sampleRate,
+        endSec: (clip.startSample + clip.durationSamples) / sampleRate,
+      };
+    }
+  }
+
+  return null;
+}
+
+export function resolvePlaybackLoopBounds(options: {
+  loopSelected: boolean;
+  selectedRegionId: string | null;
+  selectedTrackId: EditorTrackId | null;
+  linkedTracks: boolean;
+  timelineSelectionSec: { startSec: number; endSec: number } | null;
+  tracks: ClipTrack[];
+  sampleRate: number;
+}): PlaybackLoopBounds | null {
+  if (!options.loopSelected || !options.selectedRegionId) {
+    return null;
+  }
+
+  const selection = options.timelineSelectionSec;
+
+  if (selection && selection.endSec - selection.startSec > PLAYBACK_LOOP_WRAP_EPSILON_SEC) {
+    return {
+      startSec: Math.min(selection.startSec, selection.endSec),
+      endSec: Math.max(selection.startSec, selection.endSec),
+    };
+  }
+
+  return resolveRegionLayoutBounds(
+    options.tracks,
+    options.sampleRate,
+    options.selectedRegionId,
+    options.linkedTracks ? null : options.selectedTrackId,
+  );
+}
+
+export function clampTimeToPlaybackLoopBounds(timeSec: number, bounds: PlaybackLoopBounds): number {
+  if (timeSec < bounds.startSec || timeSec >= bounds.endSec) {
+    return bounds.startSec;
+  }
+
+  return timeSec;
+}
+
 export function parseTimelineClipId(
   clipId: string,
 ): { trackId: EditorTrackId; regionId: string } | null {
