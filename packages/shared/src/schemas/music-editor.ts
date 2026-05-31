@@ -98,12 +98,6 @@ export const ReplaceVocalOperationSchema = z.object({
   voiceModelId: z.number().int().positive(),
 });
 
-export const RegenerateRegionOperationSchema = z.object({
-  type: z.literal("REGENERATE_REGION"),
-  regionId: z.string().min(1),
-  prompt: z.string().min(1).max(500),
-});
-
 export const EditOperationSchema = z.preprocess(
   normalizeLegacyEditOperation,
   z.discriminatedUnion("type", [
@@ -120,7 +114,6 @@ export const EditOperationSchema = z.preprocess(
     ResizeTrackRegionOperationSchema,
     FadeOperationSchema,
     ReplaceVocalOperationSchema,
-    RegenerateRegionOperationSchema,
   ]),
 );
 
@@ -133,11 +126,6 @@ export const ApplyOperationBodySchema = z.object({
 export const VoiceTransferBodySchema = z.object({
   regionId: z.string().min(1),
   voiceModelId: z.number().int().positive(),
-});
-
-export const RegenerateRegionBodySchema = z.object({
-  regionId: z.string().min(1),
-  prompt: z.string().min(1).max(500),
 });
 
 export type ParsedEditOperation = z.infer<typeof EditOperationSchema>;

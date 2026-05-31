@@ -11,30 +11,6 @@ export function useEditorAiActions() {
   const hydrate = useAudioEditorStore((state) => state.hydrate);
   const setBusy = useAudioEditorStore((state) => state.setBusy);
   const setError = useAudioEditorStore((state) => state.setError);
-  const regenerateRegion = useCallback(
-    async (prompt: string) => {
-      if (!songId || !selectedRegionId) {
-        setError("Выберите регион для regenerate");
-        return;
-      }
-
-      setBusy(true);
-      setError(null);
-
-      try {
-        const state = await api.musicEditor.regenerateRegion(songId, {
-          regionId: selectedRegionId,
-          prompt,
-        });
-        hydrate(state);
-      } catch (error) {
-        setError(error instanceof Error ? error.message : "Regenerate failed");
-      } finally {
-        setBusy(false);
-      }
-    },
-    [api, hydrate, selectedRegionId, setBusy, setError, songId],
-  );
 
   const voiceTransfer = useCallback(
     async (voiceModelId: number) => {
@@ -62,7 +38,6 @@ export function useEditorAiActions() {
   );
 
   return {
-    regenerateRegion,
     voiceTransfer,
   };
 }

@@ -189,7 +189,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const operations = useAudioEditorStore((state) => state.operations);
   const versions = useAudioEditorStore((state) => state.versions);
   const songStatus = useAudioEditorStore((state) => state.songStatus);
-  const pendingAction = useAudioEditorStore((state) => state.pendingAction);
   const selectedRegionId = useAudioEditorStore((state) => state.selectedRegionId);
   const setSelectedRegion = useAudioEditorStore((state) => state.setSelectedRegion);
   const isBusy = useAudioEditorStore((state) => state.isBusy);
@@ -212,7 +211,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
     redo,
   } = useEditorOperations();
 
-  const { regenerateRegion, voiceTransfer } = useEditorAiActions();
+  const { voiceTransfer } = useEditorAiActions();
 
   const { isProcessing } = useEditorPolling(songId);
   const { title } = useEditorInitialLoad(songId);
@@ -253,12 +252,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const trackMixControlsDisabled = !editorReady || !stemsReady;
 
   const statusMessage = (() => {
-    if (pendingAction?.status === "processing") {
-      if (pendingAction.action === "regenerate") {
-        return "Suno regenerate: перегенерация выбранного фрагмента...";
-      }
-    }
-
     if (songStatus === "separating_stems") {
       return "Идет разделение трека на вокал и музыку...";
     }
@@ -340,7 +333,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
             onFadeOut={() => fadeRegion("out")}
             onMoveLeft={() => moveRegion("left")}
             onMoveRight={() => moveRegion("right")}
-            onRegenerate={() => void regenerateRegion("Regenerate this section with fresh energy")}
             onReplaceVocal={() => setVoiceDialogOpen(true)}
             onOwnVoiceUploaded={(sampleId) => router.push(`/consent?id=${sampleId}`)}
             onSplit={splitRegion}

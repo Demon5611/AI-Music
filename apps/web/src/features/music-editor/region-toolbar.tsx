@@ -16,7 +16,6 @@ interface RegionToolbarProps {
   onMoveRight: () => void;
   onReplaceVocal: () => void;
   onOwnVoiceUploaded: (sampleId: string) => void;
-  onRegenerate: () => void;
 }
 
 function RegionActionButton({
@@ -64,7 +63,6 @@ export function RegionToolbar({
   onMoveRight,
   onReplaceVocal,
   onOwnVoiceUploaded,
-  onRegenerate,
 }: RegionToolbarProps) {
   const actionsDisabled = disabled || !regionSelected;
 
@@ -133,13 +131,6 @@ export function RegionToolbar({
             tooltip="Заменить дорожку Vocal через Kits voice transfer"
             variant="ai"
             onClick={onReplaceVocal}
-          />
-          <RegionActionButton
-            disabled={actionsDisabled}
-            label="Regenerate region"
-            tooltip="Перегенерировать только выбранный фрагмент, не весь трек"
-            variant="ai"
-            onClick={onRegenerate}
           />
         </div>
       </div>

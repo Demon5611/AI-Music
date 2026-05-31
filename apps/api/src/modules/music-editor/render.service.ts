@@ -13,7 +13,6 @@ interface RegionSlice {
   id: string;
   startMs: number;
   endMs: number;
-  replacementAudioKey: string | null;
 }
 
 function resolveTrackRegions(
@@ -237,7 +236,6 @@ async function renderStemTrack({
   workDir,
   regions,
   operations,
-  storage,
 }: {
   trackId: EditorTrackId;
   inputPath: string;
@@ -245,7 +243,6 @@ async function renderStemTrack({
   workDir: string;
   regions: RegionSlice[];
   operations: EditOperation[];
-  storage: ReturnType<typeof getStorageService>;
 }): Promise<void> {
   const segmentPaths: string[] = [];
 
@@ -265,15 +262,7 @@ async function renderStemTrack({
       ...resolveFadeFilters(trackId, region.id, region.startMs, region.endMs, operations),
     ];
 
-    if (trackId === "vocal" && region.replacementAudioKey) {
-      const replacementBuffer = await storage.get(region.replacementAudioKey);
-      const replacementInput = join(workDir, `replacement-${index}.mp3`);
-      await writeFile(replacementInput, replacementBuffer);
-      await extractSegment(replacementInput, segmentPath, 0, durationSec, filters);
-    } else {
-      await extractSegment(inputPath, segmentPath, startSec, durationSec, filters);
-    }
-
+    await extractSegment(inputPath, segmentPath, startSec, durationSec, filters);
     segmentPaths.push(segmentPath);
   }
 
@@ -343,7 +332,6 @@ export async function renderSongVersion(userId: string, songId: string) {
         id: region.id,
         startMs: region.startMs,
         endMs: region.endMs,
-        replacementAudioKey: region.replacementAudioKey,
       }));
 
     const vocalOutput = join(workDir, "vocal-track.mp3");
@@ -359,7 +347,6 @@ export async function renderSongVersion(userId: string, songId: string) {
       workDir,
       regions: vocalRegions,
       operations,
-      storage,
     });
     await renderStemTrack({
       trackId: "instrumental",
@@ -368,7 +355,6 @@ export async function renderSongVersion(userId: string, songId: string) {
       workDir,
       regions: instrumentalRegions,
       operations,
-      storage,
     });
     await mixTracks(vocalOutput, instrumentalOutput, finalOutput);
 

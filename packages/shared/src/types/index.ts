@@ -100,7 +100,6 @@ export type {
 } from "./music-generation.js";
 
 export type {
-  RegenerateRegionBody,
   ApplyOperationBody,
   AudioTrackDto,
   DeleteRegionOperation,
@@ -117,7 +116,6 @@ export type {
   SongEditorStatus,
   SongRegionDto,
   SongRegionLabel,
-  SongPendingActionDto,
   SongStemDto,
   SongStemType,
   SongVersionDto,

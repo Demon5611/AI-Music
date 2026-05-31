@@ -11,10 +11,7 @@ export function useEditorPolling(songId: string) {
   const hydrate = useAudioEditorStore((store) => store.hydrate);
   const setError = useAudioEditorStore((store) => store.setError);
   const songStatus = useAudioEditorStore((store) => store.songStatus);
-  const pendingAction = useAudioEditorStore((store) => store.pendingAction);
-
-  const isProcessing =
-    songStatus === "separating_stems" || pendingAction?.status === "processing";
+  const isProcessing = songStatus === "separating_stems";
 
   const refresh = useCallback(async () => {
     try {

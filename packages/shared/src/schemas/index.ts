@@ -50,7 +50,6 @@ export type CreateCheckoutSessionInput = z.infer<typeof createCheckoutSessionSch
 
 export {
   ApplyOperationBodySchema,
-  RegenerateRegionBodySchema,
   DeleteRegionOperationSchema,
   DuplicateRegionOperationSchema,
   EditOperationSchema,
@@ -59,7 +58,6 @@ export {
   MuteTrackOperationSchema,
   SoloTrackOperationSchema,
   normalizeLegacyEditOperation,
-  RegenerateRegionOperationSchema,
   ReplaceVocalOperationSchema,
   SetVolumeOperationSchema,
   SplitRegionOperationSchema,

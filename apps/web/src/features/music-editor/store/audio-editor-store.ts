@@ -1,10 +1,4 @@
-import type {
-  EditOperation,
-  EditorStateDto,
-  EditorTrackId,
-  SongPendingActionDto,
-  SongRegionDto,
-} from "@ai-music/shared";
+import type { EditOperation, EditorStateDto, EditorTrackId, SongRegionDto } from "@ai-music/shared";
 import { create } from "zustand";
 
 export interface PreviewTrackState {
@@ -52,7 +46,6 @@ interface AudioEditorState {
   currentVersionId: string | null;
   versions: EditorStateDto["versions"];
   songStatus: EditorStateDto["song"]["status"] | null;
-  pendingAction: SongPendingActionDto | null;
   durationMs: number;
   isBusy: boolean;
   error: string | null;
@@ -165,7 +158,6 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
   currentVersionId: null,
   versions: [],
   songStatus: null,
-  pendingAction: null,
   durationMs: 0,
   isBusy: false,
   error: null,
@@ -204,7 +196,6 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
         currentVersionId: state.currentVersionId,
         versions: state.versions,
         songStatus: state.song.status,
-        pendingAction: state.pendingAction,
         durationMs: state.song.durationMs ?? 0,
         selectedRegionId,
         previewTracks: resolvePreviewTracks(state.operations, selectedRegionId),

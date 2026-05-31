@@ -2,7 +2,6 @@ import type {
   ApplyOperationBody,
   EditorStateDto,
   InitEditorResponse,
-  RegenerateRegionBody,
   RenderSongResponse,
 } from "@ai-music/shared";
 import type { ApiClient } from "./client.js";
@@ -27,8 +26,6 @@ export function createMusicEditorApi(client: ApiClient) {
         `/api/music/${songId}/preview-operation`,
         body,
       ),
-    regenerateRegion: (songId: string, body: RegenerateRegionBody) =>
-      client.post<EditorStateDto>(`/api/music/${songId}/regenerate-region`, body),
     render: (songId: string) => client.post<RenderSongResponse>(`/api/music/${songId}/render`, {}),
     getRenderJob: (songId: string, jobId: string) =>
       client.get<{

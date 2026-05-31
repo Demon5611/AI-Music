@@ -98,12 +98,6 @@ export interface ReplaceVocalOperation {
   voiceModelId: number;
 }
 
-export interface RegenerateRegionOperation {
-  type: "REGENERATE_REGION";
-  regionId: string;
-  prompt: string;
-}
-
 export type EditOperation =
   | SetVolumeOperation
   | MuteTrackOperation
@@ -117,8 +111,7 @@ export type EditOperation =
   | ResizeRegionOperation
   | ResizeTrackRegionOperation
   | FadeOperation
-  | ReplaceVocalOperation
-  | RegenerateRegionOperation;
+  | ReplaceVocalOperation;
 
 export interface SongStemDto {
   id: string;
@@ -133,15 +126,6 @@ export interface SongRegionDto {
   startMs: number;
   endMs: number;
   orderIndex: number;
-  hasReplacement: boolean;
-}
-
-export interface SongPendingActionDto {
-  action: "regenerate" | null;
-  taskId: string | null;
-  regionId: string | null;
-  status: "idle" | "processing" | "failed";
-  message?: string | null;
 }
 
 export interface SongVersionDto {
@@ -182,7 +166,6 @@ export interface EditorStateDto {
   undoneOperations: EditOperation[];
   currentVersionId: string;
   versions: SongVersionDto[];
-  pendingAction: SongPendingActionDto;
 }
 
 export interface ApplyOperationBody {
@@ -207,9 +190,4 @@ export interface RenderSongResponse {
 export interface InitEditorResponse {
   songId: string;
   status: SongEditorStatus;
-}
-
-export interface RegenerateRegionBody {
-  regionId: string;
-  prompt: string;
 }

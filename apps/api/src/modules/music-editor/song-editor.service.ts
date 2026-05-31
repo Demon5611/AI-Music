@@ -1,18 +1,8 @@
-import {
-  createMusicService,
-  downloadUrl,
-  type StemResult,
-} from "@ai-music/ai-providers";
+import { createMusicService, downloadUrl, type StemResult } from "@ai-music/ai-providers";
 import { prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
-import {
-  buildSongStemKey,
-  getStorageService,
-} from "../storage/storage.service.js";
-import {
-  buildDefaultRegions,
-  type SongVersionWithOperations,
-} from "./song-editor.mapper.js";
+import { buildSongStemKey, getStorageService } from "../storage/storage.service.js";
+import { buildDefaultRegions, type SongVersionWithOperations } from "./song-editor.mapper.js";
 
 export async function ensureSongForTrack(userId: string, trackId: string) {
   const track = await prisma.musicGenerationTrack.findUnique({
@@ -81,9 +71,7 @@ export async function getSongForUser(userId: string, songId: string) {
   return song;
 }
 
-export async function getCurrentVersion(
-  songId: string,
-): Promise<SongVersionWithOperations> {
+export async function getCurrentVersion(songId: string): Promise<SongVersionWithOperations> {
   const version = await prisma.songVersion.findFirst({
     where: { songId, status: { in: ["draft", "rendering"] } },
     include: { operations: { orderBy: { createdAt: "asc" } } },
@@ -142,9 +130,7 @@ export async function tickStemSeparation(userId: string, songId: string) {
   }
 
   const musicService = createMusicService();
-  const result = await musicService.getStemSeparationStatus(
-    song.stemSeparationTaskId,
-  );
+  const result = await musicService.getStemSeparationStatus(song.stemSeparationTaskId);
 
   if (result.status === "processing" || result.status === "pending") {
     return song;
@@ -166,11 +152,7 @@ export async function tickStemSeparation(userId: string, songId: string) {
   return getSongForUser(userId, songId);
 }
 
-async function persistStemResult(
-  userId: string,
-  songId: string,
-  result: StemResult,
-) {
+async function persistStemResult(userId: string, songId: string, result: StemResult) {
   const storage = getStorageService();
   const stemPairs: Array<{ type: "vocal" | "instrumental"; url?: string }> = [
     { type: "vocal", url: result.vocalUrl },
@@ -213,11 +195,6 @@ async function persistStemResult(
 
 export async function refreshEditorProgress(userId: string, songId: string) {
   const song = await getSongForUser(userId, songId);
-
-  if (song.pendingAction && song.pendingTaskId) {
-    const { tickPendingAiAction } = await import("./ai-actions.service.js");
-    return tickPendingAiAction(userId, songId);
-  }
 
   if (song.status === "separating_stems") {
     return tickStemSeparation(userId, songId);

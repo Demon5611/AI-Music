@@ -1,12 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import {
-  ApplyOperationBodySchema,
-  RegenerateRegionBodySchema,
-  VoiceTransferBodySchema,
-} from "@ai-music/shared";
+import { ApplyOperationBodySchema, VoiceTransferBodySchema } from "@ai-music/shared";
 import { requireAuth } from "../../common/require-auth.js";
 import { sendAppError } from "../../common/errors.js";
-import { startRegenerateRegion } from "./ai-actions.service.js";
 import {
   applyOperation,
   previewOperation,
@@ -195,30 +190,6 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
           },
         );
         return reply.send(result);
-      } catch (error) {
-        return sendAppError(reply, error);
-      }
-    },
-  );
-
-  app.post<{ Params: { songId: string }; Body: unknown }>(
-    "/api/music/:songId/regenerate-region",
-    { preHandler: requireAuth },
-    async (request, reply) => {
-      const parsed = RegenerateRegionBodySchema.safeParse(request.body);
-
-      if (!parsed.success) {
-        return reply.status(400).send({ error: parsed.error.flatten() });
-      }
-
-      try {
-        await startRegenerateRegion(
-          request.userId!,
-          request.params.songId,
-          parsed.data.regionId,
-          parsed.data.prompt,
-        );
-        return reply.send(await buildEditorResponse(request.userId!, request.params.songId));
       } catch (error) {
         return sendAppError(reply, error);
       }

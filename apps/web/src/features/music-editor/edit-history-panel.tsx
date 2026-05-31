@@ -50,8 +50,8 @@ function formatOperationLabel(
       return `Resize ${operation.trackId} — ${regionLabel}`;
     case "REPLACE_VOCAL":
       return `Replace vocal — ${regionLabel}`;
-    case "REGENERATE_REGION":
-      return `Regenerate — ${regionLabel}`;
+    default:
+      return `${operation.type} — ${regionLabel}`;
   }
 }
 
