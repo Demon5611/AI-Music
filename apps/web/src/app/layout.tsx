@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Music",
+  title: "AI Music Creation Workspace",
   description: "Создай AI-трек своим голосом",
 };
 

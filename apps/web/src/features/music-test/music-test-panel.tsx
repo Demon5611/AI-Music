@@ -319,7 +319,7 @@ export function MusicTestPanel() {
         ) : (
           <label className={styles.field}>
             <span className={styles.label}>
-              Опиши идею, о чём и в каком стиле, а текст песни AI создаст автоматически.
+              Опишите тему, настроение и стиль — текст и музыку AI создаст автоматически
             </span>
             <div className={styles.textareaWrap}>
               <textarea

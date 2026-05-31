@@ -45,7 +45,7 @@ export function SiteHeader() {
   return (
     <header className={styles.header}>
       <Link href="/" className={styles.logo}>
-        AI Music
+      AI Music Editor
       </Link>
       <nav className={styles.nav}>
         {NAV_ITEMS.map((item) => (
