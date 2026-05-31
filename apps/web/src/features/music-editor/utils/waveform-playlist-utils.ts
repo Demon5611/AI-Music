@@ -1,8 +1,4 @@
-import {
-  createClipFromSeconds,
-  createTrack,
-  type ClipTrack,
-} from "@waveform-playlist/core";
+import { createClipFromSeconds, createTrack, type ClipTrack } from "@waveform-playlist/core";
 import type { EditOperation, EditorTrackId, SongRegionDto } from "@ai-music/shared";
 import {
   regionFadeEnvelopeHasEffect,
@@ -33,15 +29,14 @@ export type PendingTimelineOperation =
 
 export const AUDIO_CONTEXT_OPTIONS = { sampleRate: 48_000 };
 export const TRACK_WAVE_HEIGHT = 72;
+export const PLAYLIST_TRACK_CONTROL_WIDTH = 104;
 /** Visual gap between adjacent clips on the timeline layout (seconds). */
 export const CLIP_LAYOUT_GAP_SEC = 0.06;
 const DEFAULT_SAMPLES_PER_PIXEL = 2048;
 const MIN_SAMPLES_PER_PIXEL = 64;
 const MAX_SAMPLES_PER_PIXEL = 16_384;
 export const FIT_ZOOM_BASE = 100;
-const STANDARD_ZOOM_LEVELS = [
-  64, 128, 256, 512, 1024, 2048, 4096, 8192, 16_384,
-] as const;
+const STANDARD_ZOOM_LEVELS = [64, 128, 256, 512, 1024, 2048, 4096, 8192, 16_384] as const;
 
 export interface TimelineZoomSettings {
   samplesPerPixel: number;
@@ -57,19 +52,16 @@ function snapToNearestZoomLevel(value: number, levels: number[]): number {
     return DEFAULT_SAMPLES_PER_PIXEL;
   }
 
-  return levels.reduce((best, level) =>
-    Math.abs(level - value) < Math.abs(best - value) ? level : best,
-  levels[0]);
+  return levels.reduce(
+    (best, level) => (Math.abs(level - value) < Math.abs(best - value) ? level : best),
+    levels[0],
+  );
 }
 
 function buildTimelineZoomLevels(fitSamplesPerPixel: number): number[] {
-  const snappedFit = snapToNearestZoomLevel(fitSamplesPerPixel, [
-    ...STANDARD_ZOOM_LEVELS,
-  ]);
+  const snappedFit = snapToNearestZoomLevel(fitSamplesPerPixel, [...STANDARD_ZOOM_LEVELS]);
 
-  return [...new Set([...STANDARD_ZOOM_LEVELS, snappedFit])].sort(
-    (left, right) => left - right,
-  );
+  return [...new Set([...STANDARD_ZOOM_LEVELS, snappedFit])].sort((left, right) => left - right);
 }
 
 function normalizeZoomSettings(
@@ -86,9 +78,7 @@ function normalizeZoomSettings(
 
   return {
     samplesPerPixel: snapped,
-    zoomLevels: [...new Set([...uniqueLevels, snapped])].sort(
-      (left, right) => left - right,
-    ),
+    zoomLevels: [...new Set([...uniqueLevels, snapped])].sort((left, right) => left - right),
   };
 }
 
@@ -108,24 +98,17 @@ function resolveFitZoomLevelIndex(
   }
 
   const offsetSteps = Math.round((FIT_ZOOM_BASE - clampZoom(zoom)) / 10);
-  return Math.min(
-    zoomLevels.length - 1,
-    Math.max(0, fitIndex + offsetSteps),
-  );
+  return Math.min(zoomLevels.length - 1, Math.max(0, fitIndex + offsetSteps));
 }
 
-export function computeFitSamplesPerPixel(
-  tracks: ClipTrack[],
-  containerWidthPx: number,
-): number {
+export function computeFitSamplesPerPixel(tracks: ClipTrack[], containerWidthPx: number): number {
   const durationSec = computeTimelineLayoutDurationSec(tracks);
 
   if (durationSec <= 0 || containerWidthPx <= 0) {
     return DEFAULT_SAMPLES_PER_PIXEL;
   }
 
-  const sampleRate =
-    tracks[0]?.clips[0]?.sampleRate ?? AUDIO_CONTEXT_OPTIONS.sampleRate;
+  const sampleRate = tracks[0]?.clips[0]?.sampleRate ?? AUDIO_CONTEXT_OPTIONS.sampleRate;
   const fitSamplesPerPixel = (durationSec * sampleRate) / containerWidthPx;
 
   const clamped = Math.min(
@@ -171,10 +154,7 @@ export function computeTimelineLayoutDurationSec(tracks: ClipTrack[]): number {
 
   for (const track of tracks) {
     for (const clip of track.clips) {
-      maxEndSample = Math.max(
-        maxEndSample,
-        clip.startSample + clip.durationSamples,
-      );
+      maxEndSample = Math.max(maxEndSample, clip.startSample + clip.durationSamples);
     }
   }
 
@@ -182,8 +162,7 @@ export function computeTimelineLayoutDurationSec(tracks: ClipTrack[]): number {
     return 0;
   }
 
-  const sampleRate =
-    tracks[0]?.clips[0]?.sampleRate ?? AUDIO_CONTEXT_OPTIONS.sampleRate;
+  const sampleRate = tracks[0]?.clips[0]?.sampleRate ?? AUDIO_CONTEXT_OPTIONS.sampleRate;
 
   return maxEndSample / sampleRate;
 }
@@ -333,8 +312,7 @@ export function resolveTimelineSelectionMatch(
         }
 
         const layoutStartSec = clip.startSample / sampleRate;
-        const layoutEndSec =
-          (clip.startSample + clip.durationSamples) / sampleRate;
+        const layoutEndSec = (clip.startSample + clip.durationSamples) / sampleRate;
         const score = scoreClipSelectionOverlap(
           selectionMinSec,
           selectionMaxSec,
@@ -366,8 +344,7 @@ export function resolveTimelineSelectionMatch(
       }
 
       const layoutStartSec = clip.startSample / sampleRate;
-      const layoutEndSec =
-        (clip.startSample + clip.durationSamples) / sampleRate;
+      const layoutEndSec = (clip.startSample + clip.durationSamples) / sampleRate;
       const score = scoreClipSelectionOverlap(
         selectionMinSec,
         selectionMaxSec,
@@ -461,9 +438,7 @@ export function resolveTrackRegions(
     }
 
     if (operation.type === "MOVE_TRACK_REGION") {
-      const fromIndex = trackRegions.findIndex(
-        (item) => item.id === operation.regionId,
-      );
+      const fromIndex = trackRegions.findIndex((item) => item.id === operation.regionId);
 
       if (fromIndex < 0) {
         continue;
@@ -555,10 +530,7 @@ export function resolveTimelineOperation(
     regionsByTrack.set(
       trackId,
       new Map(
-        resolveTrackRegions(trackId, regions, operations).map((region) => [
-          region.id,
-          region,
-        ]),
+        resolveTrackRegions(trackId, regions, operations).map((region) => [region.id, region]),
       ),
     );
   }
@@ -611,11 +583,9 @@ export function resolveTimelineOperation(
       .sort((left, right) => left.startSample - right.startSample)
       .map((clip) => extractRegionId(clip.id))
       .filter((regionId): regionId is string => Boolean(regionId));
-    const oldOrder = resolveTrackRegions(
-      firstClipRef.trackId,
-      regions,
-      operations,
-    ).map((region) => region.id);
+    const oldOrder = resolveTrackRegions(firstClipRef.trackId, regions, operations).map(
+      (region) => region.id,
+    );
     const movedRegion = findMovedRegion(oldOrder, newOrder);
 
     if (!movedRegion) {

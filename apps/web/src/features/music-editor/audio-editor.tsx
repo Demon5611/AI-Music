@@ -291,22 +291,22 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
         )}
       </AuthenticatedBlobUrl>
 
+      <DeferredWaveformTimeline
+        disabled={controlsDisabled}
+        instrumentalPlaybackUrl={playbackUrls.instrumental}
+        onMoveRegion={moveRegionToIndex}
+        onMoveTrackRegion={moveTrackRegionToIndex}
+        onResizeRegion={resizeRegion}
+        onResizeTrackRegion={resizeTrackRegion}
+        operations={operations}
+        regions={regions}
+        selectedRegionId={selectedRegionId}
+        vocalPlaybackUrl={playbackUrls.vocal}
+        onSelectRegion={setSelectedRegion}
+      />
+
       <div className={styles.layout}>
         <div className={styles.mainColumn}>
-          <DeferredWaveformTimeline
-            disabled={controlsDisabled}
-            instrumentalPlaybackUrl={playbackUrls.instrumental}
-            onMoveRegion={moveRegionToIndex}
-            onMoveTrackRegion={moveTrackRegionToIndex}
-            onResizeRegion={resizeRegion}
-            onResizeTrackRegion={resizeTrackRegion}
-            operations={operations}
-            regions={regions}
-            selectedRegionId={selectedRegionId}
-            vocalPlaybackUrl={playbackUrls.vocal}
-            onSelectRegion={setSelectedRegion}
-          />
-
           <div className={styles.panel}>
             <h3 className={styles.panelTitle}>Tracks</h3>
             {!stemsReady ? (
@@ -330,7 +330,9 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
             onFadeOut={() => fadeRegion("out")}
             onMoveLeft={() => moveRegion("left")}
             onMoveRight={() => moveRegion("right")}
-            onRegenerate={() => void regenerateRegion("Regenerate this section with fresh energy")}
+            onRegenerate={() =>
+              void regenerateRegion("Regenerate this section with fresh energy")
+            }
             onReplaceVocal={() => setVoiceDialogOpen(true)}
             onOwnVoiceUploaded={(sampleId) => router.push(`/consent?id=${sampleId}`)}
             onSplit={splitRegion}
@@ -338,7 +340,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
         </div>
 
         <div className={styles.sideColumn}>
-
           <EditHistoryPanel
             disabled={controlsDisabled}
             operations={operations}
