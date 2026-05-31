@@ -65,8 +65,6 @@ interface AudioEditorState {
   playbackController: PlaybackController | null;
   stemMedia: StemMediaElements;
 
-  aiCommandText: string;
-  aiCommandPreview: EditOperation | null;
   timelineSelectionSec: TimelineSelectionSec | null;
   timelineSelectionContext: TimelineSelectionContext | null;
 
@@ -95,8 +93,6 @@ interface AudioEditorState {
 
   setStemMedia: (media: StemMediaElements) => void;
 
-  setAiCommandText: (value: string) => void;
-  setAiCommandPreview: (operation: EditOperation | null) => void;
   setTimelineSelection: (
     selection: {
       sec: TimelineSelectionSec;
@@ -181,8 +177,6 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
     instrumental: null,
   },
 
-  aiCommandText: "",
-  aiCommandPreview: null,
   timelineSelectionSec: null,
   timelineSelectionContext: null,
 
@@ -301,8 +295,6 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
 
   setStemMedia: (media) => set({ stemMedia: media }),
 
-  setAiCommandText: (value) => set({ aiCommandText: value }),
-  setAiCommandPreview: (operation) => set({ aiCommandPreview: operation }),
   setTimelineSelection: (selection) =>
     set(
       selection

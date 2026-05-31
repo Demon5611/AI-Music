@@ -100,9 +100,6 @@ export type {
 } from "./music-generation.js";
 
 export type {
-  AiEditCommand,
-  AiCommandBody,
-  AiCommandResponse,
   RegenerateRegionBody,
   ApplyOperationBody,
   AudioTrackDto,

@@ -112,12 +112,6 @@ export type EditOperation =
   | ReplaceVocalOperation
   | RegenerateRegionOperation;
 
-export interface AiEditCommand {
-  operation: EditOperation;
-  confidence: number;
-  explanation: string;
-}
-
 export interface SongStemDto {
   id: string;
   type: SongStemType;
@@ -205,20 +199,6 @@ export interface RenderSongResponse {
 export interface InitEditorResponse {
   songId: string;
   status: SongEditorStatus;
-}
-
-export interface AiCommandBody {
-  prompt: string;
-  selectedRegionId?: string | null;
-  selectedTrackId?: EditorTrackId | null;
-  playheadLayoutMs?: number;
-  apply?: boolean;
-}
-
-export interface AiCommandResponse {
-  command: AiEditCommand;
-  applied: boolean;
-  editorState?: EditorStateDto;
 }
 
 export interface RegenerateRegionBody {

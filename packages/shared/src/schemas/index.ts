@@ -49,8 +49,6 @@ export type LinkKitsVoiceModelInput = z.infer<typeof linkKitsVoiceModelSchema>;
 export type CreateCheckoutSessionInput = z.infer<typeof createCheckoutSessionSchema>;
 
 export {
-  AiEditCommandSchema,
-  AiCommandBodySchema,
   ApplyOperationBodySchema,
   RegenerateRegionBodySchema,
   DeleteRegionOperationSchema,

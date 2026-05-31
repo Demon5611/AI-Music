@@ -116,12 +116,6 @@ export const EditOperationSchema = z.preprocess(
   ]),
 );
 
-export const AiEditCommandSchema = z.object({
-  operation: EditOperationSchema,
-  confidence: z.number().min(0).max(1),
-  explanation: z.string().min(1),
-});
-
 export const ApplyOperationBodySchema = z.object({
   operation: EditOperationSchema,
   selectedRegionId: z.string().nullable().optional(),
@@ -131,14 +125,6 @@ export const ApplyOperationBodySchema = z.object({
 export const VoiceTransferBodySchema = z.object({
   regionId: z.string().min(1),
   voiceModelId: z.number().int().positive(),
-});
-
-export const AiCommandBodySchema = z.object({
-  prompt: z.string().min(1).max(500),
-  selectedRegionId: z.string().nullable().optional(),
-  selectedTrackId: editorTrackIdSchema.nullable().optional(),
-  playheadLayoutMs: z.number().int().min(0).optional(),
-  apply: z.boolean().optional(),
 });
 
 export const RegenerateRegionBodySchema = z.object({

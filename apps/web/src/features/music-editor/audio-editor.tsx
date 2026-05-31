@@ -4,7 +4,6 @@ import { ApiError } from "@ai-music/api-client";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { useRouter } from "next/navigation";
 import { useClientMounted } from "@/shared/hooks/use-client-mounted";
-import { AiCommandPanel } from "@/features/music-editor/ai-command-panel";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
 import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
 import { EditorHeader } from "@/features/music-editor/editor-header";
@@ -211,10 +210,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   } = useEditorOperations();
 
   const {
-    lastExplanation,
-    previewAiCommand,
-    confirmAiCommand,
-    cancelAiPreview,
     regenerateRegion,
     voiceTransfer,
   } = useEditorAiActions();
@@ -343,13 +338,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
         </div>
 
         <div className={styles.sideColumn}>
-          <AiCommandPanel
-            disabled={controlsDisabled}
-            lastExplanation={lastExplanation}
-            onCancelPreview={cancelAiPreview}
-            onConfirm={confirmAiCommand}
-            onPreview={previewAiCommand}
-          />
 
           <EditHistoryPanel
             disabled={controlsDisabled}

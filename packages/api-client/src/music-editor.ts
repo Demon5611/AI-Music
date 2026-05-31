@@ -1,6 +1,4 @@
 import type {
-  AiCommandBody,
-  AiCommandResponse,
   ApplyOperationBody,
   EditorStateDto,
   InitEditorResponse,
@@ -29,8 +27,6 @@ export function createMusicEditorApi(client: ApiClient) {
         `/api/music/${songId}/preview-operation`,
         body,
       ),
-    aiCommand: (songId: string, body: AiCommandBody) =>
-      client.post<AiCommandResponse>(`/api/music/${songId}/ai-command`, body),
     regenerateRegion: (songId: string, body: RegenerateRegionBody) =>
       client.post<EditorStateDto>(`/api/music/${songId}/regenerate-region`, body),
     render: (songId: string) => client.post<RenderSongResponse>(`/api/music/${songId}/render`, {}),

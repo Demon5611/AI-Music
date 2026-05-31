@@ -49,7 +49,7 @@ ElevenLabs UI **не** для: timeline, track lanes, regions, mixer, split/dupl
 Файлы timeline/mixer/regions (`waveform-timeline`, `mixer-panel`, `track-lane`, `transport-controls`, `region-toolbar`) — **без** ElevenLabs UI.
 
 В `music-editor/` допустимы только **status/preview** обёртки:
-- `ai-command-panel` — AI processing status
+
 - `voice-transfer-dialog` — voice transfer status
 
 ## Архитектура
@@ -64,6 +64,7 @@ ElevenLabs UI  →  AI / audio preview / loading (design layer)
 shadcn использует `--muted` как **фон**. В CSS modules проекта `--muted` — **цвет текста**.
 
 В `globals.css`:
+
 - `--muted` / `--muted-foreground` — вторичный текст (CSS modules)
 - `--muted-bg` — фон для shadcn (`bg-muted`, Skeleton)
 

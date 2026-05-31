@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import {
-  AiCommandBodySchema,
   ApplyOperationBodySchema,
   RegenerateRegionBodySchema,
   VoiceTransferBodySchema,
@@ -8,7 +7,6 @@ import {
 import { requireAuth } from "../../common/require-auth.js";
 import { sendAppError } from "../../common/errors.js";
 import { startRegenerateRegion } from "./ai-actions.service.js";
-import { executeAiCommand } from "./ai-command.service.js";
 import {
   applyOperation,
   previewOperation,
@@ -196,25 +194,6 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
             selectedTrackId: parsed.data.selectedTrackId,
           },
         );
-        return reply.send(result);
-      } catch (error) {
-        return sendAppError(reply, error);
-      }
-    },
-  );
-
-  app.post<{ Params: { songId: string }; Body: unknown }>(
-    "/api/music/:songId/ai-command",
-    { preHandler: requireAuth },
-    async (request, reply) => {
-      const parsed = AiCommandBodySchema.safeParse(request.body);
-
-      if (!parsed.success) {
-        return reply.status(400).send({ error: parsed.error.flatten() });
-      }
-
-      try {
-        const result = await executeAiCommand(request.userId!, request.params.songId, parsed.data);
         return reply.send(result);
       } catch (error) {
         return sendAppError(reply, error);
