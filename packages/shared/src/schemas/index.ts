@@ -57,6 +57,7 @@ export {
   FadeOperationSchema,
   MoveRegionOperationSchema,
   MuteTrackOperationSchema,
+  SoloTrackOperationSchema,
   normalizeLegacyEditOperation,
   RegenerateRegionOperationSchema,
   ReplaceVocalOperationSchema,

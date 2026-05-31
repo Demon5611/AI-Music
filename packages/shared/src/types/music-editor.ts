@@ -20,6 +20,13 @@ export interface MuteTrackOperation {
   muted: boolean;
 }
 
+export interface SoloTrackOperation {
+  type: "SOLO_TRACK";
+  trackId: EditorTrackId;
+  regionId: string;
+  solo: boolean;
+}
+
 export interface DeleteRegionOperation {
   type: "DELETE_REGION";
   regionId: string;
@@ -100,6 +107,7 @@ export interface RegenerateRegionOperation {
 export type EditOperation =
   | SetVolumeOperation
   | MuteTrackOperation
+  | SoloTrackOperation
   | DeleteRegionOperation
   | DeleteRangeOperation
   | SplitRegionOperation

@@ -16,6 +16,13 @@ export const MuteTrackOperationSchema = z.object({
   muted: z.boolean(),
 });
 
+export const SoloTrackOperationSchema = z.object({
+  type: z.literal("SOLO_TRACK"),
+  trackId: editorTrackIdSchema,
+  regionId: z.string().min(1),
+  solo: z.boolean(),
+});
+
 export const DeleteRegionOperationSchema = z.object({
   type: z.literal("DELETE_REGION"),
   regionId: z.string().min(1),
@@ -102,6 +109,7 @@ export const EditOperationSchema = z.preprocess(
   z.discriminatedUnion("type", [
     SetVolumeOperationSchema,
     MuteTrackOperationSchema,
+    SoloTrackOperationSchema,
     DeleteRegionOperationSchema,
     DeleteRangeOperationSchema,
     SplitRegionOperationSchema,

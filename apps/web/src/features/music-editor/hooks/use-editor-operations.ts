@@ -18,12 +18,14 @@ import {
   useAudioEditorStore,
 } from "@/features/music-editor/store/audio-editor-store";
 
-function buildSelectionPayload() {
+function buildSelectionPayload(operation: EditOperation) {
   const state = useAudioEditorStore.getState();
+  const operationTrackId = "trackId" in operation ? operation.trackId : null;
+  const operationRegionId = "regionId" in operation ? operation.regionId : null;
 
   return {
-    selectedRegionId: state.selectedRegionId,
-    selectedTrackId: state.selectedTrackId,
+    selectedRegionId: operationRegionId ?? state.selectedRegionId,
+    selectedTrackId: operationTrackId ?? state.selectedTrackId,
   };
 }
 
@@ -44,15 +46,11 @@ function resolveOperationTrackId(
 function resolveFadeSourceRange(
   state: ReturnType<typeof useAudioEditorStore.getState>,
   region: NonNullable<ReturnType<typeof selectSelectedRegion>>,
-):
-  | { rangeStartMs: number; rangeEndMs: number }
-  | { fullRegion: true }
-  | { error: string } {
+): { rangeStartMs: number; rangeEndMs: number } | { fullRegion: true } | { error: string } {
   const selection = state.timelineSelectionSec;
   const selectionContext = state.timelineSelectionContext;
   const hasRangeSelection =
-    selection !== null &&
-    isTimelineRangeSelection(selection.startSec, selection.endSec);
+    selection !== null && isTimelineRangeSelection(selection.startSec, selection.endSec);
 
   if (!hasRangeSelection || !selection) {
     return { fullRegion: true };
@@ -101,6 +99,11 @@ export function useEditorOperations() {
   const hydrate = useAudioEditorStore((state) => state.hydrate);
   const setBusy = useAudioEditorStore((state) => state.setBusy);
   const setError = useAudioEditorStore((state) => state.setError);
+  const setPreviewMute = useAudioEditorStore((state) => state.setPreviewMute);
+  const setPreviewSolo = useAudioEditorStore((state) => state.setPreviewSolo);
+  const syncPreviewTracksFromOperations = useAudioEditorStore(
+    (state) => state.syncPreviewTracksFromOperations,
+  );
 
   const applyOperation = useCallback(
     async (operation: EditOperation) => {
@@ -114,16 +117,17 @@ export function useEditorOperations() {
       try {
         const result = await api.musicEditor.applyOperation(songId, {
           operation,
-          ...buildSelectionPayload(),
+          ...buildSelectionPayload(operation),
         });
         hydrate(result);
       } catch (error) {
+        syncPreviewTracksFromOperations();
         setError(error instanceof Error ? error.message : "Operation failed");
       } finally {
         setBusy(false);
       }
     },
-    [api, hydrate, setBusy, setError, songId],
+    [api, hydrate, setBusy, setError, songId, syncPreviewTracksFromOperations],
   );
 
   const undo = useCallback(async () => {
@@ -181,19 +185,44 @@ export function useEditorOperations() {
 
   const muteTrack = useCallback(
     (trackId: EditorTrackId, muted: boolean) => {
-      if (!selectedRegionId) {
+      const regionId = useAudioEditorStore.getState().selectedRegionId;
+
+      if (!regionId) {
         setError("Выберите регион на timeline");
         return;
       }
 
+      setPreviewMute(trackId, muted);
+
       void applyOperation({
         type: "MUTE_TRACK",
         trackId,
-        regionId: selectedRegionId,
+        regionId,
         muted,
       });
     },
-    [applyOperation, selectedRegionId, setError],
+    [applyOperation, setError, setPreviewMute],
+  );
+
+  const soloTrack = useCallback(
+    (trackId: EditorTrackId, solo: boolean) => {
+      const regionId = useAudioEditorStore.getState().selectedRegionId;
+
+      if (!regionId) {
+        setError("Выберите регион на timeline");
+        return;
+      }
+
+      setPreviewSolo(trackId, solo);
+
+      void applyOperation({
+        type: "SOLO_TRACK",
+        trackId,
+        regionId,
+        solo,
+      });
+    },
+    [applyOperation, setError, setPreviewSolo],
   );
 
   const splitRegion = useCallback(() => {
@@ -212,8 +241,7 @@ export function useEditorOperations() {
         return;
       }
 
-      region =
-        state.regions.find((item) => item.id === layoutMatch.regionId) ?? null;
+      region = state.regions.find((item) => item.id === layoutMatch.regionId) ?? null;
 
       if (!region) {
         setError("Не удалось определить регион для split");
@@ -273,12 +301,7 @@ export function useEditorOperations() {
   );
 
   const resizeTrackRegion = useCallback(
-    (
-      trackId: EditorTrackId,
-      regionId: string,
-      startMs: number,
-      endMs: number,
-    ) => {
+    (trackId: EditorTrackId, regionId: string, startMs: number, endMs: number) => {
       void applyOperation({
         type: "RESIZE_TRACK_REGION",
         trackId,
@@ -297,9 +320,7 @@ export function useEditorOperations() {
       let region = selectSelectedRegion(state);
 
       if (selectionContext?.regionId) {
-        region =
-          state.regions.find((item) => item.id === selectionContext.regionId) ??
-          region;
+        region = state.regions.find((item) => item.id === selectionContext.regionId) ?? region;
       }
 
       if (!region) {
@@ -353,9 +374,7 @@ export function useEditorOperations() {
       }
 
       const targetIndex =
-        direction === "left"
-          ? Math.max(0, region.orderIndex - 1)
-          : region.orderIndex + 1;
+        direction === "left" ? Math.max(0, region.orderIndex - 1) : region.orderIndex + 1;
 
       void applyOperation({
         type: "MOVE_REGION",
@@ -394,15 +413,12 @@ export function useEditorOperations() {
     const selection = state.timelineSelectionSec;
     const selectionContext = state.timelineSelectionContext;
     const hasRangeSelection =
-      selection !== null &&
-      isTimelineRangeSelection(selection.startSec, selection.endSec);
+      selection !== null && isTimelineRangeSelection(selection.startSec, selection.endSec);
 
     let region = selectSelectedRegion(state);
 
     if (hasRangeSelection && selectionContext?.regionId) {
-      region =
-        state.regions.find((item) => item.id === selectionContext.regionId) ??
-        region;
+      region = state.regions.find((item) => item.id === selectionContext.regionId) ?? region;
     }
 
     if (!region) {
@@ -474,6 +490,7 @@ export function useEditorOperations() {
     redo,
     setVolume,
     muteTrack,
+    soloTrack,
     splitRegion,
     duplicateRegion,
     resizeRegion,

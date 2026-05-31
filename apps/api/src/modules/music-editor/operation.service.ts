@@ -16,10 +16,7 @@ import {
   type OperationUndoMeta,
   type StoredEditOperation,
 } from "./undo-meta.resolver.js";
-import {
-  applyDeleteRangeMutation,
-  reverseDeleteRangeMutation,
-} from "./delete-range.mutation.js";
+import { applyDeleteRangeMutation, reverseDeleteRangeMutation } from "./delete-range.mutation.js";
 
 interface SelectionContext {
   selectedRegionId?: string | null;
@@ -44,9 +41,7 @@ function resolveOperationType(type: string): string {
   return type === "CUT_REGION" ? "DELETE_REGION" : type;
 }
 
-function normalizeStoredEditOperation(
-  operation: StoredEditOperation,
-): StoredEditOperation {
+function normalizeStoredEditOperation(operation: StoredEditOperation): StoredEditOperation {
   if ((operation.type as string) !== "CUT_REGION") {
     return operation;
   }
@@ -74,15 +69,20 @@ function assertValidResizeBounds(
   songDurationMs: number | null,
 ): void {
   if (endMs - startMs < MIN_REGION_LENGTH_MS) {
-    throw new BadRequestError(
-      `Region must be at least ${MIN_REGION_LENGTH_MS}ms long`,
-    );
+    throw new BadRequestError(`Region must be at least ${MIN_REGION_LENGTH_MS}ms long`);
   }
 
   if (songDurationMs !== null && endMs > songDurationMs) {
     throw new BadRequestError("Region end exceeds song duration");
   }
 }
+
+const TRACK_MIX_OPERATION_TYPES = new Set<EditOperation["type"]>([
+  "SET_VOLUME",
+  "MUTE_TRACK",
+  "SOLO_TRACK",
+  "FADE",
+]);
 
 export function validateOperationSelection(
   operation: EditOperation,
@@ -93,16 +93,16 @@ export function validateOperationSelection(
   if (selectedRegionId && "regionId" in operation) {
     if (operation.regionId !== selectedRegionId) {
       throw new BadRequestError(
-        "AI command cannot modify a region outside the current selection",
+        "Operation cannot modify a region outside the current selection",
         "SELECTION_MISMATCH",
       );
     }
   }
 
-  if (selectedTrackId && "trackId" in operation) {
+  if (selectedTrackId && "trackId" in operation && !TRACK_MIX_OPERATION_TYPES.has(operation.type)) {
     if (operation.trackId !== selectedTrackId) {
       throw new BadRequestError(
-        "AI command cannot modify a track outside the current selection",
+        "Operation cannot modify a track outside the current selection",
         "SELECTION_MISMATCH",
       );
     }
@@ -139,10 +139,7 @@ async function restoreDeletedRegionAtIndex(
     orderBy: [{ orderIndex: "asc" }, { startMs: "asc" }],
     select: { id: true },
   });
-  const insertIndex = Math.min(
-    Math.max(snapshot.orderIndex, 0),
-    existingRegions.length,
-  );
+  const insertIndex = Math.min(Math.max(snapshot.orderIndex, 0), existingRegions.length);
 
   await db.songRegion.create({
     data: {
@@ -271,10 +268,7 @@ export async function applyRegionMutation(
         throw new NotFoundError("Region not found");
       }
 
-      if (
-        operation.splitAtMs <= region.startMs ||
-        operation.splitAtMs >= region.endMs
-      ) {
+      if (operation.splitAtMs <= region.startMs || operation.splitAtMs >= region.endMs) {
         throw new BadRequestError("splitAtMs must be inside the region");
       }
 
@@ -353,11 +347,7 @@ export async function applyRegionMutation(
 
       const song = await db.song.findUnique({ where: { id: songId } });
 
-      assertValidResizeBounds(
-        operation.startMs,
-        operation.endMs,
-        song?.durationMs ?? null,
-      );
+      assertValidResizeBounds(operation.startMs, operation.endMs, song?.durationMs ?? null);
 
       await db.songRegion.update({
         where: { id: region.id },
@@ -401,25 +391,14 @@ export async function reverseRegionMutation(
         throw new BadRequestError("Cannot undo delete: missing region snapshot");
       }
 
-      const restoredRegionId =
-        deleteRegionSnapshot.id ?? normalizedOperation.regionId;
+      const restoredRegionId = deleteRegionSnapshot.id ?? normalizedOperation.regionId;
 
-      await restoreDeletedRegionAtIndex(
-        songId,
-        deleteRegionSnapshot,
-        restoredRegionId,
-        db,
-      );
+      await restoreDeletedRegionAtIndex(songId, deleteRegionSnapshot, restoredRegionId, db);
       return;
     }
 
     case "DELETE_RANGE": {
-      await reverseDeleteRangeMutation(
-        songId,
-        normalizedOperation,
-        undoMeta,
-        db,
-      );
+      await reverseDeleteRangeMutation(songId, normalizedOperation, undoMeta, db);
       return;
     }
 
@@ -477,11 +456,15 @@ export async function reverseRegionMutation(
         throw new BadRequestError("Cannot undo move: missing move metadata");
       }
 
-      await applyRegionMutation(songId, {
-        type: "MOVE_REGION",
-        regionId: normalizedOperation.regionId,
-        targetIndex: previousIndex,
-      }, db);
+      await applyRegionMutation(
+        songId,
+        {
+          type: "MOVE_REGION",
+          regionId: normalizedOperation.regionId,
+          targetIndex: previousIndex,
+        },
+        db,
+      );
       return;
     }
 
@@ -512,10 +495,7 @@ export async function reverseRegionMutation(
     }
 
     case "RESIZE_REGION": {
-      const previousBounds = await resolveResizeBounds(
-        normalizedOperation.regionId,
-        undoMeta,
-      );
+      const previousBounds = await resolveResizeBounds(normalizedOperation.regionId, undoMeta);
 
       if (!previousBounds) {
         log.warn(
@@ -559,24 +539,15 @@ export async function applyOperation(
   }
 
   if ("regionId" in operation) {
-    const regionExists = song.regions.some(
-      (region) => region.id === operation.regionId,
-    );
+    const regionExists = song.regions.some((region) => region.id === operation.regionId);
 
     if (!regionExists) {
       throw new NotFoundError("Region not found");
     }
   }
 
-  if (
-    operation.type === "RESIZE_REGION" ||
-    operation.type === "RESIZE_TRACK_REGION"
-  ) {
-    assertValidResizeBounds(
-      operation.startMs,
-      operation.endMs,
-      song.durationMs,
-    );
+  if (operation.type === "RESIZE_REGION" || operation.type === "RESIZE_TRACK_REGION") {
+    assertValidResizeBounds(operation.startMs, operation.endMs, song.durationMs);
   }
 
   const version = await getCurrentVersion(songId);
@@ -624,24 +595,15 @@ export async function previewOperation(
   const song = await getSongForUser(userId, songId);
 
   if ("regionId" in operation) {
-    const regionExists = song.regions.some(
-      (region) => region.id === operation.regionId,
-    );
+    const regionExists = song.regions.some((region) => region.id === operation.regionId);
 
     if (!regionExists) {
       throw new NotFoundError("Region not found");
     }
   }
 
-  if (
-    operation.type === "RESIZE_REGION" ||
-    operation.type === "RESIZE_TRACK_REGION"
-  ) {
-    assertValidResizeBounds(
-      operation.startMs,
-      operation.endMs,
-      song.durationMs,
-    );
+  if (operation.type === "RESIZE_REGION" || operation.type === "RESIZE_TRACK_REGION") {
+    assertValidResizeBounds(operation.startMs, operation.endMs, song.durationMs);
   }
 
   return {
@@ -706,10 +668,7 @@ export async function undoLastOperation(
     });
   });
 
-  log.info(
-    { songId, operationId: lastOperation.id },
-    "undo: operation marked as undone",
-  );
+  log.info({ songId, operationId: lastOperation.id }, "undo: operation marked as undone");
 
   return getSongForUser(userId, songId);
 }

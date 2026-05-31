@@ -88,6 +88,9 @@ interface AudioEditorState {
   setPlaybackController: (controller: PlaybackController | null) => void;
 
   setPreviewGain: (trackId: EditorTrackId, gainDb: number) => void;
+  setPreviewMute: (trackId: EditorTrackId, muted: boolean) => void;
+  setPreviewSolo: (trackId: EditorTrackId, solo: boolean) => void;
+  syncPreviewTracksFromOperations: () => void;
   togglePreviewMute: (trackId: EditorTrackId) => void;
   togglePreviewSolo: (trackId: EditorTrackId) => void;
 
@@ -110,11 +113,11 @@ const DEFAULT_PREVIEW: PreviewTrackState = {
 function resolvePreviewTracks(
   operations: EditOperation[],
   selectedRegionId: string | null,
-  previous: Record<EditorTrackId, PreviewTrackState>,
 ): Record<EditorTrackId, PreviewTrackState> {
   const resolveTrack = (trackId: EditorTrackId): PreviewTrackState => {
     let gainDb = 0;
     let muted = false;
+    let solo = false;
 
     if (selectedRegionId) {
       for (const operation of operations) {
@@ -129,13 +132,17 @@ function resolvePreviewTracks(
         if (operation.type === "MUTE_TRACK" && operation.trackId === trackId) {
           muted = operation.muted;
         }
+
+        if (operation.type === "SOLO_TRACK" && operation.trackId === trackId) {
+          solo = operation.solo;
+        }
       }
     }
 
     return {
       gainDb,
       muted,
-      solo: previous[trackId].solo,
+      solo,
     };
   };
 
@@ -200,17 +207,17 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
         pendingAction: state.pendingAction,
         durationMs: state.song.durationMs ?? 0,
         selectedRegionId,
-        previewTracks: resolvePreviewTracks(
-          state.operations,
-          selectedRegionId,
-          current.previewTracks,
-        ),
+        previewTracks: resolvePreviewTracks(state.operations, selectedRegionId),
         error: null,
       };
     });
   },
 
-  setSelectedRegion: (id) => set({ selectedRegionId: id }),
+  setSelectedRegion: (id) =>
+    set((state) => ({
+      selectedRegionId: id,
+      previewTracks: resolvePreviewTracks(state.operations, id),
+    })),
   setSelectedTrack: (id) => set({ selectedTrackId: id }),
   selectTrackFromPanel: (id) =>
     set({
@@ -264,6 +271,35 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
         ...state.previewTracks,
         [trackId]: { ...state.previewTracks[trackId], gainDb },
       },
+    })),
+  setPreviewMute: (trackId, muted) =>
+    set((state) => ({
+      previewTracks: {
+        ...state.previewTracks,
+        [trackId]: { ...state.previewTracks[trackId], muted },
+      },
+    })),
+  setPreviewSolo: (trackId, solo) =>
+    set((state) => ({
+      previewTracks: {
+        vocal: {
+          ...state.previewTracks.vocal,
+          solo: trackId === "vocal" ? solo : solo ? false : state.previewTracks.vocal.solo,
+        },
+        instrumental: {
+          ...state.previewTracks.instrumental,
+          solo:
+            trackId === "instrumental"
+              ? solo
+              : solo
+                ? false
+                : state.previewTracks.instrumental.solo,
+        },
+      },
+    })),
+  syncPreviewTracksFromOperations: () =>
+    set((state) => ({
+      previewTracks: resolvePreviewTracks(state.operations, state.selectedRegionId),
     })),
   togglePreviewMute: (trackId) =>
     set((state) => ({

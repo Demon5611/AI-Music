@@ -19,9 +19,8 @@ function formatOperationLabel(
   operation: EditOperation,
   regions: ReturnType<typeof useAudioEditorStore.getState>["regions"],
 ): string {
-  const region = "regionId" in operation
-    ? regions.find((item) => item.id === operation.regionId)
-    : null;
+  const region =
+    "regionId" in operation ? regions.find((item) => item.id === operation.regionId) : null;
   const regionLabel = region ? selectRegionLabel(region) : "—";
 
   switch (operation.type) {
@@ -29,6 +28,8 @@ function formatOperationLabel(
       return `${operation.trackId} volume ${operation.gainDb} dB — ${regionLabel}`;
     case "MUTE_TRACK":
       return `${operation.trackId} ${operation.muted ? "mute" : "unmute"} — ${regionLabel}`;
+    case "SOLO_TRACK":
+      return `${operation.trackId} ${operation.solo ? "solo" : "unsolo"} — ${regionLabel}`;
     case "FADE":
       return `Fade ${operation.fadeType} — ${regionLabel}`;
     case "SPLIT_REGION":
@@ -69,9 +70,7 @@ export function EditHistoryPanel({
       <h3 className={styles.panelTitle}>Edit history</h3>
 
       {operations.length === 0 ? (
-        <p className={styles.panelHint}>
-          Операции появятся здесь после первого изменения
-        </p>
+        <p className={styles.panelHint}>Операции появятся здесь после первого изменения</p>
       ) : (
         <ol className={styles.historyList}>
           {operations.map((operation, index) => {

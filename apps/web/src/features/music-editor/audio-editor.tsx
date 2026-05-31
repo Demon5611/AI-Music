@@ -196,6 +196,9 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const error = useAudioEditorStore((state) => state.error);
 
   const {
+    setVolume,
+    muteTrack,
+    soloTrack,
     splitRegion,
     duplicateRegion,
     fadeRegion,
@@ -209,10 +212,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
     redo,
   } = useEditorOperations();
 
-  const {
-    regenerateRegion,
-    voiceTransfer,
-  } = useEditorAiActions();
+  const { regenerateRegion, voiceTransfer } = useEditorAiActions();
 
   const { isProcessing } = useEditorPolling(songId);
   const { title } = useEditorInitialLoad(songId);
@@ -250,6 +250,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const controlsDisabled = isBusy || !editorReady;
   useEditorTransportShortcuts(controlsDisabled);
   const trackControlsDisabled = controlsDisabled || !stemsReady;
+  const trackMixControlsDisabled = !editorReady || !stemsReady;
 
   const statusMessage = (() => {
     if (pendingAction?.status === "processing") {
@@ -314,7 +315,16 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
             ) : null}
             <div className={styles.trackList}>
               {tracks.map((track) => (
-                <TrackLane key={track.id} disabled={trackControlsDisabled} track={track} />
+                <TrackLane
+                  key={track.id}
+                  disabled={trackControlsDisabled}
+                  mixControlsDisabled={trackMixControlsDisabled}
+                  regionSelected={Boolean(selectedRegionId)}
+                  track={track}
+                  onMuteToggle={muteTrack}
+                  onSoloToggle={soloTrack}
+                  onVolumeCommit={setVolume}
+                />
               ))}
             </div>
           </div>
@@ -330,9 +340,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
             onFadeOut={() => fadeRegion("out")}
             onMoveLeft={() => moveRegion("left")}
             onMoveRight={() => moveRegion("right")}
-            onRegenerate={() =>
-              void regenerateRegion("Regenerate this section with fresh energy")
-            }
+            onRegenerate={() => void regenerateRegion("Regenerate this section with fresh energy")}
             onReplaceVocal={() => setVoiceDialogOpen(true)}
             onOwnVoiceUploaded={(sampleId) => router.push(`/consent?id=${sampleId}`)}
             onSplit={splitRegion}

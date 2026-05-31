@@ -5,10 +5,7 @@ import { join } from "node:path";
 import type { EditOperation, EditorTrackId } from "@ai-music/shared";
 import { prisma, Prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
-import {
-  buildSongRenderKey,
-  getStorageService,
-} from "../storage/storage.service.js";
+import { buildSongRenderKey, getStorageService } from "../storage/storage.service.js";
 import { parseOperations } from "./song-editor.mapper.js";
 import { getCurrentVersion, getSongForUser } from "./song-editor.service.js";
 
@@ -41,9 +38,7 @@ function resolveTrackRegions(
     }
 
     if (operation.type === "MOVE_TRACK_REGION") {
-      const fromIndex = trackRegions.findIndex(
-        (item) => item.id === operation.regionId,
-      );
+      const fromIndex = trackRegions.findIndex((item) => item.id === operation.regionId);
 
       if (fromIndex < 0) {
         continue;
@@ -58,11 +53,45 @@ function resolveTrackRegions(
   return trackRegions;
 }
 
+function resolveActiveSoloTrackId(
+  regionId: string,
+  operations: EditOperation[],
+): "vocal" | "instrumental" | null {
+  let soloTrackId: "vocal" | "instrumental" | null = null;
+
+  for (const operation of operations) {
+    if (!("regionId" in operation) || operation.regionId !== regionId) {
+      continue;
+    }
+
+    if (operation.type !== "SOLO_TRACK") {
+      continue;
+    }
+
+    if (operation.solo) {
+      soloTrackId = operation.trackId;
+      continue;
+    }
+
+    if (operation.trackId === soloTrackId) {
+      soloTrackId = null;
+    }
+  }
+
+  return soloTrackId;
+}
+
 function resolveRegionGainDb(
   trackId: "vocal" | "instrumental",
   regionId: string,
   operations: EditOperation[],
 ): number {
+  const soloTrackId = resolveActiveSoloTrackId(regionId, operations);
+
+  if (soloTrackId !== null && trackId !== soloTrackId) {
+    return -80;
+  }
+
   let gainDb = 0;
   let muted = false;
 
@@ -71,17 +100,11 @@ function resolveRegionGainDb(
       continue;
     }
 
-    if (
-      operation.type === "SET_VOLUME" &&
-      operation.trackId === trackId
-    ) {
+    if (operation.type === "SET_VOLUME" && operation.trackId === trackId) {
       gainDb = operation.gainDb;
     }
 
-    if (
-      operation.type === "MUTE_TRACK" &&
-      operation.trackId === trackId
-    ) {
+    if (operation.type === "MUTE_TRACK" && operation.trackId === trackId) {
       muted = operation.muted;
     }
   }
@@ -125,10 +148,7 @@ function resolveFadeFilters(
       const startSec = Math.max(0, (rangeStartMs - regionStartMs) / 1000);
       filters.push(`afade=t=in:st=${startSec}:d=${fadeSec}`);
     } else {
-      const startSec = Math.max(
-        0,
-        (rangeEndMs - regionStartMs) / 1000 - fadeSec,
-      );
+      const startSec = Math.max(0, (rangeEndMs - regionStartMs) / 1000 - fadeSec);
       filters.push(`afade=t=out:st=${startSec}:d=${fadeSec}`);
     }
   }
@@ -188,18 +208,7 @@ async function concatSegments(segmentPaths: string[], outputPath: string) {
   const listContent = segmentPaths.map((path) => `file '${path}'`).join("\n");
   await writeFile(listPath, listContent);
 
-  await runFfmpeg([
-    "-y",
-    "-f",
-    "concat",
-    "-safe",
-    "0",
-    "-i",
-    listPath,
-    "-c",
-    "copy",
-    outputPath,
-  ]);
+  await runFfmpeg(["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", outputPath]);
 }
 
 async function mixTracks(
@@ -253,13 +262,7 @@ async function renderStemTrack({
     const gainDb = resolveRegionGainDb(trackId, region.id, operations);
     const filters = [
       `volume=${gainDb}dB`,
-      ...resolveFadeFilters(
-        trackId,
-        region.id,
-        region.startMs,
-        region.endMs,
-        operations,
-      ),
+      ...resolveFadeFilters(trackId, region.id, region.startMs, region.endMs, operations),
     ];
 
     if (trackId === "vocal" && region.replacementAudioKey) {
@@ -298,8 +301,7 @@ export async function renderSongVersion(userId: string, songId: string) {
   const version = await getCurrentVersion(songId);
   const operations = parseOperations(version.operations);
 
-  const nextVersionNumber =
-    (song.versions.at(0)?.versionNumber ?? version.versionNumber) + 1;
+  const nextVersionNumber = (song.versions.at(0)?.versionNumber ?? version.versionNumber) + 1;
 
   const newVersion = await prisma.songVersion.create({
     data: {
@@ -326,9 +328,7 @@ export async function renderSongVersion(userId: string, songId: string) {
   try {
     const storage = getStorageService();
     const vocalBuffer = await storage.get(vocalStem.audioStorageKey);
-    const instrumentalBuffer = await storage.get(
-      instrumentalStem.audioStorageKey,
-    );
+    const instrumentalBuffer = await storage.get(instrumentalStem.audioStorageKey);
 
     const workDir = await mkdtemp(join(tmpdir(), "ai-music-render-"));
     const vocalInput = join(workDir, "vocal.mp3");
@@ -350,11 +350,7 @@ export async function renderSongVersion(userId: string, songId: string) {
     const instrumentalOutput = join(workDir, "instrumental-track.mp3");
     const finalOutput = join(workDir, "final.mp3");
     const vocalRegions = resolveTrackRegions("vocal", regions, operations);
-    const instrumentalRegions = resolveTrackRegions(
-      "instrumental",
-      regions,
-      operations,
-    );
+    const instrumentalRegions = resolveTrackRegions("instrumental", regions, operations);
 
     await renderStemTrack({
       trackId: "vocal",
@@ -417,10 +413,7 @@ export async function renderSongVersion(userId: string, songId: string) {
     });
 
     if (message.includes("ENOENT") && message.includes("ffmpeg")) {
-      throw new BadRequestError(
-        "ffmpeg is not installed on the server",
-        "FFMPEG_MISSING",
-      );
+      throw new BadRequestError("ffmpeg is not installed on the server", "FFMPEG_MISSING");
     }
 
     throw error;
