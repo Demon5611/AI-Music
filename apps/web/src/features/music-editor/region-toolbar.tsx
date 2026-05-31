@@ -70,7 +70,7 @@ export function RegionToolbar({
 
   return (
     <div className={styles.panel}>
-      <h3 className={styles.panelTitle}>Basic edit</h3>
+      <h3 className={styles.panelTitle}>Basic edit (изменения в рамках выделенного блока)</h3>
 
       {!regionSelected ? (
         <p className={styles.panelHint}>Сначала выберите фрагмент на timeline</p>

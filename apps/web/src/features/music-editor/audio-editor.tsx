@@ -309,7 +309,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
       <div className={styles.layout}>
         <div className={styles.mainColumn}>
           <div className={styles.panel}>
-            <h3 className={styles.panelTitle}>Tracks</h3>
+            <h3 className={styles.panelTitle}>Tracks (изменения в рамках всего трека)</h3>
             {!stemsReady ? (
               <EditorPreparationStatus compact key={statusMessage} message={statusMessage} />
             ) : null}
