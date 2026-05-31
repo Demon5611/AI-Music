@@ -6,20 +6,12 @@ import type {
   GenerateSongInput,
   GenerateSongResult,
   GenerationStatusResult,
-  GetLyricsInput,
-  GetLyricsResult,
   SeparateStemsInput,
   StemResult,
 } from "../../domain/music.types.js";
-import {
-  resolveMusicProviderConfig,
-  type MusicProviderConfig,
-} from "../../music-config.js";
+import { resolveMusicProviderConfig, type MusicProviderConfig } from "../../music-config.js";
 import { createSunoApiClient } from "./create-suno-api-client.js";
-import {
-  mapSunoLyricsTaskToStatus,
-  mapSunoMusicTaskToStatus,
-} from "./suno-api.mapper.js";
+import { mapSunoLyricsTaskToStatus, mapSunoMusicTaskToStatus } from "./suno-api.mapper.js";
 import { SunoApiClient, toSunoModelId } from "./suno-api.client.js";
 import type {
   SunoExtendMusicRequest,
@@ -68,19 +60,6 @@ export class SunoApiProvider implements MusicProvider {
     };
 
     const taskId = await this.getClient().extendMusic(body);
-
-    return {
-      provider: PROVIDER_ID,
-      taskId,
-      status: "pending",
-    };
-  }
-
-  async getLyrics(input: GetLyricsInput): Promise<GetLyricsResult> {
-    const taskId = await this.getClient().generateLyrics({
-      prompt: input.prompt,
-      callBackUrl: this.config.sunoCallbackUrl,
-    });
 
     return {
       provider: PROVIDER_ID,
@@ -160,9 +139,7 @@ export class SunoApiProvider implements MusicProvider {
     };
   }
 
-  private buildUploadCoverRequest(
-    input: GenerateSongInput,
-  ): SunoUploadCoverRequest {
+  private buildUploadCoverRequest(input: GenerateSongInput): SunoUploadCoverRequest {
     const base = this.buildGenerateRequest(input);
 
     if (!input.referenceAudioUrl) {

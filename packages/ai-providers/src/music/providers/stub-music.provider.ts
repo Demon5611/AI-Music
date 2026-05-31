@@ -6,8 +6,6 @@ import type {
   GenerateSongInput,
   GenerateSongResult,
   GenerationStatusResult,
-  GetLyricsInput,
-  GetLyricsResult,
 } from "../domain/music.types.js";
 import { NotImplementedMusicProviderError } from "../domain/not-implemented.error.js";
 
@@ -22,11 +20,6 @@ export abstract class StubMusicProvider implements MusicProvider {
   extendSong(input: ExtendSongInput): Promise<ExtendSongResult> {
     void input;
     return this.reject("extendSong");
-  }
-
-  getLyrics(input: GetLyricsInput): Promise<GetLyricsResult> {
-    void input;
-    return this.reject("getLyrics");
   }
 
   getGenerationStatus(taskId: string): Promise<GenerationStatusResult> {

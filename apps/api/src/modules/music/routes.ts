@@ -5,7 +5,6 @@ import { sendMusicError } from "./handle-music-error.js";
 import { getMusicGenerationTrackAudio } from "./music-record.service.js";
 import {
   extendMusic,
-  generateLyricsForUser,
   generateMusicForUser,
   getMusicGenerationStatusForUser,
   getMusicHistory,
@@ -22,10 +21,6 @@ interface GenerateBody {
   customMode?: boolean;
   durationSec?: number;
   referenceAudioUrl?: string;
-}
-
-interface LyricsBody {
-  prompt: string;
 }
 
 interface ExtendBody {
@@ -45,18 +40,14 @@ export async function registerMusicRoutes(app: FastifyInstance) {
     return reply.send(getMusicTestStatus());
   });
 
-  app.get(
-    "/api/music/history",
-    { preHandler: requireAuth },
-    async (request, reply) => {
-      try {
-        const history = await getMusicHistory(request.userId!);
-        return reply.send(history);
-      } catch (error) {
-        return sendAppError(reply, error);
-      }
-    },
-  );
+  app.get("/api/music/history", { preHandler: requireAuth }, async (request, reply) => {
+    try {
+      const history = await getMusicHistory(request.userId!);
+      return reply.send(history);
+    } catch (error) {
+      return sendAppError(reply, error);
+    }
+  });
 
   app.post<{ Body: DeleteHistoryBody }>(
     "/api/music/history/delete",
@@ -82,10 +73,7 @@ export async function registerMusicRoutes(app: FastifyInstance) {
     { preHandler: requireAuth },
     async (request, reply) => {
       try {
-        const result = await removeMusicGenerationTrack(
-          request.userId!,
-          request.params.trackId,
-        );
+        const result = await removeMusicGenerationTrack(request.userId!, request.params.trackId);
         return reply.send(result);
       } catch (error) {
         return sendAppError(reply, error);
@@ -153,34 +141,11 @@ export async function registerMusicRoutes(app: FastifyInstance) {
       }
 
       try {
-        const result = await getMusicGenerationStatusForUser(
-          taskId,
-          request.userId!,
-        );
+        const result = await getMusicGenerationStatusForUser(taskId, request.userId!);
         return reply.send(result);
       } catch (error) {
         request.log.error(error);
         return sendAppError(reply, error);
-      }
-    },
-  );
-
-  app.post<{ Body: LyricsBody }>(
-    "/api/music/lyrics",
-    { preHandler: requireAuth },
-    async (request, reply) => {
-      const prompt = request.body.prompt?.trim();
-
-      if (!prompt) {
-        return reply.status(400).send({ error: "prompt is required" });
-      }
-
-      try {
-        const result = await generateLyricsForUser(request.userId!, prompt);
-        return reply.send(result);
-      } catch (error) {
-        request.log.error(error);
-        return sendMusicError(reply, error);
       }
     },
   );

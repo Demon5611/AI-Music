@@ -18,8 +18,6 @@ export type {
   GeneratedLyrics,
   GeneratedTrack,
   GenerationStatusResult,
-  GetLyricsInput,
-  GetLyricsResult,
 } from "./domain/music.types.js";
 export {
   MusicProviderError,
@@ -31,15 +29,10 @@ export {
   MusicTimeoutError,
 } from "./domain/errors/index.js";
 export { NotImplementedMusicProviderError } from "./domain/not-implemented.error.js";
-export {
-  SunoApiProvider,
-  createSunoApiProvider,
-} from "./providers/suno-api/suno-api.provider.js";
+export { SunoApiProvider, createSunoApiProvider } from "./providers/suno-api/suno-api.provider.js";
 export { SunoApiClient, toSunoModelId } from "./providers/suno-api/suno-api.client.js";
 export { createSunoApiClient } from "./providers/suno-api/create-suno-api-client.js";
-export type {
-  SunoApiClientConfig,
-} from "./providers/suno-api/suno-api.client.js";
+export type { SunoApiClientConfig } from "./providers/suno-api/suno-api.client.js";
 export type {
   SunoMusicTaskRaw,
   SunoLyricsTaskRaw,
@@ -55,10 +48,7 @@ export {
 } from "./music-provider.factory.js";
 export { MusicService, createMusicService } from "./music.service.js";
 export { pollMusicUntilComplete, type PollMusicOptions } from "./poll-music.js";
-export {
-  resolveMusicProviderConfig,
-  type MusicProviderConfig,
-} from "./music-config.js";
+export { resolveMusicProviderConfig, type MusicProviderConfig } from "./music-config.js";
 export type {
   AddInstrumentalInput,
   AddVocalsInput,

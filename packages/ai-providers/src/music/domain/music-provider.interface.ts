@@ -8,8 +8,6 @@ import type {
   GenerateSongInput,
   GenerateSongResult,
   GenerationStatusResult,
-  GetLyricsInput,
-  GetLyricsResult,
   SeparateStemsInput,
   StemResult,
 } from "./music.types.js";
@@ -29,8 +27,6 @@ export interface MusicProvider {
   generateSong(input: GenerateSongInput): Promise<GenerateSongResult>;
 
   extendSong(input: ExtendSongInput): Promise<ExtendSongResult>;
-
-  getLyrics(input: GetLyricsInput): Promise<GetLyricsResult>;
 
   getGenerationStatus(taskId: string): Promise<GenerationStatusResult>;
 

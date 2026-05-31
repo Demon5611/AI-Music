@@ -9,7 +9,6 @@ import {
 import type {
   SunoApiEnvelope,
   SunoExtendMusicRequest,
-  SunoGenerateLyricsRequest,
   SunoGenerateMusicRequest,
   SunoLyricsTaskRaw,
   SunoModelId,
@@ -50,18 +49,12 @@ export class SunoApiClient {
     return this.createTask("/generate/extend", body);
   }
 
-  generateLyrics(body: SunoGenerateLyricsRequest): Promise<string> {
-    return this.createTask("/lyrics", body);
-  }
-
   separateVocals(body: SunoVocalRemovalRequest): Promise<string> {
     return this.createTask("/vocal-removal/generate", body);
   }
 
   getVocalRemovalDetails(taskId: string): Promise<SunoVocalRemovalTaskRaw> {
-    return this.fetchTask(
-      `/vocal-removal/record-info?taskId=${encodeURIComponent(taskId)}`,
-    );
+    return this.fetchTask(`/vocal-removal/record-info?taskId=${encodeURIComponent(taskId)}`);
   }
 
   getMusicGenerationDetails(taskId: string): Promise<SunoMusicTaskRaw> {
@@ -174,14 +167,7 @@ export class SunoApiClient {
 }
 
 export function toSunoModelId(model: string): SunoModelId {
-  const allowed: SunoModelId[] = [
-    "V4",
-    "V4_5",
-    "V4_5PLUS",
-    "V4_5ALL",
-    "V5",
-    "V5_5",
-  ];
+  const allowed: SunoModelId[] = ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5", "V5_5"];
 
   if ((allowed as readonly string[]).includes(model)) {
     return model as SunoModelId;

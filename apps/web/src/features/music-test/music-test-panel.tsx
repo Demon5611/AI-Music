@@ -5,7 +5,6 @@ import type { MusicStatusResponseDto } from "@ai-music/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CollapsibleLyrics } from "@/features/music-test/collapsible-lyrics";
 import { MusicHistoryPanel } from "@/features/music-test/music-history-panel";
 import { SongTrackResult } from "@/features/music-test/song-track-result";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
@@ -29,10 +28,8 @@ const DURATION_OPTIONS = [
   { value: 120, label: "~2 мин" },
 ] as const;
 
-type ActiveGenerationKind = "song" | "text" | null;
-
 const RAW_STATUS_LABELS: Record<string, string> = {
-  PENDING: "В очереди у Suno",
+  PENDING: "В очереди у AI",
   GENERATING: "Генерация",
   TEXT_SUCCESS: "Текст готов",
   FIRST_SUCCESS: "Первый трек готов",
@@ -59,20 +56,16 @@ export function MusicTestPanel() {
   const authReady = useAuthReady();
   const queryClient = useQueryClient();
 
-  const [provider, setProvider] = useState("sunoapi");
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [customMode, setCustomMode] = useState(false);
   const [durationSec, setDurationSec] = useState(0);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [style, setStyle] = useState(DEFAULT_STYLE);
   const [title, setTitle] = useState(DEFAULT_TITLE);
-  const [lyricsPrompt, setLyricsPrompt] = useState("A song about summer, friendship and freedom");
-  const [activeKind, setActiveKind] = useState<ActiveGenerationKind>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<MusicStatusResponseDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isLyricsLoading, setIsLyricsLoading] = useState(false);
   const [isDeletingHistory, setIsDeletingHistory] = useState(false);
   const [isDeletingTrack, setIsDeletingTrack] = useState(false);
   const [isOpeningEditor, setIsOpeningEditor] = useState(false);
@@ -92,7 +85,6 @@ export function MusicTestPanel() {
       .getTestStatus()
       .then((body) => {
         setConfigured(Boolean(body.configured));
-        setProvider(body.provider ?? "sunoapi");
       })
       .catch(() => setConfigured(false));
   }, [api]);
@@ -134,9 +126,8 @@ export function MusicTestPanel() {
   );
 
   const startPolling = useCallback(
-    (id: string, kind: ActiveGenerationKind) => {
+    (id: string) => {
       stopPolling();
-      setActiveKind(kind);
       setIsPolling(true);
       setError(null);
 
@@ -160,7 +151,6 @@ export function MusicTestPanel() {
     setIsGenerating(true);
     setStatus(null);
     setTaskId(null);
-    setActiveKind(null);
 
     try {
       const body = await api.music.generate({
@@ -180,29 +170,11 @@ export function MusicTestPanel() {
         provider: body.provider,
         rawStatus: "PENDING",
       });
-      startPolling(body.taskId, "song");
+      startPolling(body.taskId);
     } catch (generateError) {
       setError(resolveErrorMessage(generateError));
     } finally {
       setIsGenerating(false);
-    }
-  }
-
-  async function handleLyricsTest() {
-    setError(null);
-    setIsLyricsLoading(true);
-    setStatus(null);
-    setTaskId(null);
-    setActiveKind(null);
-
-    try {
-      const body = await api.music.lyrics(lyricsPrompt);
-      setTaskId(body.taskId);
-      startPolling(body.taskId, "text");
-    } catch (lyricsError) {
-      setError(resolveErrorMessage(lyricsError));
-    } finally {
-      setIsLyricsLoading(false);
     }
   }
 
@@ -258,12 +230,11 @@ export function MusicTestPanel() {
     }
   }
 
-  const isBusy = isGenerating || isLyricsLoading || isPolling;
+  const isBusy = isGenerating || isPolling;
   const rawStatusLabel = status?.rawStatus
     ? (RAW_STATUS_LABELS[status.rawStatus] ?? status.rawStatus)
     : null;
-  const songTracks = activeKind === "song" ? (status?.tracks ?? []) : [];
-  const textResults = activeKind === "text" ? (status?.lyrics ?? []) : [];
+  const songTracks = status?.tracks ?? [];
 
   if (!authReady) {
     return <p className={styles.meta}>Загрузка сессии...</p>;
@@ -329,7 +300,7 @@ export function MusicTestPanel() {
             </label>
             <label className={styles.field}>
               <span className={styles.label}>
-                Условный текст на основе которого будет сгенерирована музыка
+                Текст на основе которого будет сгенерирована музыка
               </span>
               <div className={styles.textareaWrap}>
                 <textarea
@@ -347,7 +318,9 @@ export function MusicTestPanel() {
           </>
         ) : (
           <label className={styles.field}>
-            <span className={styles.label}>Описание песни</span>
+            <span className={styles.label}>
+              Опиши идею, о чём и в каком стиле, а текст песни AI создаст автоматически.
+            </span>
             <div className={styles.textareaWrap}>
               <textarea
                 className={styles.textareaLarge}
@@ -382,8 +355,8 @@ export function MusicTestPanel() {
         {durationSec > 0 ? (
           <p className={styles.meta}>
             {customMode
-              ? "Suno не гарантирует точную длительность — подсказка добавляется в поле «Стиль музыки». Для коротких треков (~30 сек) используйте краткий стиль и короткие тексты."
-              : "Suno не гарантирует точную длительность — подсказка добавляется в описание песни. Для ~30 сек лучше короткое описание."}
+              ? "AI не гарантирует точную длительность — подсказка добавляется в поле «Стиль музыки». Для коротких треков (~30 сек) используйте краткий стиль и короткие тексты."
+              : "AI не гарантирует точную длительность — подсказка добавляется в описание песни. Для ~30 сек лучше короткое описание."}
           </p>
         ) : null}
         <button
@@ -395,7 +368,7 @@ export function MusicTestPanel() {
           {isGenerating ? "Запуск..." : "Создать музыку"}
         </button>
 
-        {activeKind === "song" && isPolling ? (
+        {isPolling ? (
           <div className={styles.progressCard}>
             <p className={styles.progressTitle}>Генерация...</p>
             <p className={styles.progressHint}>
@@ -428,55 +401,7 @@ export function MusicTestPanel() {
           ) : null,
         )}
 
-        {activeKind === "song" && taskId && !isPolling ? (
-          <p className={styles.meta}>
-            taskId={taskId}, status={status?.status ?? "pending"}
-            {status?.rawStatus ? `, raw=${status.rawStatus}` : ""}
-          </p>
-        ) : null}
-      </div>
-
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Generate text for music track</h2>
-        <label className={styles.field}>
-          <span className={styles.label}>
-            Prompt (генерация текста песни - далее вставить в блок выше 'Описание песни')
-          </span>
-          <textarea
-            className={styles.textarea}
-            value={lyricsPrompt}
-            onChange={(event) => setLyricsPrompt(event.target.value)}
-          />
-        </label>
-        <button
-          className={styles.submit}
-          type="button"
-          disabled={isBusy || configured === false}
-          onClick={() => void handleLyricsTest()}
-        >
-          {isLyricsLoading ? "Запуск..." : "Generate text"}
-        </button>
-
-        {activeKind === "text" && isPolling ? (
-          <div className={styles.progressCard}>
-            <p className={styles.progressTitle}>Генерация текста...</p>
-            {rawStatusLabel ? (
-              <p className={styles.meta}>
-                Статус: {rawStatusLabel}
-                {taskId ? ` · taskId=${taskId}` : ""}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {textResults.map((item, index) => (
-          <div className={styles.textResult} key={`${item.title}-${index}`}>
-            <h3 className={styles.resultSubtitle}>{item.title}</h3>
-            <CollapsibleLyrics text={item.text} />
-          </div>
-        ))}
-
-        {activeKind === "text" && taskId && !isPolling ? (
+        {taskId && !isPolling ? (
           <p className={styles.meta}>
             taskId={taskId}, status={status?.status ?? "pending"}
             {status?.rawStatus ? `, raw=${status.rawStatus}` : ""}

@@ -21,10 +21,6 @@ export interface ExtendSongInput {
   title?: string;
 }
 
-export interface GetLyricsInput {
-  prompt: string;
-}
-
 export interface GeneratedTrack {
   id: string;
   title: string;
@@ -48,12 +44,6 @@ export interface GenerateSongResult {
 }
 
 export interface ExtendSongResult {
-  provider: MusicProviderId;
-  taskId: string;
-  status: MusicGenerationStatus;
-}
-
-export interface GetLyricsResult {
   provider: MusicProviderId;
   taskId: string;
   status: MusicGenerationStatus;

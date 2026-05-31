@@ -18,16 +18,11 @@ export interface GenerateSongBody {
 export function createMusicApi(client: ApiClient) {
   return {
     getTestStatus: () =>
-      client.get<{ configured: boolean; provider: string }>(
-        "/api/music/test/status",
-      ),
+      client.get<{ configured: boolean; provider: string }>("/api/music/test/status"),
     history: () => client.get<MusicGenerationRecordDto[]>("/api/music/history"),
     generate: (body: GenerateSongBody) =>
       client.post<MusicGenerateResponseDto>("/api/music/generate", body),
-    lyrics: (prompt: string) =>
-      client.post<MusicGenerateResponseDto>("/api/music/lyrics", { prompt }),
-    status: (taskId: string) =>
-      client.get<MusicStatusResponseDto>(`/api/music/status/${taskId}`),
+    status: (taskId: string) => client.get<MusicStatusResponseDto>(`/api/music/status/${taskId}`),
     deleteHistory: (ids: string[]) =>
       client.post<{ deletedCount: number }>("/api/music/history/delete", {
         ids,

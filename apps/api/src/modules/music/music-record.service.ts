@@ -7,10 +7,7 @@ import type {
 import { prisma, Prisma } from "@ai-music/db";
 import type { MusicGenerationType } from "@ai-music/shared";
 import { NotFoundError } from "../../common/errors.js";
-import {
-  buildMusicTrackAudioKey,
-  getStorageService,
-} from "../storage/storage.service.js";
+import { buildMusicTrackAudioKey, getStorageService } from "../storage/storage.service.js";
 import { toMusicGenerationRecordDto } from "./music-record.mapper.js";
 
 interface CreateRecordInput {
@@ -84,9 +81,7 @@ export async function syncMusicGenerationRecord(
       status: status.status,
       rawStatus: status.rawStatus ?? null,
       errorMessage: status.errorMessage ?? null,
-      lyricsResult: lyricsResult
-        ? (lyricsResult as unknown as Prisma.InputJsonValue)
-        : undefined,
+      lyricsResult: lyricsResult ? (lyricsResult as unknown as Prisma.InputJsonValue) : undefined,
     },
   });
 
@@ -139,19 +134,6 @@ export function buildSongRecordInput(
   };
 }
 
-export function buildLyricsRecordInput(
-  userId: string,
-  prompt: string,
-  providerTaskId: string,
-): CreateRecordInput {
-  return {
-    userId,
-    type: "lyrics",
-    providerTaskId,
-    prompt,
-  };
-}
-
 async function persistProviderTracks(
   record: {
     id: string;
@@ -163,16 +145,13 @@ async function persistProviderTracks(
   const storage = getStorageService();
 
   for (const providerTrack of providerTracks) {
-    const downloadUrlValue =
-      providerTrack.audioUrl || providerTrack.streamAudioUrl;
+    const downloadUrlValue = providerTrack.audioUrl || providerTrack.streamAudioUrl;
 
     if (!downloadUrlValue) {
       continue;
     }
 
-    const existing = record.tracks.find(
-      (track) => track.providerTrackId === providerTrack.id,
-    );
+    const existing = record.tracks.find((track) => track.providerTrackId === providerTrack.id);
 
     const row = await upsertTrackRow(record.id, providerTrack, {
       audioStorageKey: existing?.audioStorageKey ?? null,
@@ -185,11 +164,7 @@ async function persistProviderTracks(
 
     try {
       const buffer = await downloadUrl(downloadUrlValue);
-      const audioStorageKey = buildMusicTrackAudioKey(
-        record.userId,
-        record.id,
-        row.id,
-      );
+      const audioStorageKey = buildMusicTrackAudioKey(record.userId, record.id, row.id);
       await storage.put(audioStorageKey, buffer, "audio/mpeg");
       await prisma.musicGenerationTrack.update({
         where: { id: row.id },

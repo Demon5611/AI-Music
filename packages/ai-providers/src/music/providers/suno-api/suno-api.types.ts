@@ -16,13 +16,7 @@ export type SunoLyricsTaskStatus =
   | "CALLBACK_EXCEPTION"
   | "SENSITIVE_WORD_ERROR";
 
-export type SunoModelId =
-  | "V4"
-  | "V4_5"
-  | "V4_5PLUS"
-  | "V4_5ALL"
-  | "V5"
-  | "V5_5";
+export type SunoModelId = "V4" | "V4_5" | "V4_5PLUS" | "V4_5ALL" | "V5" | "V5_5";
 
 export interface SunoApiEnvelope<T> {
   code: number;
@@ -102,11 +96,6 @@ export interface SunoExtendMusicRequest {
   title?: string;
   continueAt?: number;
   model: SunoModelId;
-  callBackUrl: string;
-}
-
-export interface SunoGenerateLyricsRequest {
-  prompt: string;
   callBackUrl: string;
 }
 
