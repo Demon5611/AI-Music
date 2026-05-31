@@ -103,31 +103,6 @@ export function useEditorAiActions() {
     setLastExplanation(null);
   }, [setAiCommandPreview]);
 
-  const extendSong = useCallback(
-    async (prompt?: string) => {
-      if (!songId || !selectedRegionId) {
-        setError("Выберите регион для extend");
-        return;
-      }
-
-      setBusy(true);
-      setError(null);
-
-      try {
-        const state = await api.musicEditor.extend(songId, {
-          regionId: selectedRegionId,
-          prompt,
-        });
-        hydrate(state);
-      } catch (error) {
-        setError(error instanceof Error ? error.message : "Extend failed");
-      } finally {
-        setBusy(false);
-      }
-    },
-    [api, hydrate, selectedRegionId, setBusy, setError, songId],
-  );
-
   const regenerateRegion = useCallback(
     async (prompt: string) => {
       if (!songId || !selectedRegionId) {
@@ -183,7 +158,6 @@ export function useEditorAiActions() {
     previewAiCommand,
     confirmAiCommand,
     cancelAiPreview,
-    extendSong,
     regenerateRegion,
     voiceTransfer,
   };

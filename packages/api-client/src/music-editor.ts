@@ -3,7 +3,6 @@ import type {
   AiCommandResponse,
   ApplyOperationBody,
   EditorStateDto,
-  ExtendSongBody,
   InitEditorResponse,
   RegenerateRegionBody,
   RenderSongResponse,
@@ -13,12 +12,8 @@ import type { ApiClient } from "./client.js";
 export function createMusicEditorApi(client: ApiClient) {
   return {
     initEditor: (trackId: string) =>
-      client.post<InitEditorResponse>(
-        `/api/music/tracks/${trackId}/editor`,
-        {},
-      ),
-    getSong: (songId: string) =>
-      client.get<EditorStateDto>(`/api/music/${songId}`),
+      client.post<InitEditorResponse>(`/api/music/tracks/${trackId}/editor`, {}),
+    getSong: (songId: string) => client.get<EditorStateDto>(`/api/music/${songId}`),
     getEditorState: (songId: string) =>
       client.get<EditorStateDto>(`/api/music/${songId}/editor-state`),
     separateStems: (songId: string) =>
@@ -36,28 +31,16 @@ export function createMusicEditorApi(client: ApiClient) {
       ),
     aiCommand: (songId: string, body: AiCommandBody) =>
       client.post<AiCommandResponse>(`/api/music/${songId}/ai-command`, body),
-    extend: (songId: string, body: ExtendSongBody) =>
-      client.post<EditorStateDto>(`/api/music/${songId}/extend`, body),
     regenerateRegion: (songId: string, body: RegenerateRegionBody) =>
-      client.post<EditorStateDto>(
-        `/api/music/${songId}/regenerate-region`,
-        body,
-      ),
-    render: (songId: string) =>
-      client.post<RenderSongResponse>(`/api/music/${songId}/render`, {}),
+      client.post<EditorStateDto>(`/api/music/${songId}/regenerate-region`, body),
+    render: (songId: string) => client.post<RenderSongResponse>(`/api/music/${songId}/render`, {}),
     getRenderJob: (songId: string, jobId: string) =>
       client.get<{
         id: string;
         status: string;
         errorMessage: string | null;
       }>(`/api/music/${songId}/render/${jobId}`),
-    voiceTransfer: (
-      songId: string,
-      body: { regionId: string; voiceModelId: number },
-    ) =>
-      client.post<EditorStateDto>(
-        `/api/music/${songId}/voice-transfer`,
-        body,
-      ),
+    voiceTransfer: (songId: string, body: { regionId: string; voiceModelId: number }) =>
+      client.post<EditorStateDto>(`/api/music/${songId}/voice-transfer`, body),
   };
 }

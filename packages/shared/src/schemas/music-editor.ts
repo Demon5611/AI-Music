@@ -29,12 +29,7 @@ export const DeleteRangeOperationSchema = z.object({
 });
 
 export function normalizeLegacyEditOperation(input: unknown): unknown {
-  if (
-    input &&
-    typeof input === "object" &&
-    "type" in input &&
-    input.type === "CUT_REGION"
-  ) {
+  if (input && typeof input === "object" && "type" in input && input.type === "CUT_REGION") {
     return { ...input, type: "DELETE_REGION" };
   }
 
@@ -144,11 +139,6 @@ export const AiCommandBodySchema = z.object({
   selectedTrackId: editorTrackIdSchema.nullable().optional(),
   playheadLayoutMs: z.number().int().min(0).optional(),
   apply: z.boolean().optional(),
-});
-
-export const ExtendSongBodySchema = z.object({
-  regionId: z.string().min(1),
-  prompt: z.string().max(500).optional(),
 });
 
 export const RegenerateRegionBodySchema = z.object({

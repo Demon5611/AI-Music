@@ -67,19 +67,11 @@ function buildSongAudioUrl(song: Song, apiBaseUrl: string): string | null {
   return `${apiBaseUrl}/api/music/songs/${song.id}/audio/original`;
 }
 
-function buildStemAudioUrl(
-  songId: string,
-  stemType: string,
-  apiBaseUrl: string,
-): string {
+function buildStemAudioUrl(songId: string, stemType: string, apiBaseUrl: string): string {
   return `${apiBaseUrl}/api/music/songs/${songId}/stems/${stemType}/audio`;
 }
 
-function buildRenderAudioUrl(
-  songId: string,
-  versionId: string,
-  apiBaseUrl: string,
-): string {
+function buildRenderAudioUrl(songId: string, versionId: string, apiBaseUrl: string): string {
   return `${apiBaseUrl}/api/music/songs/${songId}/versions/${versionId}/audio`;
 }
 
@@ -121,10 +113,7 @@ function toRegionDtos(regions: SongRegion[]): SongRegionDto[] {
 }
 
 function toPendingActionDto(song: Song): SongPendingActionDto {
-  const action =
-    song.pendingAction === "extend" || song.pendingAction === "regenerate"
-      ? song.pendingAction
-      : null;
+  const action = song.pendingAction === "regenerate" ? song.pendingAction : null;
 
   return {
     action,
@@ -166,21 +155,18 @@ function stripUndoMeta(operation: EditOperation): EditOperation {
   return cleanOperation;
 }
 
-export function parseOperations(
-  operations: DbEditOperation[],
-): EditOperation[] {
+export function parseOperations(operations: DbEditOperation[]): EditOperation[] {
   return operations
     .filter((operation) => operation.undoneAt === null)
-    .map((operation) =>
-      normalizeLegacyEditOperation(
-        stripUndoMeta(operation.payloadJson as unknown as EditOperation),
-      ) as EditOperation,
+    .map(
+      (operation) =>
+        normalizeLegacyEditOperation(
+          stripUndoMeta(operation.payloadJson as unknown as EditOperation),
+        ) as EditOperation,
     );
 }
 
-function parseUndoneOperations(
-  operations: DbEditOperation[],
-): EditOperation[] {
+function parseUndoneOperations(operations: DbEditOperation[]): EditOperation[] {
   return operations
     .filter((operation) => operation.undoneAt !== null)
     .slice()
@@ -189,10 +175,11 @@ function parseUndoneOperations(
       const rightTime = right.undoneAt?.getTime() ?? 0;
       return rightTime - leftTime;
     })
-    .map((operation) =>
-      normalizeLegacyEditOperation(
-        stripUndoMeta(operation.payloadJson as unknown as EditOperation),
-      ) as EditOperation,
+    .map(
+      (operation) =>
+        normalizeLegacyEditOperation(
+          stripUndoMeta(operation.payloadJson as unknown as EditOperation),
+        ) as EditOperation,
     );
 }
 

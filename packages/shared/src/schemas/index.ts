@@ -44,19 +44,14 @@ export const createCheckoutSessionSchema = z.object({
 
 export type CreateGenerationInput = z.infer<typeof createGenerationSchema>;
 export type VoiceConsentInput = z.infer<typeof voiceConsentSchema>;
-export type UploadVoiceSampleFields = z.infer<
-  typeof uploadVoiceSampleFieldsSchema
->;
+export type UploadVoiceSampleFields = z.infer<typeof uploadVoiceSampleFieldsSchema>;
 export type LinkKitsVoiceModelInput = z.infer<typeof linkKitsVoiceModelSchema>;
-export type CreateCheckoutSessionInput = z.infer<
-  typeof createCheckoutSessionSchema
->;
+export type CreateCheckoutSessionInput = z.infer<typeof createCheckoutSessionSchema>;
 
 export {
   AiEditCommandSchema,
   AiCommandBodySchema,
   ApplyOperationBodySchema,
-  ExtendSongBodySchema,
   RegenerateRegionBodySchema,
   DeleteRegionOperationSchema,
   DuplicateRegionOperationSchema,
@@ -71,7 +66,4 @@ export {
   SplitRegionOperationSchema,
   VoiceTransferBodySchema,
 } from "./music-editor.js";
-export type {
-  ParsedApplyOperationBody,
-  ParsedEditOperation,
-} from "./music-editor.js";
+export type { ParsedApplyOperationBody, ParsedEditOperation } from "./music-editor.js";

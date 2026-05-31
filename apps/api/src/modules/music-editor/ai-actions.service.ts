@@ -1,57 +1,9 @@
-import {
-  createMusicService,
-  downloadUrl,
-} from "@ai-music/ai-providers";
+import { createMusicService, downloadUrl } from "@ai-music/ai-providers";
 import { prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
-import {
-  buildMusicTrackAudioKey,
-  buildSongRegionReplacementKey,
-  getStorageService,
-} from "../storage/storage.service.js";
+import { buildSongRegionReplacementKey, getStorageService } from "../storage/storage.service.js";
 import { applyOperation } from "./operation.service.js";
-import { getSongForUser, kickoffStemSeparation } from "./song-editor.service.js";
-
-export async function startExtendSong(
-  userId: string,
-  songId: string,
-  regionId: string,
-  prompt?: string,
-) {
-  const song = await getSongForUser(userId, songId);
-  const region = song.regions.find((item) => item.id === regionId);
-
-  if (!region) {
-    throw new NotFoundError("Region not found");
-  }
-
-  if (song.pendingAction && song.pendingTaskId) {
-    throw new BadRequestError("Another AI action is already in progress");
-  }
-
-  const musicService = createMusicService();
-  const extendPrompt = prompt?.trim() || song.prompt;
-  const continueAtSec = region.endMs / 1000;
-
-  const started = await musicService.extendSong({
-    audioId: song.providerTrackId,
-    prompt: extendPrompt,
-    continueAtSec,
-    title: `${song.title} (extended)`,
-    style: "Pop",
-  });
-
-  await prisma.song.update({
-    where: { id: song.id },
-    data: {
-      pendingAction: "extend",
-      pendingTaskId: started.taskId,
-      pendingRegionId: regionId,
-    },
-  });
-
-  return getSongForUser(userId, songId);
-}
+import { getSongForUser } from "./song-editor.service.js";
 
 export async function startRegenerateRegion(
   userId: string,
@@ -129,11 +81,7 @@ export async function tickPendingAiAction(userId: string, songId: string) {
   const storage = getStorageService();
 
   if (song.pendingAction === "regenerate" && song.pendingRegionId) {
-    const key = buildSongRegionReplacementKey(
-      userId,
-      songId,
-      song.pendingRegionId,
-    );
+    const key = buildSongRegionReplacementKey(userId, songId, song.pendingRegionId);
     await storage.put(key, buffer, "audio/mpeg");
 
     await prisma.songRegion.update({
@@ -153,33 +101,6 @@ export async function tickPendingAiAction(userId: string, songId: string) {
     );
 
     await clearPendingAction(song.id);
-    return getSongForUser(userId, songId);
-  }
-
-  if (song.pendingAction === "extend") {
-    const audioKey =
-      song.audioStorageKey ??
-      buildMusicTrackAudioKey(userId, songId, song.sourceTrackId);
-    await storage.put(audioKey, buffer, "audio/mpeg");
-
-    const durationMs = track.durationSec
-      ? track.durationSec * 1000
-      : song.durationMs;
-
-    await prisma.song.update({
-      where: { id: song.id },
-      data: {
-        audioStorageKey: audioKey,
-        providerTaskId: song.pendingTaskId,
-        providerTrackId: track.id,
-        durationMs,
-        status: "pending_stems",
-      },
-    });
-
-    await prisma.songStem.deleteMany({ where: { songId: song.id } });
-    await clearPendingAction(song.id);
-    await kickoffStemSeparation(userId, songId);
     return getSongForUser(userId, songId);
   }
 

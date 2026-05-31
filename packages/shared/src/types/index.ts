@@ -103,7 +103,6 @@ export type {
   AiEditCommand,
   AiCommandBody,
   AiCommandResponse,
-  ExtendSongBody,
   RegenerateRegionBody,
   ApplyOperationBody,
   AudioTrackDto,

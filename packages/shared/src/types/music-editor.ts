@@ -1,18 +1,8 @@
-export type SongEditorStatus =
-  | "pending_stems"
-  | "separating_stems"
-  | "ready"
-  | "failed";
+export type SongEditorStatus = "pending_stems" | "separating_stems" | "ready" | "failed";
 
 export type SongStemType = "vocal" | "instrumental";
 
-export type SongRegionLabel =
-  | "intro"
-  | "verse"
-  | "chorus"
-  | "bridge"
-  | "outro"
-  | "custom";
+export type SongRegionLabel = "intro" | "verse" | "chorus" | "bridge" | "outro" | "custom";
 
 export type EditorTrackId = "vocal" | "instrumental";
 
@@ -145,7 +135,7 @@ export interface SongRegionDto {
 }
 
 export interface SongPendingActionDto {
-  action: "extend" | "regenerate" | null;
+  action: "regenerate" | null;
   taskId: string | null;
   regionId: string | null;
   status: "idle" | "processing" | "failed";
@@ -229,11 +219,6 @@ export interface AiCommandResponse {
   command: AiEditCommand;
   applied: boolean;
   editorState?: EditorStateDto;
-}
-
-export interface ExtendSongBody {
-  regionId: string;
-  prompt?: string;
 }
 
 export interface RegenerateRegionBody {

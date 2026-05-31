@@ -215,7 +215,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
     previewAiCommand,
     confirmAiCommand,
     cancelAiPreview,
-    extendSong,
     regenerateRegion,
     voiceTransfer,
   } = useEditorAiActions();
@@ -259,10 +258,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
 
   const statusMessage = (() => {
     if (pendingAction?.status === "processing") {
-      if (pendingAction.action === "extend") {
-        return "Suno extend: генерация продолжения трека...";
-      }
-
       if (pendingAction.action === "regenerate") {
         return "Suno regenerate: перегенерация выбранного фрагмента...";
       }
@@ -336,7 +331,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
             regionSelected={Boolean(selectedRegionId)}
             onDelete={deleteRegion}
             onDuplicate={duplicateRegion}
-            onExtend={() => void extendSong()}
             onFadeIn={() => fadeRegion("in")}
             onFadeOut={() => fadeRegion("out")}
             onMoveLeft={() => moveRegion("left")}
