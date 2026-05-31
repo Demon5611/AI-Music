@@ -12,11 +12,15 @@ import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import styles from "./styles/music-test.module.css";
 
-const DEFAULT_PROMPT =
-  "Upbeat pop song about summer and friends, male vocals in Russian";
+const DEFAULT_PROMPT = "Upbeat pop song about summer and friends, male vocals in Russian";
 const DEFAULT_STYLE = "electro house vocal";
 const DEFAULT_TITLE = "Summer Friends";
 const POLL_INTERVAL_MS = 12_000;
+
+const PROMPT_MAX_LENGTH = 500;
+const STYLE_MAX_LENGTH = 200;
+const LYRICS_MAX_LENGTH = 3000;
+const TITLE_MAX_LENGTH = 100;
 
 const DURATION_OPTIONS = [
   { value: 0, label: "Auto (~2–3 мин)" },
@@ -62,9 +66,7 @@ export function MusicTestPanel() {
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [style, setStyle] = useState(DEFAULT_STYLE);
   const [title, setTitle] = useState(DEFAULT_TITLE);
-  const [lyricsPrompt, setLyricsPrompt] = useState(
-    "A song about summer, friendship and freedom",
-  );
+  const [lyricsPrompt, setLyricsPrompt] = useState("A song about summer, friendship and freedom");
   const [activeKind, setActiveKind] = useState<ActiveGenerationKind>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<MusicStatusResponseDto | null>(null);
@@ -74,9 +76,7 @@ export function MusicTestPanel() {
   const [isDeletingHistory, setIsDeletingHistory] = useState(false);
   const [isDeletingTrack, setIsDeletingTrack] = useState(false);
   const [isOpeningEditor, setIsOpeningEditor] = useState(false);
-  const [openingEditorTrackId, setOpeningEditorTrackId] = useState<string | null>(
-    null,
-  );
+  const [openingEditorTrackId, setOpeningEditorTrackId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
@@ -273,8 +273,7 @@ export function MusicTestPanel() {
     <section className={styles.section}>
       <h1 className={styles.title}>Magic Music</h1>
       <p className={styles.description}>
-        Генерация музыки через abstraction layer (`MUSIC_PROVIDER={provider}`).
-        Результаты сохраняются в вашей истории.
+        Генерация музыки. Результаты сохраняются в вашей истории.
       </p>
 
       {configured === false ? (
@@ -284,49 +283,90 @@ export function MusicTestPanel() {
       ) : null}
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Generate Song</h2>
-        <label className={styles.checkboxField}>
-          <input
-            checked={customMode}
-            type="checkbox"
-            onChange={(event) => setCustomMode(event.target.checked)}
-          />
-          <span className={styles.label}>
-            Custom mode (prompt = текст песни, нужны style и title)
-          </span>
-        </label>
-        <label className={styles.field}>
-          <span className={styles.label}>
-            {customMode ? "Lyrics (текст песни)" : "Prompt (описание идеи)"}
-          </span>
-          <textarea
-            className={styles.textarea}
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-          />
-        </label>
+        <h2 className={styles.cardTitle}>Генерация музыки</h2>
+
+        <div className={styles.formHeader}>
+          <span className={styles.formHeaderLabel}>Пользовательский режим</span>
+          <label className={styles.toggle}>
+            <input
+              checked={customMode}
+              className={styles.toggleInput}
+              type="checkbox"
+              onChange={(event) => setCustomMode(event.target.checked)}
+            />
+            <span className={styles.toggleTrack} aria-hidden="true">
+              <span className={styles.toggleThumb} />
+            </span>
+          </label>
+        </div>
+
         {customMode ? (
           <>
             <label className={styles.field}>
-              <span className={styles.label}>Style</span>
+              <span className={styles.label}>Название</span>
               <input
                 className={styles.input}
-                value={style}
-                onChange={(event) => setStyle(event.target.value)}
-              />
-            </label>
-            <label className={styles.field}>
-              <span className={styles.label}>Title</span>
-              <input
-                className={styles.input}
+                maxLength={TITLE_MAX_LENGTH}
+                placeholder="Введите название"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
               />
             </label>
+            <label className={styles.field}>
+              <span className={styles.label}>Стиль музыки</span>
+              <div className={styles.textareaWrap}>
+                <textarea
+                  className={styles.textarea}
+                  maxLength={STYLE_MAX_LENGTH}
+                  placeholder="Введите стиль музыки"
+                  value={style}
+                  onChange={(event) => setStyle(event.target.value)}
+                />
+                <span className={styles.charCounter}>
+                  {style.length}/{STYLE_MAX_LENGTH}
+                </span>
+              </div>
+            </label>
+            <label className={styles.field}>
+              <span className={styles.label}>
+                Условный текст на основе которого будет сгенерирована музыка
+              </span>
+              <div className={styles.textareaWrap}>
+                <textarea
+                  className={styles.textareaLarge}
+                  maxLength={LYRICS_MAX_LENGTH}
+                  placeholder="Напишите собственные тексты, или куплеты (8 строк) для лучшего результата"
+                  value={prompt}
+                  onChange={(event) => setPrompt(event.target.value)}
+                />
+                <span className={styles.charCounter}>
+                  {prompt.length}/{LYRICS_MAX_LENGTH}
+                </span>
+              </div>
+            </label>
           </>
-        ) : null}
+        ) : (
+          <label className={styles.field}>
+            <span className={styles.label}>Описание песни</span>
+            <div className={styles.textareaWrap}>
+              <textarea
+                className={styles.textareaLarge}
+                maxLength={PROMPT_MAX_LENGTH}
+                placeholder="Опишите стиль музыки и тему, которую вы хотите, и ИИ создаст текст песни"
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+              />
+              <span className={styles.charCounter}>
+                {prompt.length}/{PROMPT_MAX_LENGTH}
+              </span>
+            </div>
+          </label>
+        )}
+
         <label className={styles.field}>
-          <span className={styles.label}>Target duration</span>
+          <span className={styles.label}>
+            Длительность (AI не всегда точно соблюдает заданную длительность)
+          </span>
           <select
             className={styles.select}
             value={durationSec}
@@ -341,9 +381,9 @@ export function MusicTestPanel() {
         </label>
         {durationSec > 0 ? (
           <p className={styles.meta}>
-            Suno не гарантирует точную длительность — значение добавляется в
-            prompt/style как подсказка модели. Для ~30 сек лучше короткий prompt
-            и без длинного текста в custom mode.
+            {customMode
+              ? "Suno не гарантирует точную длительность — подсказка добавляется в поле «Стиль музыки». Для коротких треков (~30 сек) используйте краткий стиль и короткие тексты."
+              : "Suno не гарантирует точную длительность — подсказка добавляется в описание песни. Для ~30 сек лучше короткое описание."}
           </p>
         ) : null}
         <button
@@ -352,7 +392,7 @@ export function MusicTestPanel() {
           disabled={isBusy || configured === false}
           onClick={() => void handleGenerate()}
         >
-          {isGenerating ? "Запуск..." : "Generate Song"}
+          {isGenerating ? "Запуск..." : "Создать музыку"}
         </button>
 
         {activeKind === "song" && isPolling ? (
@@ -378,9 +418,7 @@ export function MusicTestPanel() {
               canDelete={Boolean(track.canDelete)}
               durationSec={track.durationSec}
               isDeleting={isDeletingTrack}
-              isOpeningEditor={
-                isOpeningEditor && openingEditorTrackId === track.id
-              }
+              isOpeningEditor={isOpeningEditor && openingEditorTrackId === track.id}
               lyricsText={track.lyricsText}
               title={track.title}
               trackId={track.id}
@@ -401,7 +439,9 @@ export function MusicTestPanel() {
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Generate text for music track</h2>
         <label className={styles.field}>
-          <span className={styles.label}>Prompt (описание темы текста)</span>
+          <span className={styles.label}>
+            Prompt (генерация текста песни - далее вставить в блок выше 'Описание песни')
+          </span>
           <textarea
             className={styles.textarea}
             value={lyricsPrompt}
