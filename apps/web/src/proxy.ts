@@ -5,9 +5,7 @@ const isClerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
 const clerkHandler = clerkMiddleware();
 
-export default isClerkEnabled
-  ? clerkHandler
-  : () => NextResponse.next();
+export default isClerkEnabled ? clerkHandler : () => NextResponse.next();
 
 export const config = {
   matcher: [
