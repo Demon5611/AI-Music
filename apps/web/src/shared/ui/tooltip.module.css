@@ -22,6 +22,7 @@
 .content {
   position: absolute;
   z-index: 50;
+  min-width: 11rem;
   max-width: 16rem;
   padding: 0.375rem 0.5rem;
   border-radius: 0.375rem;
@@ -32,14 +33,15 @@
   pointer-events: none;
   opacity: 0;
   transform: translateY(4px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
   white-space: normal;
 }
 
-.root:hover .content,
-.root:focus-within .content {
+.root:hover > .content,
+.root:focus-within > .content {
   opacity: 1;
-  transform: translateY(0);
 }
 
 .top {
@@ -48,9 +50,32 @@
   transform: translate(-50%, 4px);
 }
 
-.root:hover .top,
-.root:focus-within .top {
+.root:hover > .top,
+.root:focus-within > .top {
   transform: translate(-50%, 0);
+}
+
+.topAlignStart {
+  bottom: calc(100% + 0.375rem);
+  left: 0;
+  transform: translateY(4px);
+}
+
+.root:hover > .topAlignStart,
+.root:focus-within > .topAlignStart {
+  transform: translateY(0);
+}
+
+.topAlignEnd {
+  bottom: calc(100% + 0.375rem);
+  right: 0;
+  left: auto;
+  transform: translateY(4px);
+}
+
+.root:hover > .topAlignEnd,
+.root:focus-within > .topAlignEnd {
+  transform: translateY(0);
 }
 
 .bottom {
@@ -59,9 +84,32 @@
   transform: translate(-50%, -4px);
 }
 
-.root:hover .bottom,
-.root:focus-within .bottom {
+.root:hover > .bottom,
+.root:focus-within > .bottom {
   transform: translate(-50%, 0);
+}
+
+.bottomAlignStart {
+  top: calc(100% + 0.375rem);
+  left: 0;
+  transform: translateY(-4px);
+}
+
+.root:hover > .bottomAlignStart,
+.root:focus-within > .bottomAlignStart {
+  transform: translateY(0);
+}
+
+.bottomAlignEnd {
+  top: calc(100% + 0.375rem);
+  right: 0;
+  left: auto;
+  transform: translateY(-4px);
+}
+
+.root:hover > .bottomAlignEnd,
+.root:focus-within > .bottomAlignEnd {
+  transform: translateY(0);
 }
 
 .left {
@@ -70,8 +118,8 @@
   transform: translate(4px, -50%);
 }
 
-.root:hover .left,
-.root:focus-within .left {
+.root:hover > .left,
+.root:focus-within > .left {
   transform: translate(0, -50%);
 }
 
@@ -81,7 +129,7 @@
   transform: translate(-4px, -50%);
 }
 
-.root:hover .right,
-.root:focus-within .right {
+.root:hover > .right,
+.root:focus-within > .right {
   transform: translate(0, -50%);
 }

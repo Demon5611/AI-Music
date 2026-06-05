@@ -3,12 +3,13 @@
 import { useAuth } from "@clerk/nextjs";
 import { env } from "@/shared/config/env";
 
-export function useAuthReady(): boolean {
+function useClerkAuthReady(): boolean {
   const { isLoaded, isSignedIn } = useAuth();
-
-  if (!env.isClerkEnabled) {
-    return true;
-  }
-
   return isLoaded && isSignedIn;
 }
+
+function useDevAuthReady(): boolean {
+  return true;
+}
+
+export const useAuthReady = env.isClerkEnabled ? useClerkAuthReady : useDevAuthReady;

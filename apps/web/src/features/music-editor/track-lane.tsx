@@ -90,87 +90,87 @@ export function TrackLane({
   }
 
   return (
-    <Tooltip block content={TRACK_TOOLTIPS[track.id]}>
-      <div
-        className={selected ? styles.trackLaneRowSelected : styles.trackLaneRow}
-        onClick={handleSelect}
-        onKeyDown={(event) => {
-          if (disabled || (event.key !== "Enter" && event.key !== " ")) {
-            return;
-          }
+    <div
+      className={selected ? styles.trackLaneRowSelected : styles.trackLaneRow}
+      onClick={handleSelect}
+      onKeyDown={(event) => {
+        if (disabled || (event.key !== "Enter" && event.key !== " ")) {
+          return;
+        }
 
-          event.preventDefault();
-          handleSelect();
-        }}
-        role="button"
-        tabIndex={disabled ? -1 : 0}
-      >
+        event.preventDefault();
+        handleSelect();
+      }}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+    >
+      <Tooltip align="start" content={TRACK_TOOLTIPS[track.id]} side="right">
         <span className={styles.trackLaneLabel}>{track.label}</span>
+      </Tooltip>
 
-        <div
-          className={styles.trackLaneControls}
-          onClick={stopRowSelection}
-          onPointerDown={stopRowSelection}
-        >
-          <Tooltip content="Отключить эту дорожку в выбранном регионе">
-            <button
-              className={preview.muted ? styles.laneToggleActive : styles.laneToggle}
+      <div
+        className={styles.trackLaneControls}
+        onClick={stopRowSelection}
+        onPointerDown={stopRowSelection}
+      >
+        <Tooltip align="start" content="Отключить эту дорожку в выбранном регионе" side="bottom">
+          <button
+            className={preview.muted ? styles.laneToggleActive : styles.laneToggle}
+            disabled={controlsDisabled}
+            type="button"
+            onClick={() => {
+              selectTrackForControls();
+              onMuteToggle(track.id, !preview.muted);
+            }}
+          >
+            M
+          </button>
+        </Tooltip>
+
+        <Tooltip content="Слушать только эту дорожку в выбранном регионе" side="bottom">
+          <button
+            className={preview.solo ? styles.laneToggleActive : styles.laneToggle}
+            disabled={controlsDisabled}
+            type="button"
+            onClick={() => {
+              selectTrackForControls();
+              onSoloToggle(track.id, !preview.solo);
+            }}
+          >
+            S
+          </button>
+        </Tooltip>
+
+        <Tooltip align="end" content="Громкость выбранного региона на этой дорожке" side="bottom">
+          <label className={styles.trackVolumeLabel}>
+            <input
+              className={styles.trackVolumeSlider}
               disabled={controlsDisabled}
-              type="button"
-              onClick={() => {
-                selectTrackForControls();
-                onMuteToggle(track.id, !preview.muted);
+              max={12}
+              min={-12}
+              step={1}
+              type="range"
+              value={preview.gainDb}
+              onChange={(event) => {
+                const gainDb = Number(event.target.value);
+                pendingGainDbRef.current = gainDb;
+                setPreviewGain(track.id, gainDb);
               }}
-            >
-              M
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Слушать только эту дорожку в выбранном регионе">
-            <button
-              className={preview.solo ? styles.laneToggleActive : styles.laneToggle}
-              disabled={controlsDisabled}
-              type="button"
-              onClick={() => {
-                selectTrackForControls();
-                onSoloToggle(track.id, !preview.solo);
-              }}
-            >
-              S
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Громкость выбранного региона на этой дорожке">
-            <label className={styles.trackVolumeLabel}>
-              <input
-                className={styles.trackVolumeSlider}
-                disabled={controlsDisabled}
-                max={12}
-                min={-12}
-                step={1}
-                type="range"
-                value={preview.gainDb}
-                onChange={(event) => {
-                  const gainDb = Number(event.target.value);
-                  pendingGainDbRef.current = gainDb;
-                  setPreviewGain(track.id, gainDb);
-                }}
-                onKeyUp={commitVolume}
-                onPointerUp={commitVolume}
-              />
-              <span>{preview.gainDb} dB</span>
-            </label>
-          </Tooltip>
-        </div>
-
-        <div
-          className={styles.trackWaveformWrap}
-          onClick={stopRowSelection}
-          onPointerDown={stopRowSelection}
-        >
-          <TrackProgressBar disabled={disabled} onSelect={handleSelect} />
-        </div>
+              onKeyUp={commitVolume}
+              onPointerUp={commitVolume}
+            />
+            <span>{preview.gainDb} dB</span>
+          </label>
+        </Tooltip>
       </div>
-    </Tooltip>
+
+      <div
+        className={styles.trackWaveformWrap}
+        onClick={stopRowSelection}
+        onPointerDown={stopRowSelection}
+      >
+        <TrackProgressBar disabled={disabled} onSelect={handleSelect} />
+      </div>
+    </div>
   );
 }
