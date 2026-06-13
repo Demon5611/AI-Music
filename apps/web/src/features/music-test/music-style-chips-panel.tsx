@@ -9,6 +9,7 @@ import {
   parseStyleTags,
   toggleStyleChip,
 } from "./music-style-chips";
+import { MusicComboStyleChip } from "./music-combo-style-chip";
 import styles from "./styles/music-test.module.css";
 
 interface MusicStyleChipsProps {
@@ -53,6 +54,7 @@ export function MusicStyleChips({ value, maxLength, onChange }: MusicStyleChipsP
           className={styles.chipRow}
           role="group"
         >
+          <MusicComboStyleChip maxLength={maxLength} value={value} onChange={onChange} />
           {MUSIC_STYLE_CHIP_OPTIONS.map((chip) => {
             const selected = isStyleChipSelected(value, chip);
             const disabled = isStyleChipDisabled(
