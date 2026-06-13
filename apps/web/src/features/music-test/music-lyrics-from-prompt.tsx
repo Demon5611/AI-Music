@@ -5,7 +5,8 @@ import type { MusicLyricsStatusResponseDto } from "@ai-music/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AiProcessingStatus } from "@/shared/ui/elevenlabs/ai-processing-status";
 import { useApi } from "@/shared/providers/api-provider";
-import styles from "./styles/music-test.module.css";
+import { mt } from "./music-test-classes";
+import { cn } from "@/lib/utils";
 
 const LYRICS_BRIEF_MAX_LENGTH = 200;
 const LYRICS_POLL_INTERVAL_MS = 5_000;
@@ -29,6 +30,16 @@ function resolveErrorMessage(error: unknown): string {
   }
 
   return "Не удалось сгенерировать текст";
+}
+
+function CharCounter({ current, max }: { current: number; max: number }) {
+  const isNearLimit = current / max > 0.9;
+
+  return (
+    <span className={isNearLimit ? mt.charCounterLimit : mt.charCounter}>
+      {current}/{max}
+    </span>
+  );
 }
 
 export function MusicLyricsFromPrompt({
@@ -154,28 +165,28 @@ export function MusicLyricsFromPrompt({
   const canGenerate = configured && !disabled && !isBusy && lyricsBrief.trim().length > 0;
 
   return (
-    <div className={styles.lyricsPromptBlock}>
-      <label className={styles.field}>
-        <span className={styles.label}>
+    <div className={mt.lyricsBlock}>
+      <label className="block">
+        <span className={mt.lyricsPromptLabel}>
           Введите примерное описание текста и AI на базе промта создаст текст песни
         </span>
-        <div className={styles.textareaWrap}>
+        <div className="relative mt-2">
           <textarea
-            className={styles.textarea}
+            className={cn(mt.textarea, "h-20")}
             disabled={isBusy || disabled}
             maxLength={LYRICS_BRIEF_MAX_LENGTH}
             placeholder="Например: грустная баллада о расставании, первое лицо, русский язык"
             value={lyricsBrief}
             onChange={(event) => setLyricsBrief(event.target.value)}
           />
-          <span className={styles.charCounter}>
-            {lyricsBrief.length}/{LYRICS_BRIEF_MAX_LENGTH}
-          </span>
+          <div className={mt.counterPos}>
+            <CharCounter current={lyricsBrief.length} max={LYRICS_BRIEF_MAX_LENGTH} />
+          </div>
         </div>
       </label>
 
       <button
-        className={styles.secondaryButton}
+        className={cn(mt.secondaryButton, "mt-3")}
         disabled={!canGenerate}
         type="button"
         onClick={() => void handleGenerate()}
@@ -184,23 +195,20 @@ export function MusicLyricsFromPrompt({
       </button>
 
       {isPolling ? (
-        <AiProcessingStatus
-          agentState="thinking"
-          label="AI пишет текст песни..."
-        />
+        <div className="mt-3">
+          <AiProcessingStatus agentState="thinking" label="AI пишет текст песни..." />
+        </div>
       ) : null}
 
       {variants.length > 1 ? (
-        <div className={styles.lyricsVariants}>
-          <span className={styles.meta}>Выберите вариант:</span>
-          <div className={styles.lyricsVariantList}>
+        <div className={cn(mt.lyricsVariants, "mt-3")}>
+          <span className={mt.meta}>Выберите вариант:</span>
+          <div className={mt.lyricsVariantList}>
             {variants.map((variant, index) => (
               <button
                 key={`${variant.title}-${index}`}
                 className={
-                  index === selectedVariantIndex
-                    ? styles.lyricsVariantActive
-                    : styles.lyricsVariant
+                  index === selectedVariantIndex ? mt.lyricsVariantActive : mt.lyricsVariant
                 }
                 type="button"
                 onClick={() => applyVariant(variants, index)}
@@ -212,7 +220,7 @@ export function MusicLyricsFromPrompt({
         </div>
       ) : null}
 
-      {error ? <p className={styles.errorInline}>{error}</p> : null}
+      {error ? <p className={cn(mt.errorInline, "mt-2")}>{error}</p> : null}
     </div>
   );
 }

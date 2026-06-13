@@ -3,9 +3,10 @@
 import type { MusicGenerationRecordDto } from "@ai-music/shared";
 import { useMemo, useState } from "react";
 import { CollapsibleLyrics } from "@/features/music-test/collapsible-lyrics";
+import { mt } from "@/features/music-test/music-test-classes";
 import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
-import styles from "./styles/music-test.module.css";
+import { cn } from "@/lib/utils";
 
 interface MusicHistoryPanelProps {
   items: MusicGenerationRecordDto[];
@@ -83,31 +84,31 @@ export function MusicHistoryPanel({
   }
 
   if (isLoading) {
-    return <p className={styles.meta}>Загрузка истории...</p>;
+    return <p className={mt.meta}>Загрузка истории...</p>;
   }
 
   if (items.length === 0) {
     return (
-      <p className={styles.meta}>
+      <p className={mt.meta}>
         История пуста. Запустите генерацию — результаты сохранятся здесь.
       </p>
     );
   }
 
   return (
-    <div className={styles.historyList}>
-      <div className={styles.historyToolbar}>
-        <label className={styles.historyCheckboxLabel}>
+    <div className={mt.historyList}>
+      <div className={cn(mt.historyToolbar, "grid-cols-[1fr_auto]")}>
+        <label className={cn(mt.historyCheckboxLabel, "min-w-0 gap-2")}>
           <input
             checked={allSelected}
-            className={styles.historyCheckbox}
+            className={mt.historyCheckbox}
             type="checkbox"
             onChange={toggleAll}
           />
+          <span className={mt.historyToolbarTitle}>
+            {hasSelection ? `Выбрано: ${selectedIds.length}` : "Выбрать все"}
+          </span>
         </label>
-        <span className={styles.historyToolbarTitle}>
-          {hasSelection ? `Выбрано: ${selectedIds.length}` : "Выбрать все"}
-        </span>
         <DeleteIconButton
           disabled={!hasSelection || isDeleting}
           label="Удалить выбранные"
@@ -115,21 +116,26 @@ export function MusicHistoryPanel({
         />
       </div>
 
-      {items.map((item) => (
-        <article className={styles.historyItem} key={item.id}>
-          <div className={styles.historyHeader}>
-            <label className={styles.historyCheckboxLabel}>
+      {items.map((item) => {
+        const itemTitle = item.title ?? item.prompt.slice(0, 60);
+        const itemTitleId = `history-item-title-${item.id}`;
+
+        return (
+        <article className={mt.historyItem} key={item.id}>
+          <div className={mt.historyHeader}>
+            <label className={mt.historyCheckboxLabel}>
               <input
+                aria-labelledby={itemTitleId}
                 checked={selectedSet.has(item.id)}
-                className={styles.historyCheckbox}
+                className={mt.historyCheckbox}
                 type="checkbox"
                 onChange={() => toggleItem(item.id)}
               />
             </label>
-            <div className={styles.historyHeaderMain}>
-              <div className={styles.historyTitleRow}>
-                <h3 className={styles.historyTitle}>
-                  {item.title ?? item.prompt.slice(0, 60)}
+            <div className={mt.historyHeaderMain}>
+              <div className={mt.historyTitleRow}>
+                <h3 className={mt.historyTitle} id={itemTitleId}>
+                  {itemTitle}
                 </h3>
                 <DeleteIconButton
                   disabled={isDeleting}
@@ -137,11 +143,11 @@ export function MusicHistoryPanel({
                   onClick={() => void handleDeleteOne(item.id)}
                 />
               </div>
-              <div className={styles.historyTitleMeta}>
-                <span className={styles.historyBadge}>
+              <div className={mt.historyTitleMeta}>
+                <span className={mt.historyBadge}>
                   {STATUS_LABELS[item.status] ?? item.status}
                 </span>
-                <p className={styles.historyMeta}>
+                <p className={mt.historyMeta}>
                   {item.type === "song" ? "Трек" : "Текст для трека"} ·{" "}
                   {formatDate(item.createdAt)}
                   {item.rawStatus ? ` · ${item.rawStatus}` : ""}
@@ -151,12 +157,12 @@ export function MusicHistoryPanel({
           </div>
 
           {item.tracks.map((track) => (
-            <div className={styles.historyTrack} key={track.id}>
-              <div className={styles.historyTrackHeader}>
-                <div className={styles.historyTrackMeta}>
-                  <p className={styles.historyTrackTitle}>{track.title}</p>
+            <div className={mt.historyTrack} key={track.id}>
+              <div className={mt.historyTrackHeader}>
+                <div className={mt.historyTrackMeta}>
+                  <p className={mt.historyTrackTitle}>{track.title}</p>
                   {formatDuration(track.durationSec) ? (
-                    <span className={styles.resultDuration}>
+                    <span className={mt.resultDuration}>
                       {formatDuration(track.durationSec)}
                     </span>
                   ) : null}
@@ -168,14 +174,11 @@ export function MusicHistoryPanel({
                 />
               </div>
               {track.audioUrl ? (
-                <AuthenticatedAudio
-                  className={styles.player}
-                  src={track.audioUrl}
-                />
+                <AuthenticatedAudio className={mt.player} src={track.audioUrl} />
               ) : null}
               {item.type === "song" && track.audioUrl && onOpenEditor ? (
                 <button
-                  className={styles.editorLink}
+                  className={mt.editorLink}
                   disabled={openingEditorTrackId === track.id}
                   type="button"
                   onClick={() => onOpenEditor(track.id)}
@@ -199,10 +202,11 @@ export function MusicHistoryPanel({
           ))}
 
           {item.errorMessage ? (
-            <p className={styles.error}>{item.errorMessage}</p>
+            <p className={mt.error}>{item.errorMessage}</p>
           ) : null}
         </article>
-      ))}
+        );
+      })}
     </div>
   );
 }

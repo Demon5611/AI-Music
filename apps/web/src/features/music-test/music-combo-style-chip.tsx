@@ -12,7 +12,8 @@ import {
   findComboStylePreset,
   type MusicComboStylePreset,
 } from "./music-combo-style-presets";
-import styles from "./styles/music-test.module.css";
+import { mt } from "./music-test-classes";
+import { cn } from "@/lib/utils";
 
 interface MusicComboStyleChipProps {
   value: string;
@@ -32,7 +33,7 @@ export function MusicComboStyleChip({ value, maxLength, onChange }: MusicComboSt
     setOpen(false);
   }
 
-  const chipClassName = open || activePreset ? styles.chipSelected : styles.chip;
+  const chipClassName = open || activePreset ? mt.chipSelected : mt.chip;
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -40,14 +41,19 @@ export function MusicComboStyleChip({ value, maxLength, onChange }: MusicComboSt
         комбо-стиль
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className={styles.comboPanel}>
+      <DropdownMenuContent
+        align="end"
+        className={cn(
+          "min-w-[15rem] max-w-[min(20rem,90vw)] rounded-xl border-none bg-[#c6ddf7] p-2 shadow-lg",
+        )}
+      >
         {MUSIC_COMBO_STYLE_PRESETS.map((preset) => (
           <DropdownMenuItem
             key={preset.label}
             className={
               activePreset?.label === preset.label
-                ? styles.comboPanelItemActive
-                : styles.comboPanelItem
+                ? mt.comboPanelItemActive
+                : mt.comboPanelItem
             }
             onClick={() => handleSelect(preset)}
           >

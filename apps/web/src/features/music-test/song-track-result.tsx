@@ -1,9 +1,9 @@
 "use client";
 
 import { CollapsibleLyrics } from "@/features/music-test/collapsible-lyrics";
+import { mt } from "@/features/music-test/music-test-classes";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
 import { AudioPreviewPlayer } from "@/shared/ui/elevenlabs";
-import styles from "./styles/music-test.module.css";
 
 interface SongTrackResultProps {
   trackId?: string;
@@ -43,12 +43,12 @@ export function SongTrackResult({
   const durationLabel = formatDuration(durationSec);
 
   return (
-    <div className={styles.resultPlayer}>
-      <div className={styles.resultPlayerHeader}>
-        <div className={styles.resultPlayerMeta}>
-          <p className={styles.resultPlayerTitle}>{title}</p>
+    <div className={mt.resultPlayer}>
+      <div className={mt.resultHeader}>
+        <div className={mt.resultMeta}>
+          <p className={mt.resultTitle}>{title}</p>
           {durationLabel ? (
-            <span className={styles.resultDuration}>{durationLabel}</span>
+            <span className={mt.resultDuration}>{durationLabel}</span>
           ) : null}
         </div>
         {canDelete && onDelete ? (
@@ -59,10 +59,10 @@ export function SongTrackResult({
           />
         ) : null}
       </div>
-      <AudioPreviewPlayer className={styles.player} src={audioUrl} />
+      <AudioPreviewPlayer className={mt.player} src={audioUrl} />
       {trackId && onOpenEditor ? (
         <button
-          className={styles.editorLink}
+          className={mt.editorLink}
           disabled={isOpeningEditor}
           type="button"
           onClick={() => onOpenEditor(trackId)}

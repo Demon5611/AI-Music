@@ -9,7 +9,6 @@ import {
   resolveMusicGenerationLabel,
   resolveMusicGenerationProgress,
 } from "./music-generation-progress";
-import styles from "./styles/music-test.module.css";
 
 function ElapsedDuration() {
   const [elapsed, setElapsed] = useState(0);
@@ -53,7 +52,7 @@ export function MusicGenerationLoader({
   const metaBase = metaParts.join(" · ");
 
   return (
-    <div className={styles.generationLoader}>
+    <div className="w-full">
       <AiProcessingStatus
         agentState={agentState}
         label={label}
