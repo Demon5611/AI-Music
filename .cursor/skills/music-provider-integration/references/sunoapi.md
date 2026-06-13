@@ -18,6 +18,7 @@ Provider id: `sunoapi`. Implementation: `packages/ai-providers/src/music/provide
 - One request returns **2 track variants**.
 - Non-custom prompt: max **500 characters**.
 - Custom mode: `prompt` = lyrics; requires `style` + `title`.
+- `style` in custom mode: comma-separated tags, **5–8 optimal** (UI caps at 7 chips); first tags weigh most. Max 200 chars (V4) / 1000 chars (V4_5+); project UI limit 200.
 - Exact duration not supported — use `durationSec` hints in prompt/style.
 - `callBackUrl` required by API; **polling remains primary** completion path.
 

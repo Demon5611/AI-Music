@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MusicGenerationLoader } from "@/features/music-test/music-generation-loader";
 import { MusicHistoryPanel } from "@/features/music-test/music-history-panel";
+import { MusicStyleChips } from "@/features/music-test/music-style-chips-panel";
 import { SongTrackResult } from "@/features/music-test/song-track-result";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
@@ -293,13 +294,18 @@ export function MusicTestPanel() {
                 onChange={(event) => setTitle(event.target.value)}
               />
             </label>
-            <label className={styles.field}>
-              <span className={styles.label}>Стиль музыки</span>
+            <div className={styles.field}>
+              <MusicStyleChips
+                maxLength={STYLE_MAX_LENGTH}
+                value={style}
+                onChange={setStyle}
+              />
               <div className={styles.textareaWrap}>
                 <textarea
+                  aria-labelledby="music-style-label"
                   className={styles.textarea}
                   maxLength={STYLE_MAX_LENGTH}
-                  placeholder="Введите стиль музыки"
+                  placeholder="pop, hyperpop, soft female vocals, 120 BPM"
                   value={style}
                   onChange={(event) => setStyle(event.target.value)}
                 />
@@ -307,7 +313,7 @@ export function MusicTestPanel() {
                   {style.length}/{STYLE_MAX_LENGTH}
                 </span>
               </div>
-            </label>
+            </div>
             <label className={styles.field}>
               <span className={styles.label}>
                 Текст на основе которого будет сгенерирована музыка
