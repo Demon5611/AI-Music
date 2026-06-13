@@ -3,6 +3,8 @@ import { MusicProviderError } from "../../domain/errors/music-provider.error.js"
 import type {
   ExtendSongInput,
   ExtendSongResult,
+  GenerateLyricsInput,
+  GenerateLyricsResult,
   GenerateSongInput,
   GenerateSongResult,
   GenerationStatusResult,
@@ -45,6 +47,24 @@ export class SunoApiProvider implements MusicProvider {
       taskId,
       status: "pending",
     };
+  }
+
+  async generateLyrics(input: GenerateLyricsInput): Promise<GenerateLyricsResult> {
+    const taskId = await this.getClient().generateLyrics({
+      prompt: input.prompt,
+      callBackUrl: this.config.sunoCallbackUrl,
+    });
+
+    return {
+      provider: PROVIDER_ID,
+      taskId,
+      status: "pending",
+    };
+  }
+
+  async getLyricsGenerationStatus(taskId: string): Promise<GenerationStatusResult> {
+    const lyricsTask = await this.getClient().getLyricsGenerationDetails(taskId);
+    return mapSunoLyricsTaskToStatus(lyricsTask);
   }
 
   async extendSong(input: ExtendSongInput): Promise<ExtendSongResult> {

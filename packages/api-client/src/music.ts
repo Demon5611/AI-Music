@@ -1,6 +1,8 @@
 import type {
   MusicGenerateResponseDto,
   MusicGenerationRecordDto,
+  MusicLyricsGenerateResponseDto,
+  MusicLyricsStatusResponseDto,
   MusicStatusResponseDto,
 } from "@ai-music/shared";
 import type { ApiClient } from "./client.js";
@@ -15,6 +17,10 @@ export interface GenerateSongBody {
   referenceAudioUrl?: string;
 }
 
+export interface GenerateLyricsBody {
+  prompt: string;
+}
+
 export function createMusicApi(client: ApiClient) {
   return {
     getTestStatus: () =>
@@ -22,6 +28,10 @@ export function createMusicApi(client: ApiClient) {
     history: () => client.get<MusicGenerationRecordDto[]>("/api/music/history"),
     generate: (body: GenerateSongBody) =>
       client.post<MusicGenerateResponseDto>("/api/music/generate", body),
+    generateLyrics: (body: GenerateLyricsBody) =>
+      client.post<MusicLyricsGenerateResponseDto>("/api/music/lyrics", body),
+    lyricsStatus: (taskId: string) =>
+      client.get<MusicLyricsStatusResponseDto>(`/api/music/lyrics/status/${taskId}`),
     status: (taskId: string) => client.get<MusicStatusResponseDto>(`/api/music/status/${taskId}`),
     deleteHistory: (ids: string[]) =>
       client.post<{ deletedCount: number }>("/api/music/history/delete", {

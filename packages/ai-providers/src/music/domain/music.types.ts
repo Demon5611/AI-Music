@@ -1,6 +1,16 @@
 import type { MusicGenerationStatus } from "./music-status.js";
 import type { MusicProviderId } from "./music-provider-id.js";
 
+export interface GenerateLyricsInput {
+  prompt: string;
+}
+
+export interface GenerateLyricsResult {
+  provider: MusicProviderId;
+  taskId: string;
+  status: MusicGenerationStatus;
+}
+
 export interface GenerateSongInput {
   prompt: string;
   style?: string;

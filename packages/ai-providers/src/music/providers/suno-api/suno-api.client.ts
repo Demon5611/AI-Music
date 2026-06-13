@@ -9,6 +9,7 @@ import {
 import type {
   SunoApiEnvelope,
   SunoExtendMusicRequest,
+  SunoGenerateLyricsRequest,
   SunoGenerateMusicRequest,
   SunoLyricsTaskRaw,
   SunoModelId,
@@ -39,6 +40,10 @@ export class SunoApiClient {
 
   generateMusic(body: SunoGenerateMusicRequest): Promise<string> {
     return this.createTask("/generate", body);
+  }
+
+  generateLyrics(body: SunoGenerateLyricsRequest): Promise<string> {
+    return this.createTask("/lyrics", body);
   }
 
   uploadAndCover(body: SunoUploadCoverRequest): Promise<string> {

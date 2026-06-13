@@ -13,6 +13,8 @@ export {
 export type {
   ExtendSongInput,
   ExtendSongResult,
+  GenerateLyricsInput,
+  GenerateLyricsResult,
   GenerateSongInput,
   GenerateSongResult,
   GeneratedLyrics,

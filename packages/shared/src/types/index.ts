@@ -96,6 +96,8 @@ export type {
   MusicGenerationTrackDto,
   MusicGenerationType,
   MusicGenerateResponseDto,
+  MusicLyricsGenerateResponseDto,
+  MusicLyricsStatusResponseDto,
   MusicStatusResponseDto,
 } from "./music-generation.js";
 

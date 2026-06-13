@@ -41,6 +41,21 @@ export interface MusicGenerateResponseDto {
   status: string;
 }
 
+export interface MusicLyricsGenerateResponseDto {
+  provider: string;
+  taskId: string;
+  status: MusicGenerationRecordStatus;
+}
+
+export interface MusicLyricsStatusResponseDto {
+  taskId: string;
+  status: MusicGenerationRecordStatus;
+  provider: string;
+  rawStatus?: string;
+  lyrics?: Array<{ title: string; text: string }>;
+  errorMessage?: string;
+}
+
 export interface MusicStatusResponseDto {
   recordId: string | null;
   taskId: string;

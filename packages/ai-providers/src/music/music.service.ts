@@ -1,6 +1,8 @@
 import type {
   ExtendSongInput,
   ExtendSongResult,
+  GenerateLyricsInput,
+  GenerateLyricsResult,
   GenerateSongInput,
   GenerateSongResult,
   GenerationStatusResult,
@@ -21,6 +23,26 @@ export class MusicService {
   generateSong(input: GenerateSongInput): Promise<GenerateSongResult> {
     const provider = this.providerFactory.getProvider();
     return provider.generateSong(input);
+  }
+
+  generateLyrics(input: GenerateLyricsInput): Promise<GenerateLyricsResult> {
+    const provider = this.providerFactory.getProvider();
+
+    if (!provider.generateLyrics) {
+      throw new Error("Active music provider does not support lyrics generation");
+    }
+
+    return provider.generateLyrics(input);
+  }
+
+  getLyricsGenerationStatus(taskId: string): Promise<GenerationStatusResult> {
+    const provider = this.providerFactory.getProvider();
+
+    if (!provider.getLyricsGenerationStatus) {
+      throw new Error("Active music provider does not support lyrics status");
+    }
+
+    return provider.getLyricsGenerationStatus(taskId);
   }
 
   extendSong(input: ExtendSongInput): Promise<ExtendSongResult> {

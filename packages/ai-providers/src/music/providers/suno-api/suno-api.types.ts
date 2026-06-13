@@ -74,6 +74,11 @@ export interface SunoLyricsTaskRaw {
   response?: SunoLyricsResponseRaw | null;
 }
 
+export interface SunoGenerateLyricsRequest {
+  prompt: string;
+  callBackUrl: string;
+}
+
 export interface SunoGenerateMusicRequest {
   prompt?: string;
   style?: string;

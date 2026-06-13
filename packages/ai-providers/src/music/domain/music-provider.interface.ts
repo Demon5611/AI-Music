@@ -5,6 +5,8 @@ import type {
   AudioResult,
   ExtendSongInput,
   ExtendSongResult,
+  GenerateLyricsInput,
+  GenerateLyricsResult,
   GenerateSongInput,
   GenerateSongResult,
   GenerationStatusResult,
@@ -25,6 +27,10 @@ export interface MusicProvider {
   readonly id: MusicProviderId;
 
   generateSong(input: GenerateSongInput): Promise<GenerateSongResult>;
+
+  generateLyrics?(input: GenerateLyricsInput): Promise<GenerateLyricsResult>;
+
+  getLyricsGenerationStatus?(taskId: string): Promise<GenerationStatusResult>;
 
   extendSong(input: ExtendSongInput): Promise<ExtendSongResult>;
 

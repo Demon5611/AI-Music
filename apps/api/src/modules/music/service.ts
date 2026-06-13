@@ -70,4 +70,27 @@ export function extendMusic(input: {
   return musicService.extendSong(input);
 }
 
+export async function generateLyricsForUser(prompt: string) {
+  const result = await musicService.generateLyrics({ prompt });
+
+  return {
+    provider: result.provider,
+    taskId: result.taskId,
+    status: result.status,
+  };
+}
+
+export async function getLyricsGenerationStatus(taskId: string) {
+  const status = await musicService.getLyricsGenerationStatus(taskId);
+
+  return {
+    taskId: status.taskId,
+    status: status.status,
+    provider: status.provider,
+    rawStatus: status.rawStatus,
+    lyrics: status.lyrics,
+    errorMessage: status.errorMessage,
+  };
+}
+
 export { toMusicGenerationRecordDto };

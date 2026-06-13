@@ -210,6 +210,67 @@
   cursor: not-allowed;
 }
 
+.lyricsPromptBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.secondaryButton {
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lyricsVariants {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lyricsVariantList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.lyricsVariant,
+.lyricsVariantActive {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.lyricsVariantActive {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.errorInline {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #dc2626;
+}
+
 .player {
   width: 100%;
 }

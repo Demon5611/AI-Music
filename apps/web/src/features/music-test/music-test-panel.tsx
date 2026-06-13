@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MusicGenerationLoader } from "@/features/music-test/music-generation-loader";
 import { MusicHistoryPanel } from "@/features/music-test/music-history-panel";
+import { MusicLyricsFromPrompt } from "@/features/music-test/music-lyrics-from-prompt";
 import { MusicStyleChips } from "@/features/music-test/music-style-chips-panel";
 import { SongTrackResult } from "@/features/music-test/song-track-result";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
@@ -240,6 +241,17 @@ export function MusicTestPanel() {
   const isBusy = isGenerating || isPolling;
   const songTracks = status?.tracks ?? [];
 
+  const handleApplyGeneratedLyrics = useCallback(
+    (text: string, suggestedTitle?: string) => {
+      setPrompt(text);
+
+      if (suggestedTitle?.trim() && !title.trim()) {
+        setTitle(suggestedTitle.trim());
+      }
+    },
+    [title],
+  );
+
   if (!authReady) {
     return <p className={styles.meta}>Загрузка сессии...</p>;
   }
@@ -315,9 +327,7 @@ export function MusicTestPanel() {
               </div>
             </div>
             <label className={styles.field}>
-              <span className={styles.label}>
-                Текст на основе которого будет сгенерирована музыка
-              </span>
+              <span className={styles.label}>Введи текст песни и его споет AI</span>
               <div className={styles.textareaWrap}>
                 <textarea
                   className={styles.textareaLarge}
@@ -331,6 +341,11 @@ export function MusicTestPanel() {
                 </span>
               </div>
             </label>
+            <MusicLyricsFromPrompt
+              configured={configured === true}
+              disabled={isBusy}
+              onApply={handleApplyGeneratedLyrics}
+            />
           </>
         ) : (
           <label className={styles.field}>

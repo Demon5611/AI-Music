@@ -5,7 +5,9 @@ import { sendMusicError } from "./handle-music-error.js";
 import { getMusicGenerationTrackAudio } from "./music-record.service.js";
 import {
   extendMusic,
+  generateLyricsForUser,
   generateMusicForUser,
+  getLyricsGenerationStatus,
   getMusicGenerationStatusForUser,
   getMusicHistory,
   getMusicTestStatus,
@@ -30,6 +32,12 @@ interface ExtendBody {
   style?: string;
   title?: string;
 }
+
+interface LyricsBody {
+  prompt: string;
+}
+
+const LYRICS_PROMPT_MAX_LENGTH = 200;
 
 interface DeleteHistoryBody {
   ids: string[];
@@ -146,6 +154,52 @@ export async function registerMusicRoutes(app: FastifyInstance) {
       } catch (error) {
         request.log.error(error);
         return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Body: LyricsBody }>(
+    "/api/music/lyrics",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const prompt = request.body.prompt?.trim();
+
+      if (!prompt) {
+        return reply.status(400).send({ error: "prompt is required" });
+      }
+
+      if (prompt.length > LYRICS_PROMPT_MAX_LENGTH) {
+        return reply.status(400).send({
+          error: `prompt must be at most ${LYRICS_PROMPT_MAX_LENGTH} characters`,
+        });
+      }
+
+      try {
+        const result = await generateLyricsForUser(prompt);
+        return reply.send(result);
+      } catch (error) {
+        request.log.error(error);
+        return sendMusicError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: { taskId: string } }>(
+    "/api/music/lyrics/status/:taskId",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const taskId = request.params.taskId.trim();
+
+      if (!taskId) {
+        return reply.status(400).send({ error: "taskId is required" });
+      }
+
+      try {
+        const result = await getLyricsGenerationStatus(taskId);
+        return reply.send(result);
+      } catch (error) {
+        request.log.error(error);
+        return sendMusicError(reply, error);
       }
     },
   );
