@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
@@ -18,7 +19,7 @@ interface AiProcessingStatusProps {
   label: string;
   progress?: number;
   agentState?: AgentState;
-  meta?: string;
+  meta?: ReactNode;
 }
 
 export function AiProcessingStatus({

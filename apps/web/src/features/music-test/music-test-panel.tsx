@@ -5,6 +5,7 @@ import type { MusicStatusResponseDto } from "@ai-music/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { MusicGenerationLoader } from "@/features/music-test/music-generation-loader";
 import { MusicHistoryPanel } from "@/features/music-test/music-history-panel";
 import { SongTrackResult } from "@/features/music-test/song-track-result";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
@@ -28,20 +29,20 @@ const DURATION_OPTIONS = [
   { value: 120, label: "~2 мин" },
 ] as const;
 
-const RAW_STATUS_LABELS: Record<string, string> = {
-  PENDING: "В очереди у AI",
-  GENERATING: "Генерация",
-  TEXT_SUCCESS: "Текст готов",
-  FIRST_SUCCESS: "Первый трек готов",
-  SUCCESS: "Готово",
-};
-
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.body && typeof error.body === "object") {
     const body = error.body as { error?: string };
     if (body.error) {
       return body.error;
     }
+  }
+
+  if (error instanceof ApiError && error.status === 401) {
+    return "Unauthorized";
+  }
+
+  if (error instanceof ApiError && error.status >= 500) {
+    return `${error.status} — проверьте, что запущены Docker, API и выполнен pnpm db:push`;
   }
 
   if (error instanceof Error) {
@@ -57,6 +58,7 @@ export function MusicTestPanel() {
   const queryClient = useQueryClient();
 
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [statusLoadError, setStatusLoadError] = useState<string | null>(null);
   const [customMode, setCustomMode] = useState(false);
   const [durationSec, setDurationSec] = useState(0);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
@@ -85,8 +87,12 @@ export function MusicTestPanel() {
       .getTestStatus()
       .then((body) => {
         setConfigured(Boolean(body.configured));
+        setStatusLoadError(null);
       })
-      .catch(() => setConfigured(false));
+      .catch((error) => {
+        setConfigured(null);
+        setStatusLoadError(resolveErrorMessage(error));
+      });
   }, [api]);
 
   const stopPolling = useCallback(() => {
@@ -231,9 +237,6 @@ export function MusicTestPanel() {
   }
 
   const isBusy = isGenerating || isPolling;
-  const rawStatusLabel = status?.rawStatus
-    ? (RAW_STATUS_LABELS[status.rawStatus] ?? status.rawStatus)
-    : null;
   const songTracks = status?.tracks ?? [];
 
   if (!authReady) {
@@ -247,18 +250,25 @@ export function MusicTestPanel() {
         Генерация музыки. Результаты сохраняются в вашей истории.
       </p>
 
+      {statusLoadError ? (
+        <p className={styles.warning}>
+          Не удалось связаться с API ({statusLoadError}). Запустите{" "}
+          <code>pnpm dev:api</code> и проверьте NEXT_PUBLIC_API_URL.
+        </p>
+      ) : null}
+
       {configured === false ? (
         <p className={styles.warning}>
-          SUNO_API_KEY не настроен. Добавьте ключ в .env и перезапустите API.
+          SUNO_API_KEY не настроен. Добавьте ключ в корневой .env и перезапустите API.
         </p>
       ) : null}
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Генерация музыки</h2>
 
-        <div className={styles.formHeader}>
+        <label className={styles.formHeader}>
           <span className={styles.formHeaderLabel}>Пользовательский режим</span>
-          <label className={styles.toggle}>
+          <span className={styles.toggle}>
             <input
               checked={customMode}
               className={styles.toggleInput}
@@ -268,8 +278,8 @@ export function MusicTestPanel() {
             <span className={styles.toggleTrack} aria-hidden="true">
               <span className={styles.toggleThumb} />
             </span>
-          </label>
-        </div>
+          </span>
+        </label>
 
         {customMode ? (
           <>
@@ -362,25 +372,19 @@ export function MusicTestPanel() {
         <button
           className={styles.submit}
           type="button"
-          disabled={isBusy || configured === false}
+          disabled={isBusy || configured !== true}
           onClick={() => void handleGenerate()}
         >
           {isGenerating ? "Запуск..." : "Создать музыку"}
         </button>
 
-        {isPolling ? (
-          <div className={styles.progressCard}>
-            <p className={styles.progressTitle}>Генерация...</p>
-            <p className={styles.progressHint}>
-              Обычно занимает 2–3 минуты. Не закрывайте страницу.
-            </p>
-            {rawStatusLabel ? (
-              <p className={styles.meta}>
-                Статус: {rawStatusLabel}
-                {taskId ? ` · taskId=${taskId}` : ""}
-              </p>
-            ) : null}
-          </div>
+        {isBusy ? (
+          <MusicGenerationLoader
+            isStarting={isGenerating}
+            rawStatus={status?.rawStatus}
+            status={status?.status}
+            taskId={taskId}
+          />
         ) : null}
 
         {songTracks.map((track) =>

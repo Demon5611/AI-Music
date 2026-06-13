@@ -25,7 +25,11 @@ export async function registerAuthPlugin(app: FastifyInstance) {
       return;
     }
 
-    await syncAuthUser(identity);
-    request.userId = identity.userId;
+    try {
+      await syncAuthUser(identity);
+      request.userId = identity.userId;
+    } catch (error) {
+      request.log.error(error, "Failed to sync auth user");
+    }
   });
 }

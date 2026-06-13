@@ -63,6 +63,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding-bottom: 0.25rem;
+  cursor: pointer;
 }
 
 .formHeaderLabel {
@@ -74,7 +75,7 @@
 .toggle {
   display: inline-flex;
   align-items: center;
-  cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -211,26 +212,8 @@
   font-size: 0.875rem;
 }
 
-.progressCard {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  padding: 1rem;
-  border: 1px dashed var(--border);
-  border-radius: 0.75rem;
-  background: var(--surface);
-}
-
-.progressTitle {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--foreground);
-}
-
-.progressHint {
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--muted);
+.generationLoader {
+  width: 100%;
 }
 
 .historyList {
