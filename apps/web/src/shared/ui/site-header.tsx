@@ -2,9 +2,8 @@
 
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { env } from "@/shared/config/env";
-import { isAppDarkShellRoute } from "@/shared/theme/app-dark-theme";
+import { ThemeToggle } from "@/shared/ui/theme-toggle";
 import styles from "./site-header.module.css";
 
 const NAV_ITEMS = [
@@ -45,13 +44,10 @@ function ClerkAuthActions() {
 }
 
 export function SiteHeader() {
-  const pathname = usePathname();
-  const isDarkHeader = isAppDarkShellRoute(pathname);
-
   return (
-    <header className={isDarkHeader ? `${styles.header} ${styles.headerDark}` : styles.header}>
+    <header className={styles.header}>
       <Link href="/" className={styles.logo}>
-      AI Music Editor
+        AI Music Editor
       </Link>
       <nav className={styles.nav}>
         {NAV_ITEMS.map((item) => (
@@ -60,7 +56,8 @@ export function SiteHeader() {
           </Link>
         ))}
       </nav>
-      <div className={styles.authActions}>
+      <div className={styles.headerActions}>
+        <ThemeToggle />
         {env.isClerkEnabled ? <ClerkAuthActions /> : <DevAuthBadge />}
       </div>
     </header>

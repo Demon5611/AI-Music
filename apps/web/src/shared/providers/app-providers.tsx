@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { env } from "@/shared/config/env";
 import { ClerkApiProvider, DevApiProvider } from "./api-provider";
+import { ThemeProvider } from "./theme-provider";
 
 function InnerProviders({ children }: { children: ReactNode }) {
   if (env.isClerkEnabled) {
@@ -28,9 +29,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
   );
 
   const content = (
-    <QueryClientProvider client={queryClient}>
-      <InnerProviders>{children}</InnerProviders>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <InnerProviders>{children}</InnerProviders>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 
   if (!env.isClerkEnabled) {

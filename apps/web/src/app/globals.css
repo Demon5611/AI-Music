@@ -5,25 +5,35 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Project tokens (CSS modules) */
-  --background: #ffffff;
-  --foreground: #171717;
-  --surface: #fafafa;
-  --muted: #737373;
-  --border: #e5e5e5;
+  /* App shell — light */
+  --app-bg-page: #fafafa;
+  --app-bg-elevated: #f4f4f5;
+  --app-bg-surface: #ffffff;
+  --app-text: #171717;
+  --app-text-muted: #737373;
+  --app-text-subtle: #a3a3a3;
+  --app-border-subtle: rgba(0, 0, 0, 0.06);
+  --app-border-default: rgba(0, 0, 0, 0.1);
+  --app-border-strong: rgba(0, 0, 0, 0.15);
+  --app-accent: #7c3aed;
+  --app-accent-hover: #6d28d9;
+  --app-hover-overlay: rgba(0, 0, 0, 0.04);
+  --app-hover-overlay-strong: rgba(0, 0, 0, 0.08);
+  --app-field-bg: #ffffff;
+  --app-field-border: rgba(0, 0, 0, 0.08);
+  --app-shadow: rgba(0, 0, 0, 0.08);
+  --app-hero-glow: radial-gradient(
+    ellipse at center,
+    rgba(124, 58, 237, 0.12) 0%,
+    transparent 70%
+  );
 
-  /* Dark app shell (landing reference) — used in CSS modules */
-  --app-dark-bg-page: #0a0a0a;
-  --app-dark-bg-elevated: #111111;
-  --app-dark-bg-surface: #1c1c1c;
-  --app-dark-accent: #7c3aed;
-  --app-dark-accent-hover: #8b5cf6;
-  --app-dark-border-subtle: rgba(255, 255, 255, 0.06);
-  --app-dark-border-default: rgba(255, 255, 255, 0.1);
-  --app-dark-border-strong: rgba(255, 255, 255, 0.15);
-  --app-dark-text-muted: rgba(255, 255, 255, 0.5);
-  --app-dark-text-subtle: rgba(255, 255, 255, 0.45);
-  --app-dark-text-primary: #ffffff;
+  /* Project tokens (CSS modules) */
+  --background: var(--app-bg-page);
+  --foreground: var(--app-text);
+  --surface: var(--app-bg-surface);
+  --muted: var(--app-text-muted);
+  --border: var(--app-border-default);
 
   /* shadcn / ElevenLabs UI tokens */
   --muted-bg: oklch(0.97 0 0);
@@ -101,24 +111,37 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --surface: #111111;
-    --muted: #a3a3a3;
-    --border: #262626;
-    --muted-foreground: #a3a3a3;
-    --muted-bg: oklch(0.269 0 0);
-  }
-}
-
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --surface: #111111;
-  --muted: oklch(0.708 0 0);
-  --border: oklch(1 0 0 / 10%);
+  --app-bg-page: #0a0a0a;
+  --app-bg-elevated: #111111;
+  --app-bg-surface: #1c1c1c;
+  --app-text: #ffffff;
+  --app-text-muted: rgba(255, 255, 255, 0.5);
+  --app-text-subtle: rgba(255, 255, 255, 0.45);
+  --app-border-subtle: rgba(255, 255, 255, 0.06);
+  --app-border-default: rgba(255, 255, 255, 0.1);
+  --app-border-strong: rgba(255, 255, 255, 0.15);
+  --app-accent: #7c3aed;
+  --app-accent-hover: #8b5cf6;
+  --app-hover-overlay: rgba(255, 255, 255, 0.05);
+  --app-hover-overlay-strong: rgba(255, 255, 255, 0.1);
+  --app-field-bg: #1c1c1c;
+  --app-field-border: rgba(255, 255, 255, 0.08);
+  --app-shadow: rgba(0, 0, 0, 0.6);
+  --app-hero-glow: radial-gradient(
+    ellipse at center,
+    #5b21b6 0%,
+    #4c1d95 40%,
+    transparent 70%
+  );
+
+  --background: var(--app-bg-page);
+  --foreground: var(--app-text);
+  --surface: var(--app-bg-surface);
+  --muted: var(--app-text-muted);
+  --border: var(--app-border-subtle);
+
+  color-scheme: dark;
   --muted-bg: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
   --card: oklch(0.205 0 0);
