@@ -98,7 +98,7 @@ export function KitsModelLinkPanel() {
       <h1 className={styles.title}>Привязка модели Kits</h1>
       <p className={styles.description}>
         Обучите голос на{" "}
-        <a href="https://app.kits.ai/voices" target="_blank" rel="noreferrer">
+        <a href="https://app.kits.ai/voices" target="_blank" rel="noreferrer noopener">
           app.kits.ai
         </a>{" "}
         и укажите Voice Model ID для образца {sampleId}.

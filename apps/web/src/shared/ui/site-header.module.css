@@ -59,3 +59,36 @@
   border: 1px dashed var(--border);
   border-radius: 0.375rem;
 }
+
+.headerDark {
+  background: #0a0a0a;
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.headerDark .logo {
+  color: #fff;
+}
+
+.headerDark .navLink {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.headerDark .navLink:hover {
+  color: #fff;
+}
+
+.headerDark .authButton {
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.headerDark .authButtonPrimary {
+  background: #7c3aed;
+  color: #fff;
+  border-color: #7c3aed;
+}
+
+.headerDark .devBadge {
+  color: rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.15);
+}

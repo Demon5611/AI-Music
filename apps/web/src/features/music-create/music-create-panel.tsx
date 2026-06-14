@@ -5,6 +5,10 @@ import type { MusicStatusResponseDto } from "@ai-music/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  consumeMusicCreatePromptDraft,
+  MUSIC_CREATE_PROMPT_MAX_LENGTH,
+} from "@/shared/lib/music-create-prompt-transfer";
 import { MusicGenerationLoader } from "@/features/music-create/music-generation-loader";
 import { mt } from "@/features/music-create/music-create-classes";
 import { MusicLyricsFromPrompt } from "@/features/music-create/music-lyrics-from-prompt";
@@ -19,7 +23,6 @@ const DEFAULT_STYLE = "electro house vocal";
 const DEFAULT_TITLE = "Summer Friends";
 const POLL_INTERVAL_MS = 12_000;
 
-const PROMPT_MAX_LENGTH = 500;
 const STYLE_MAX_LENGTH = 200;
 const LYRICS_MAX_LENGTH = 3000;
 const TITLE_MAX_LENGTH = 100;
@@ -158,6 +161,16 @@ export function MusicCreatePanel() {
   const [isPolling, setIsPolling] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
+
+  // Черновик из sessionStorage читаем после mount: при soft navigation
+  // Next.js SSR-ит client component с DEFAULT_PROMPT до гидрации.
+  useEffect(() => {
+    const draft = consumeMusicCreatePromptDraft();
+    if (draft) {
+      // eslint-disable-next-line -- one-time sessionStorage read after SSR hydration
+      setPrompt(draft);
+    }
+  }, []);
 
   useEffect(() => {
     void api.music
@@ -451,13 +464,13 @@ export function MusicCreatePanel() {
                 <div className="relative">
                   <textarea
                     className={cn(mt.textarea, mt.textareaPrompt)}
-                    maxLength={PROMPT_MAX_LENGTH}
+                    maxLength={MUSIC_CREATE_PROMPT_MAX_LENGTH}
                     placeholder="Опишите стиль музыки и тему, которую вы хотите, и ИИ создаст текст песни"
                     value={prompt}
                     onChange={(event) => setPrompt(event.target.value)}
                   />
                   <div className={mt.counterPosLarge}>
-                    <CharCounter current={prompt.length} max={PROMPT_MAX_LENGTH} />
+                    <CharCounter current={prompt.length} max={MUSIC_CREATE_PROMPT_MAX_LENGTH} />
                   </div>
                 </div>
               </label>

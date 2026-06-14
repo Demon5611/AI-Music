@@ -2,6 +2,7 @@
 
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { env } from "@/shared/config/env";
 import styles from "./site-header.module.css";
 
@@ -43,8 +44,11 @@ function ClerkAuthActions() {
 }
 
 export function SiteHeader() {
+  const pathname = usePathname();
+  const isLanding = pathname === "/";
+
   return (
-    <header className={styles.header}>
+    <header className={isLanding ? `${styles.header} ${styles.headerDark}` : styles.header}>
       <Link href="/" className={styles.logo}>
       AI Music Editor
       </Link>
