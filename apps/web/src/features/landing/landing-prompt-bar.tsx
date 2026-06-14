@@ -6,8 +6,8 @@ import { lp } from "./landing-classes";
 import { LANDING_RANDOM_PROMPTS } from "./landing-data";
 import { IconDice, IconMusic } from "./landing-icons";
 import {
-  MUSIC_CREATE_PROMPT_MAX_LENGTH,
-  saveMusicCreatePromptDraft,
+  MUSIC_CREATE_LYRICS_BRIEF_MAX_LENGTH,
+  saveMusicCreateLyricsBriefDraft,
 } from "@/shared/lib/music-create-prompt-transfer";
 
 function LandingCharCounter({ current, max }: { current: number; max: number }) {
@@ -35,7 +35,7 @@ export function LandingPromptBar() {
   }
 
   function handleCreate() {
-    saveMusicCreatePromptDraft(prompt);
+    saveMusicCreateLyricsBriefDraft(prompt);
     router.push("/music-create");
   }
 
@@ -45,7 +45,7 @@ export function LandingPromptBar() {
         <div className={lp.promptTextareaWrap}>
           <textarea
             rows={2}
-            maxLength={MUSIC_CREATE_PROMPT_MAX_LENGTH}
+            maxLength={MUSIC_CREATE_LYRICS_BRIEF_MAX_LENGTH}
             value={prompt}
             placeholder="Опиши трек который хочешь создать..."
             className={lp.promptTextarea}
@@ -54,7 +54,7 @@ export function LandingPromptBar() {
           <div className={lp.promptCounterPos}>
             <LandingCharCounter
               current={prompt.length}
-              max={MUSIC_CREATE_PROMPT_MAX_LENGTH}
+              max={MUSIC_CREATE_LYRICS_BRIEF_MAX_LENGTH}
             />
           </div>
         </div>

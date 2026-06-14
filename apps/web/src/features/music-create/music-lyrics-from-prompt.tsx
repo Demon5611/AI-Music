@@ -14,6 +14,8 @@ const LYRICS_POLL_INTERVAL_MS = 5_000;
 interface MusicLyricsFromPromptProps {
   configured: boolean;
   disabled?: boolean;
+  lyricsBrief: string;
+  onLyricsBriefChange: (value: string) => void;
   onApply: (text: string, suggestedTitle?: string) => void;
 }
 
@@ -45,10 +47,11 @@ function CharCounter({ current, max }: { current: number; max: number }) {
 export function MusicLyricsFromPrompt({
   configured,
   disabled = false,
+  lyricsBrief,
+  onLyricsBriefChange,
   onApply,
 }: MusicLyricsFromPromptProps) {
   const api = useApi();
-  const [lyricsBrief, setLyricsBrief] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
@@ -162,7 +165,8 @@ export function MusicLyricsFromPrompt({
   }
 
   const isBusy = isGenerating || isPolling;
-  const canGenerate = configured && !disabled && !isBusy && lyricsBrief.trim().length > 0;
+  const fieldDisabled = isBusy || disabled;
+  const canGenerate = configured && !fieldDisabled && lyricsBrief.trim().length > 0;
 
   return (
     <div className={mt.lyricsBlock}>
@@ -172,18 +176,22 @@ export function MusicLyricsFromPrompt({
         </span>
         <div className="relative mt-2">
           <textarea
-            className={cn(mt.textarea, "h-20")}
-            disabled={isBusy || disabled}
+            className={cn(mt.textarea, "h-20", fieldDisabled && !isBusy && mt.fieldDisabled)}
+            disabled={fieldDisabled}
             maxLength={LYRICS_BRIEF_MAX_LENGTH}
             placeholder="Например: грустная баллада о расставании, первое лицо, русский язык"
             value={lyricsBrief}
-            onChange={(event) => setLyricsBrief(event.target.value)}
+            onChange={(event) => onLyricsBriefChange(event.target.value)}
           />
           <div className={mt.counterPos}>
             <CharCounter current={lyricsBrief.length} max={LYRICS_BRIEF_MAX_LENGTH} />
           </div>
         </div>
       </label>
+
+      {disabled && !isBusy ? (
+        <p className={mt.meta}>Очистите текст песни ниже, чтобы описать идею для AI.</p>
+      ) : null}
 
       <button
         className={cn(mt.secondaryButton, "mt-3")}

@@ -60,6 +60,9 @@ export const mt = {
   comboPanelItemActive:
     "w-full cursor-pointer rounded-md bg-[#a8c8ef] px-2.5 py-1.5 text-left text-sm text-neutral-900",
   lyricsBlock: "mt-2 border-t border-[var(--app-border-subtle)] pt-4",
+  lyricsOrDivider:
+    "py-1 text-center text-xs font-medium uppercase tracking-widest text-[var(--app-text-subtle)]",
+  fieldDisabled: "cursor-not-allowed opacity-50",
   lyricsPromptLabel:
     `mb-1.5 block text-xs font-medium uppercase tracking-wider ${appShell.textMuted}`,
   secondaryButton: appShell.btnSecondary,

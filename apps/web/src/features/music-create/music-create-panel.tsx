@@ -5,10 +5,7 @@ import type { MusicStatusResponseDto } from "@ai-music/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  consumeMusicCreatePromptDraft,
-  MUSIC_CREATE_PROMPT_MAX_LENGTH,
-} from "@/shared/lib/music-create-prompt-transfer";
+import { consumeMusicCreateLyricsBriefDraft } from "@/shared/lib/music-create-prompt-transfer";
 import { MusicGenerationLoader } from "@/features/music-create/music-generation-loader";
 import { mt } from "@/features/music-create/music-create-classes";
 import { MusicLyricsFromPrompt } from "@/features/music-create/music-lyrics-from-prompt";
@@ -18,7 +15,6 @@ import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_PROMPT = "Upbeat pop song about summer and friends, male vocals in Russian";
 const DEFAULT_STYLE = "electro house vocal";
 const DEFAULT_TITLE = "Summer Friends";
 const POLL_INTERVAL_MS = 12_000;
@@ -146,9 +142,9 @@ export function MusicCreatePanel() {
 
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [statusLoadError, setStatusLoadError] = useState<string | null>(null);
-  const [customMode, setCustomMode] = useState(false);
   const [durationSec, setDurationSec] = useState(0);
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
+  const [lyricsBrief, setLyricsBrief] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState(DEFAULT_STYLE);
   const [title, setTitle] = useState(DEFAULT_TITLE);
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -162,13 +158,10 @@ export function MusicCreatePanel() {
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
 
-  // Черновик из sessionStorage читаем после mount: при soft navigation
-  // Next.js SSR-ит client component с DEFAULT_PROMPT до гидрации.
   useEffect(() => {
-    const draft = consumeMusicCreatePromptDraft();
+    const draft = consumeMusicCreateLyricsBriefDraft();
     if (draft) {
-      // eslint-disable-next-line -- one-time sessionStorage read after SSR hydration
-      setPrompt(draft);
+      setLyricsBrief(draft);
     }
   }, []);
 
@@ -251,9 +244,9 @@ export function MusicCreatePanel() {
     try {
       const body = await api.music.generate({
         prompt,
-        style: customMode ? style : undefined,
-        title: customMode ? title : undefined,
-        customMode,
+        style,
+        title,
+        customMode: true,
         instrumental: false,
         durationSec: durationSec > 0 ? durationSec : undefined,
       });
@@ -314,9 +307,26 @@ export function MusicCreatePanel() {
 
   const isBusy = isGenerating || isPolling;
   const songTracks = status?.tracks ?? [];
+  const hasLyricsBrief = lyricsBrief.trim().length > 0;
+  const hasManualLyrics = prompt.trim().length > 0;
+
+  const handleLyricsBriefChange = useCallback((value: string) => {
+    setLyricsBrief(value);
+    if (value.trim()) {
+      setPrompt("");
+    }
+  }, []);
+
+  const handleManualLyricsChange = useCallback((value: string) => {
+    setPrompt(value);
+    if (value.trim()) {
+      setLyricsBrief("");
+    }
+  }, []);
 
   const handleApplyGeneratedLyrics = useCallback(
     (text: string, suggestedTitle?: string) => {
+      setLyricsBrief("");
       setPrompt(text);
 
       if (suggestedTitle?.trim() && !title.trim()) {
@@ -363,118 +373,79 @@ export function MusicCreatePanel() {
         ) : null}
 
         <section className={mt.sectionCard}>
-          <div className={mt.cardHeader}>
-            <div>
-              <h2 className={mt.cardHeaderTitle}>Создать трек</h2>
-              <p className={mt.cardHeaderSubtitle}>
-                {customMode
-                  ? "Укажите стиль, текст и название — AI споёт вашу песню"
-                  : "AI напишет текст и музыку за вас"}
-              </p>
-            </div>
-            {customMode ? (
-              <button
-                aria-pressed="true"
-                className={mt.modeToggleActive}
-                type="button"
-                onClick={() => setCustomMode(false)}
-              >
-                <IconWand />
-                Пользовательский
-              </button>
-            ) : (
-              <button
-                aria-pressed="false"
-                className={mt.modeToggle}
-                type="button"
-                onClick={() => setCustomMode(true)}
-              >
-                <IconWand />
-                Авто режим
-              </button>
-            )}
-          </div>
-
           <div className={mt.fieldStack}>
-            {customMode ? (
-              <>
-                <label className="block">
-                  <span className={mt.fieldLabel}>Название</span>
-                  <input
-                    className={mt.input}
-                    maxLength={TITLE_MAX_LENGTH}
-                    placeholder="Введите название"
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                  />
-                </label>
+            <label className="block">
+              <span className={mt.fieldLabel}>Название</span>
+              <input
+                className={mt.input}
+                maxLength={TITLE_MAX_LENGTH}
+                placeholder="Введите название"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </label>
 
-                <div>
-                  <span className={mt.fieldLabel} id="music-style-label">
-                    Стиль музыки
-                  </span>
-                  <MusicStyleChips
-                    maxLength={STYLE_MAX_LENGTH}
-                    showLabel={false}
-                    value={style}
-                    onChange={setStyle}
-                  />
-                  <div className="relative mt-2">
-                    <textarea
-                      aria-labelledby="music-style-label"
-                      className={cn(mt.textarea, mt.textareaStyle)}
-                      maxLength={STYLE_MAX_LENGTH}
-                      placeholder="pop, hyperpop, soft female vocals, 120 BPM"
-                      value={style}
-                      onChange={(event) => setStyle(event.target.value)}
-                    />
-                    <div className={mt.counterPos}>
-                      <CharCounter current={style.length} max={STYLE_MAX_LENGTH} />
-                    </div>
-                  </div>
-                </div>
-
-                <label className="block">
-                  <span className={mt.fieldLabel}>Введи текст песни и его споет AI</span>
-                  <div className="relative">
-                    <textarea
-                      className={mt.textareaLarge}
-                      maxLength={LYRICS_MAX_LENGTH}
-                      placeholder="Напишите собственные тексты, или куплеты (8 строк) для лучшего результата"
-                      value={prompt}
-                      onChange={(event) => setPrompt(event.target.value)}
-                    />
-                    <div className={mt.counterPosLarge}>
-                      <CharCounter current={prompt.length} max={LYRICS_MAX_LENGTH} />
-                    </div>
-                  </div>
-                </label>
-
-                <MusicLyricsFromPrompt
-                  configured={configured === true}
-                  disabled={isBusy}
-                  onApply={handleApplyGeneratedLyrics}
+            <div>
+              <span className={mt.fieldLabel} id="music-style-label">
+                Стиль музыки
+              </span>
+              <MusicStyleChips
+                maxLength={STYLE_MAX_LENGTH}
+                showLabel={false}
+                value={style}
+                onChange={setStyle}
+              />
+              <div className="relative mt-2">
+                <textarea
+                  aria-labelledby="music-style-label"
+                  className={cn(mt.textarea, mt.textareaStyle)}
+                  maxLength={STYLE_MAX_LENGTH}
+                  placeholder="pop, hyperpop, soft female vocals, 120 BPM"
+                  value={style}
+                  onChange={(event) => setStyle(event.target.value)}
                 />
-              </>
-            ) : (
-              <label className="block">
-                <span className={mt.fieldLabel}>
-                  Опишите тему, настроение и стиль — текст и музыку AI создаст автоматически
-                </span>
-                <div className="relative">
-                  <textarea
-                    className={cn(mt.textarea, mt.textareaPrompt)}
-                    maxLength={MUSIC_CREATE_PROMPT_MAX_LENGTH}
-                    placeholder="Опишите стиль музыки и тему, которую вы хотите, и ИИ создаст текст песни"
-                    value={prompt}
-                    onChange={(event) => setPrompt(event.target.value)}
-                  />
-                  <div className={mt.counterPosLarge}>
-                    <CharCounter current={prompt.length} max={MUSIC_CREATE_PROMPT_MAX_LENGTH} />
-                  </div>
+                <div className={mt.counterPos}>
+                  <CharCounter current={style.length} max={STYLE_MAX_LENGTH} />
                 </div>
-              </label>
-            )}
+              </div>
+            </div>
+
+            <MusicLyricsFromPrompt
+              configured={configured === true}
+              disabled={isBusy || hasManualLyrics}
+              lyricsBrief={lyricsBrief}
+              onLyricsBriefChange={handleLyricsBriefChange}
+              onApply={handleApplyGeneratedLyrics}
+            />
+
+            <p className={mt.lyricsOrDivider} aria-hidden>
+              или
+            </p>
+
+            <label className="block">
+              <span className={mt.fieldLabel}>Введи текст песни и его споет AI</span>
+              <div className="relative">
+                <textarea
+                  className={cn(
+                    mt.textareaLarge,
+                    (isBusy || hasLyricsBrief) && mt.fieldDisabled,
+                  )}
+                  disabled={isBusy || hasLyricsBrief}
+                  maxLength={LYRICS_MAX_LENGTH}
+                  placeholder="Напишите собственные тексты, или куплеты (8 строк) для лучшего результата"
+                  value={prompt}
+                  onChange={(event) => handleManualLyricsChange(event.target.value)}
+                />
+                <div className={mt.counterPosLarge}>
+                  <CharCounter current={prompt.length} max={LYRICS_MAX_LENGTH} />
+                </div>
+              </div>
+              {hasLyricsBrief && !hasManualLyrics ? (
+                <p className={mt.meta}>
+                  Очистите описание выше или нажмите «Сгенерировать текст», чтобы заполнить это поле.
+                </p>
+              ) : null}
+            </label>
 
             <label className="block">
               <span className={mt.fieldLabel}>
@@ -501,9 +472,9 @@ export function MusicCreatePanel() {
               </div>
               {durationSec > 0 ? (
                 <p className={mt.meta}>
-                  {customMode
-                    ? "AI не гарантирует точную длительность — подсказка добавляется в поле «Стиль музыки». Для коротких треков (~30 сек) используйте краткий стиль и короткие тексты."
-                    : "AI не гарантирует точную длительность — подсказка добавляется в описание песни. Для ~30 сек лучше короткое описание."}
+                  AI не гарантирует точную длительность — подсказка добавляется в поле «Стиль
+                  музыки». Для коротких треков (~30 сек) используйте краткий стиль и короткие
+                  тексты.
                 </p>
               ) : null}
             </label>
