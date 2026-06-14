@@ -90,7 +90,7 @@ export function MusicHistoryPanel({
   if (items.length === 0) {
     return (
       <p className={mt.meta}>
-        История пуста. Запустите генерацию — результаты сохранятся здесь.
+        История пуста. Создайте трек на странице Magic Music — результаты сохранятся здесь.
       </p>
     );
   }
@@ -121,90 +121,90 @@ export function MusicHistoryPanel({
         const itemTitleId = `history-item-title-${item.id}`;
 
         return (
-        <article className={mt.historyItem} key={item.id}>
-          <div className={mt.historyHeader}>
-            <label className={mt.historyCheckboxLabel}>
-              <input
-                aria-labelledby={itemTitleId}
-                checked={selectedSet.has(item.id)}
-                className={mt.historyCheckbox}
-                type="checkbox"
-                onChange={() => toggleItem(item.id)}
-              />
-            </label>
-            <div className={mt.historyHeaderMain}>
-              <div className={mt.historyTitleRow}>
-                <h3 className={mt.historyTitle} id={itemTitleId}>
-                  {itemTitle}
-                </h3>
-                <DeleteIconButton
-                  disabled={isDeleting}
-                  label="Удалить запись"
-                  onClick={() => void handleDeleteOne(item.id)}
+          <article className={mt.historyItem} key={item.id}>
+            <div className={mt.historyHeader}>
+              <label className={mt.historyCheckboxLabel}>
+                <input
+                  aria-labelledby={itemTitleId}
+                  checked={selectedSet.has(item.id)}
+                  className={mt.historyCheckbox}
+                  type="checkbox"
+                  onChange={() => toggleItem(item.id)}
                 />
-              </div>
-              <div className={mt.historyTitleMeta}>
-                <span className={mt.historyBadge}>
-                  {STATUS_LABELS[item.status] ?? item.status}
-                </span>
-                <p className={mt.historyMeta}>
-                  {item.type === "song" ? "Трек" : "Текст для трека"} ·{" "}
-                  {formatDate(item.createdAt)}
-                  {item.rawStatus ? ` · ${item.rawStatus}` : ""}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {item.tracks.map((track) => (
-            <div className={mt.historyTrack} key={track.id}>
-              <div className={mt.historyTrackHeader}>
-                <div className={mt.historyTrackMeta}>
-                  <p className={mt.historyTrackTitle}>{track.title}</p>
-                  {formatDuration(track.durationSec) ? (
-                    <span className={mt.resultDuration}>
-                      {formatDuration(track.durationSec)}
-                    </span>
-                  ) : null}
+              </label>
+              <div className={mt.historyHeaderMain}>
+                <div className={mt.historyTitleRow}>
+                  <h3 className={mt.historyTitle} id={itemTitleId}>
+                    {itemTitle}
+                  </h3>
+                  <DeleteIconButton
+                    disabled={isDeleting}
+                    label="Удалить запись"
+                    onClick={() => void handleDeleteOne(item.id)}
+                  />
                 </div>
-                <DeleteIconButton
-                  disabled={isDeleting}
-                  label="Удалить трек"
-                  onClick={() => void onDeleteTrack(track.id)}
-                />
+                <div className={mt.historyTitleMeta}>
+                  <span className={mt.historyBadge}>
+                    {STATUS_LABELS[item.status] ?? item.status}
+                  </span>
+                  <p className={mt.historyMeta}>
+                    {item.type === "song" ? "Трек" : "Текст для трека"} ·{" "}
+                    {formatDate(item.createdAt)}
+                    {item.rawStatus ? ` · ${item.rawStatus}` : ""}
+                  </p>
+                </div>
               </div>
-              {track.audioUrl ? (
-                <AuthenticatedAudio className={mt.player} src={track.audioUrl} />
-              ) : null}
-              {item.type === "song" && track.audioUrl && onOpenEditor ? (
-                <button
-                  className={mt.editorLink}
-                  disabled={openingEditorTrackId === track.id}
-                  type="button"
-                  onClick={() => onOpenEditor(track.id)}
-                >
-                  {openingEditorTrackId === track.id
-                    ? "Открываем редактор..."
-                    : "Open Editor"}
-                </button>
-              ) : null}
-              {track.lyricsText ? (
-                <CollapsibleLyrics text={track.lyricsText} />
-              ) : null}
             </div>
-          ))}
 
-          {item.lyrics?.map((lyricsItem, index) => (
-            <CollapsibleLyrics
-              key={`${item.id}-lyrics-${index}`}
-              text={lyricsItem.text}
-            />
-          ))}
+            {item.tracks.map((track) => (
+              <div className={mt.historyTrack} key={track.id}>
+                <div className={mt.historyTrackHeader}>
+                  <div className={mt.historyTrackMeta}>
+                    <p className={mt.historyTrackTitle}>{track.title}</p>
+                    {formatDuration(track.durationSec) ? (
+                      <span className={mt.resultDuration}>
+                        {formatDuration(track.durationSec)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <DeleteIconButton
+                    disabled={isDeleting}
+                    label="Удалить трек"
+                    onClick={() => void onDeleteTrack(track.id)}
+                  />
+                </div>
+                {track.audioUrl ? (
+                  <AuthenticatedAudio className={mt.player} src={track.audioUrl} />
+                ) : null}
+                {item.type === "song" && track.audioUrl && onOpenEditor ? (
+                  <button
+                    className={mt.editorLink}
+                    disabled={openingEditorTrackId === track.id}
+                    type="button"
+                    onClick={() => onOpenEditor(track.id)}
+                  >
+                    {openingEditorTrackId === track.id
+                      ? "Открываем редактор..."
+                      : "Open Editor"}
+                  </button>
+                ) : null}
+                {track.lyricsText ? (
+                  <CollapsibleLyrics text={track.lyricsText} />
+                ) : null}
+              </div>
+            ))}
 
-          {item.errorMessage ? (
-            <p className={mt.error}>{item.errorMessage}</p>
-          ) : null}
-        </article>
+            {item.lyrics?.map((lyricsItem, index) => (
+              <CollapsibleLyrics
+                key={`${item.id}-lyrics-${index}`}
+                text={lyricsItem.text}
+              />
+            ))}
+
+            {item.errorMessage ? (
+              <p className={mt.error}>{item.errorMessage}</p>
+            ) : null}
+          </article>
         );
       })}
     </div>

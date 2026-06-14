@@ -6,18 +6,16 @@ export const RECOMMENDED_STYLE_CHIPS_MIN = 5;
 
 export const MUSIC_STYLE_CHIP_OPTIONS = [
   "pop",
-  "hyperpop",
-  "electro house vocal",
-  "jazz",
-  "funk",
-  "house",
-  "punk",
-  "indie rock",
-  "trap",
-  "lo-fi chill",
   "electropop",
-  "pop-punk",
+  "hyperpop",
+  "hip-hop",
+  "trap",
   "emo rap",
+  "lo-fi chill",
+  "indie rock",
+  "pop-punk",
+  "house",
+  "electro house"
 ] as const;
 
 export type MusicStyleChip = (typeof MUSIC_STYLE_CHIP_OPTIONS)[number];

@@ -2,11 +2,10 @@
 
 import { ApiError } from "@ai-music/api-client";
 import type { MusicStatusResponseDto } from "@ai-music/shared";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MusicGenerationLoader } from "@/features/music-test/music-generation-loader";
-import { MusicHistoryPanel } from "@/features/music-test/music-history-panel";
 import { mt } from "@/features/music-test/music-test-classes";
 import { MusicLyricsFromPrompt } from "@/features/music-test/music-lyrics-from-prompt";
 import { MusicStyleChips } from "@/features/music-test/music-style-chips-panel";
@@ -153,19 +152,12 @@ export function MusicTestPanel() {
   const [status, setStatus] = useState<MusicStatusResponseDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isDeletingHistory, setIsDeletingHistory] = useState(false);
   const [isDeletingTrack, setIsDeletingTrack] = useState(false);
   const [isOpeningEditor, setIsOpeningEditor] = useState(false);
   const [openingEditorTrackId, setOpeningEditorTrackId] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
-
-  const historyQuery = useQuery({
-    queryKey: ["music-history"],
-    queryFn: () => api.music.history(),
-    enabled: authReady,
-  });
 
   useEffect(() => {
     void api.music
@@ -266,20 +258,6 @@ export function MusicTestPanel() {
       setError(resolveErrorMessage(generateError));
     } finally {
       setIsGenerating(false);
-    }
-  }
-
-  async function handleDeleteHistory(ids: string[]) {
-    setIsDeletingHistory(true);
-    setError(null);
-
-    try {
-      await api.music.deleteHistory(ids);
-      await refreshHistory();
-    } catch (deleteError) {
-      setError(resolveErrorMessage(deleteError));
-    } finally {
-      setIsDeletingHistory(false);
     }
   }
 
@@ -583,22 +561,6 @@ export function MusicTestPanel() {
             {error}
           </div>
         ) : null}
-
-        <section className={mt.sectionCard}>
-          <div className={mt.historyCardHeader}>
-            <IconClock />
-            <h2 className={mt.cardHeaderTitle}>История генераций</h2>
-          </div>
-          <MusicHistoryPanel
-            isDeleting={isDeletingHistory || isDeletingTrack}
-            isLoading={historyQuery.isLoading}
-            items={historyQuery.data ?? []}
-            openingEditorTrackId={openingEditorTrackId}
-            onDelete={handleDeleteHistory}
-            onDeleteTrack={handleDeleteTrack}
-            onOpenEditor={(id) => void handleOpenEditor(id)}
-          />
-        </section>
       </main>
     </div>
   );
