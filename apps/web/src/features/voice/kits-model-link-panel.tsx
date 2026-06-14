@@ -64,7 +64,7 @@ export function KitsModelLinkPanel() {
       await api.voiceSamples.linkKitsModel(sampleId, {
         kitsVoiceModelId: modelId,
       });
-      router.push("/music-test");
+      router.push("/music-create");
     } catch (submitError) {
       setError(resolveErrorMessage(submitError));
     } finally {
@@ -81,9 +81,9 @@ export function KitsModelLinkPanel() {
     return (
       <section className={styles.section}>
         <h1 className={styles.title}>Привязка модели Kits</h1>
-        <p className={styles.error}>Сначала загрузите образец голоса в Music Test.</p>
-        <Link href="/music-test" className={styles.submit}>
-          Перейти к Music Test
+        <p className={styles.error}>Сначала загрузите образец голоса в Music Create.</p>
+        <Link href="/music-create" className={styles.submit}>
+          Перейти к Music Create
         </Link>
       </section>
     );

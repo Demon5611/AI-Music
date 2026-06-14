@@ -89,7 +89,7 @@ export function ProfilePanel() {
       </dl>
 
       <div className={styles.actions}>
-        <Link href="/music-test" className={styles.primaryLink}>
+        <Link href="/music-create" className={styles.primaryLink}>
           Создать трек
         </Link>
         <Link href="/pricing" className={styles.secondaryLink}>

@@ -1,4 +1,4 @@
-/** Shared Tailwind classes for Magic Music (dark Suno UI). */
+/** Shared Tailwind classes for Music Create (dark Suno UI). */
 export const mt = {
   page: "flex-1 w-full bg-[#0f0f0f] text-white",
   pageHeader:

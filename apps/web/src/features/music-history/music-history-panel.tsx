@@ -2,8 +2,8 @@
 
 import type { MusicGenerationRecordDto } from "@ai-music/shared";
 import { useMemo, useState } from "react";
-import { CollapsibleLyrics } from "@/features/music-test/collapsible-lyrics";
-import { mt } from "@/features/music-test/music-test-classes";
+import { CollapsibleLyrics } from "@/features/music-create/collapsible-lyrics";
+import { mt } from "@/features/music-create/music-create-classes";
 import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
 import { cn } from "@/lib/utils";
@@ -90,7 +90,7 @@ export function MusicHistoryPanel({
   if (items.length === 0) {
     return (
       <p className={mt.meta}>
-        История пуста. Создайте трек на странице Magic Music — результаты сохранятся здесь.
+        История пуста. Создайте трек на странице Music Create — результаты сохранятся здесь.
       </p>
     );
   }

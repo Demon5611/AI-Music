@@ -5,11 +5,11 @@ import type { MusicStatusResponseDto } from "@ai-music/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MusicGenerationLoader } from "@/features/music-test/music-generation-loader";
-import { mt } from "@/features/music-test/music-test-classes";
-import { MusicLyricsFromPrompt } from "@/features/music-test/music-lyrics-from-prompt";
-import { MusicStyleChips } from "@/features/music-test/music-style-chips-panel";
-import { SongTrackResult } from "@/features/music-test/song-track-result";
+import { MusicGenerationLoader } from "@/features/music-create/music-generation-loader";
+import { mt } from "@/features/music-create/music-create-classes";
+import { MusicLyricsFromPrompt } from "@/features/music-create/music-lyrics-from-prompt";
+import { MusicStyleChips } from "@/features/music-create/music-style-chips-panel";
+import { SongTrackResult } from "@/features/music-create/song-track-result";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { cn } from "@/lib/utils";
@@ -136,7 +136,7 @@ function CharCounter({ current, max }: { current: number; max: number }) {
   );
 }
 
-export function MusicTestPanel() {
+export function MusicCreatePanel() {
   const api = useApi();
   const authReady = useAuthReady();
   const queryClient = useQueryClient();
@@ -331,7 +331,7 @@ export function MusicTestPanel() {
           <div className={mt.pageHeaderLogo}>
             <IconMusic />
           </div>
-          <span className={mt.pageHeaderTitle}>Magic Music</span>
+          <span className={mt.pageHeaderTitle}>Music Create</span>
         </div>
       </header>
 

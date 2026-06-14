@@ -17,15 +17,14 @@ Do not overwrite `--muted` with shadcn background values.
 ## Feature module example
 
 ```txt
-features/music-test/
-  music-test-panel.tsx
+features/music-create/
+  music-create-panel.tsx
+  music-create-classes.ts
   song-track-result.tsx
   collapsible-lyrics.tsx
-  styles/
-    music-test.module.css
 ```
 
-Import styles: `import styles from "./styles/music-test.module.css"`.
+Shared Tailwind tokens: `import { mt } from "./music-create-classes"`.
 
 ## API provider
 

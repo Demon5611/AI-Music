@@ -11,7 +11,7 @@ export function LandingPage() {
         Prompt, стиль, запись голоса — и через несколько минут готовый трек с voice transfer.
       </p>
       <div className={styles.actions}>
-        <Link href="/music-test" className={styles.primaryAction}>
+        <Link href="/music-create" className={styles.primaryAction}>
           Создать трек
         </Link>
         <Link href="/pricing" className={styles.secondaryAction}>

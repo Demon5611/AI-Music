@@ -10,7 +10,7 @@ import {
   toggleStyleChip,
 } from "./music-style-chips";
 import { MusicComboStyleChip } from "./music-combo-style-chip";
-import { mt } from "./music-test-classes";
+import { mt } from "./music-create-classes";
 import { cn } from "@/lib/utils";
 
 interface MusicStyleChipsProps {

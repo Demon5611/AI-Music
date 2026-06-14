@@ -1,7 +1,7 @@
 "use client";
 
-import { CollapsibleLyrics } from "@/features/music-test/collapsible-lyrics";
-import { mt } from "@/features/music-test/music-test-classes";
+import { CollapsibleLyrics } from "@/features/music-create/collapsible-lyrics";
+import { mt } from "@/features/music-create/music-create-classes";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
 import { AudioPreviewPlayer } from "@/shared/ui/elevenlabs";
 

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MusicHistoryPanel } from "@/features/music-history/music-history-panel";
-import { mt } from "@/features/music-test/music-test-classes";
+import { mt } from "@/features/music-create/music-create-classes";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 
@@ -131,8 +131,8 @@ export function MusicHistoryPage() {
           </div>
           <span className={mt.pageHeaderTitle}>История генераций</span>
         </div>
-        <Link className={mt.pageHeaderMeta} href="/music-test">
-          Magic Music
+        <Link className={mt.pageHeaderMeta} href="/music-create">
+          Music Create
         </Link>
       </header>
 

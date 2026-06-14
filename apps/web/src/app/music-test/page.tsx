@@ -1,5 +1,5 @@
-import { MusicTestPanel } from "@/features/music-test/music-test-panel";
+import { redirect } from "next/navigation";
 
-export default function MusicTestPage() {
-  return <MusicTestPanel />;
+export default function MusicTestRedirectPage() {
+  redirect("/music-create");
 }

@@ -5,7 +5,7 @@ import type { MusicLyricsStatusResponseDto } from "@ai-music/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AiProcessingStatus } from "@/shared/ui/elevenlabs/ai-processing-status";
 import { useApi } from "@/shared/providers/api-provider";
-import { mt } from "./music-test-classes";
+import { mt } from "./music-create-classes";
 import { cn } from "@/lib/utils";
 
 const LYRICS_BRIEF_MAX_LENGTH = 200;

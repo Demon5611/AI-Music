@@ -12,7 +12,7 @@ import {
   findComboStylePreset,
   type MusicComboStylePreset,
 } from "./music-combo-style-presets";
-import { mt } from "./music-test-classes";
+import { mt } from "./music-create-classes";
 import { cn } from "@/lib/utils";
 
 interface MusicComboStyleChipProps {

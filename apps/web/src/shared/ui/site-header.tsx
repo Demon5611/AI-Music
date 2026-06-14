@@ -6,7 +6,7 @@ import { env } from "@/shared/config/env";
 import styles from "./site-header.module.css";
 
 const NAV_ITEMS = [
-  { href: "/music-test", label: "Music Test" },
+  { href: "/music-create", label: "Music Create" },
   { href: "/history", label: "History" },
   { href: "/profile", label: "Profile" },
   { href: "/pricing", label: "Pricing" },
