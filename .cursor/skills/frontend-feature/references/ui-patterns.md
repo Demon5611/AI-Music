@@ -24,7 +24,8 @@ features/music-create/
   collapsible-lyrics.tsx
 ```
 
-Shared Tailwind tokens: `import { mt } from "./music-create-classes"`.
+Shared Tailwind tokens: `import { appDark } from "@/shared/theme/app-dark-theme"`.
+Feature-specific maps: `landing-classes.ts` (`lp`), `music-create-classes.ts` (`mt`).
 
 ## API provider
 

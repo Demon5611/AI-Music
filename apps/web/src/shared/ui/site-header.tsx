@@ -4,6 +4,7 @@ import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@cl
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { env } from "@/shared/config/env";
+import { isAppDarkShellRoute } from "@/shared/theme/app-dark-theme";
 import styles from "./site-header.module.css";
 
 const NAV_ITEMS = [
@@ -45,10 +46,10 @@ function ClerkAuthActions() {
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const isLanding = pathname === "/";
+  const isDarkHeader = isAppDarkShellRoute(pathname);
 
   return (
-    <header className={isLanding ? `${styles.header} ${styles.headerDark}` : styles.header}>
+    <header className={isDarkHeader ? `${styles.header} ${styles.headerDark}` : styles.header}>
       <Link href="/" className={styles.logo}>
       AI Music Editor
       </Link>

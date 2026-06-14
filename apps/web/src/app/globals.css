@@ -12,6 +12,19 @@
   --muted: #737373;
   --border: #e5e5e5;
 
+  /* Dark app shell (landing reference) — used in CSS modules */
+  --app-dark-bg-page: #0a0a0a;
+  --app-dark-bg-elevated: #111111;
+  --app-dark-bg-surface: #1c1c1c;
+  --app-dark-accent: #7c3aed;
+  --app-dark-accent-hover: #8b5cf6;
+  --app-dark-border-subtle: rgba(255, 255, 255, 0.06);
+  --app-dark-border-default: rgba(255, 255, 255, 0.1);
+  --app-dark-border-strong: rgba(255, 255, 255, 0.15);
+  --app-dark-text-muted: rgba(255, 255, 255, 0.5);
+  --app-dark-text-subtle: rgba(255, 255, 255, 0.45);
+  --app-dark-text-primary: #ffffff;
+
   /* shadcn / ElevenLabs UI tokens */
   --muted-bg: oklch(0.97 0 0);
   --muted-foreground: #737373;
