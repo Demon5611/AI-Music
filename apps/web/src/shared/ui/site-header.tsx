@@ -3,8 +3,8 @@
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { env } from "@/shared/config/env";
+import { appShell } from "@/shared/theme/app-theme";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
-import styles from "./site-header.module.css";
 
 const NAV_ITEMS = [
   { href: "/music-create", label: "Music Create" },
@@ -15,7 +15,7 @@ const NAV_ITEMS = [
 
 function DevAuthBadge() {
   return (
-    <span className={styles.devBadge} title="Dev auth token отправляется на API">
+    <span className={appShell.siteHeaderDevBadge} title="Dev auth token отправляется на API">
       Dev: {env.devAuthUserId}
     </span>
   );
@@ -23,15 +23,15 @@ function DevAuthBadge() {
 
 function ClerkAuthActions() {
   return (
-    <div className={styles.authActions}>
+    <div className={appShell.siteHeaderAuthActions}>
       <SignedOut>
         <SignInButton mode="modal">
-          <button type="button" className={styles.authButton}>
+          <button type="button" className={appShell.siteHeaderAuthButton}>
             Войти
           </button>
         </SignInButton>
         <SignUpButton mode="modal">
-          <button type="button" className={styles.authButtonPrimary}>
+          <button type="button" className={appShell.siteHeaderAuthButtonPrimary}>
             Регистрация
           </button>
         </SignUpButton>
@@ -45,18 +45,18 @@ function ClerkAuthActions() {
 
 export function SiteHeader() {
   return (
-    <header className={styles.header}>
-      <Link href="/" className={styles.logo}>
+    <header className={appShell.siteHeader}>
+      <Link className={appShell.siteHeaderLogo} href="/">
         AI Music Editor
       </Link>
-      <nav className={styles.nav}>
+      <nav className={appShell.siteHeaderNav}>
         {NAV_ITEMS.map((item) => (
-          <Link key={item.href} href={item.href} className={styles.navLink}>
+          <Link key={item.href} className={appShell.siteHeaderNavLink} href={item.href}>
             {item.label}
           </Link>
         ))}
       </nav>
-      <div className={styles.headerActions}>
+      <div className={appShell.siteHeaderActions}>
         <ThemeToggle />
         {env.isClerkEnabled ? <ClerkAuthActions /> : <DevAuthBadge />}
       </div>

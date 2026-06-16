@@ -103,6 +103,36 @@ const DEFAULT_PREVIEW: PreviewTrackState = {
   solo: false,
 };
 
+function resolveSelectedRegionId(
+  regions: SongRegionDto[],
+  preferredId: string | null,
+): string | null {
+  if (preferredId && regions.some((region) => region.id === preferredId)) {
+    return preferredId;
+  }
+
+  if (regions.length === 0) {
+    return null;
+  }
+
+  return [...regions].sort((left, right) => left.orderIndex - right.orderIndex)[0]?.id ?? null;
+}
+
+function resolveDefaultTrackId(
+  tracks: EditorStateDto["tracks"],
+  preferredId: EditorTrackId | null,
+): EditorTrackId | null {
+  if (preferredId && tracks.some((track) => track.id === preferredId)) {
+    return preferredId;
+  }
+
+  if (tracks.some((track) => track.id === "vocal")) {
+    return "vocal";
+  }
+
+  return tracks[0]?.id ?? null;
+}
+
 function resolvePreviewTracks(
   operations: EditOperation[],
   selectedRegionId: string | null,
@@ -181,11 +211,11 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
 
   hydrate: (state) => {
     set((current) => {
-      const selectedRegionId =
-        current.selectedRegionId &&
-        state.regions.some((region) => region.id === current.selectedRegionId)
-          ? current.selectedRegionId
-          : null;
+      const selectedRegionId = resolveSelectedRegionId(
+        state.regions,
+        current.selectedRegionId,
+      );
+      const selectedTrackId = resolveDefaultTrackId(state.tracks, current.selectedTrackId);
 
       return {
         songId: state.song.id,
@@ -198,6 +228,7 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
         songStatus: state.song.status,
         durationMs: state.song.durationMs ?? 0,
         selectedRegionId,
+        selectedTrackId,
         previewTracks: resolvePreviewTracks(state.operations, selectedRegionId),
         error: null,
       };

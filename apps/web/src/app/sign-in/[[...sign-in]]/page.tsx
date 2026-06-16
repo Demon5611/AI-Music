@@ -1,7 +1,7 @@
 import { SignIn } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { env } from "@/shared/config/env";
-import styles from "@/shared/ui/auth-page.module.css";
+import { appShell } from "@/shared/theme/app-theme";
 
 export default function SignInPage() {
   if (!env.isClerkEnabled) {
@@ -9,7 +9,7 @@ export default function SignInPage() {
   }
 
   return (
-    <main className={styles.page}>
+    <main className={appShell.authPage}>
       <SignIn />
     </main>
   );

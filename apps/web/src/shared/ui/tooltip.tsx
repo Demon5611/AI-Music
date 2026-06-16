@@ -1,11 +1,9 @@
 "use client";
 
 import type { ReactElement, ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { useOptionalHintsVisible } from "@/shared/providers/hints-visibility-provider";
-import styles from "@/shared/ui/tooltip.module.css";
-
-type TooltipSide = "top" | "bottom" | "left" | "right";
-type TooltipAlign = "start" | "center" | "end";
+import { tt, type TooltipAlign, type TooltipSide } from "@/shared/ui/tooltip-classes";
 
 interface TooltipProps {
   content: string;
@@ -13,22 +11,6 @@ interface TooltipProps {
   align?: TooltipAlign;
   block?: boolean;
   children: ReactElement | ReactNode;
-}
-
-function resolvePlacementClass(side: TooltipSide, align: TooltipAlign): string {
-  if (align === "center") {
-    return styles[side];
-  }
-
-  if (side === "top") {
-    return align === "start" ? styles.topAlignStart : styles.topAlignEnd;
-  }
-
-  if (side === "bottom") {
-    return align === "start" ? styles.bottomAlignStart : styles.bottomAlignEnd;
-  }
-
-  return styles[side];
 }
 
 export function Tooltip({
@@ -44,9 +26,9 @@ export function Tooltip({
     return children;
   }
 
-  const placementClass = resolvePlacementClass(side, align);
-  const rootClass = block ? `${styles.root} ${styles.rootBlock}` : styles.root;
-  const triggerClass = block ? `${styles.trigger} ${styles.triggerBlock}` : styles.trigger;
+  const rootClass = block ? tt.rootBlock : tt.root;
+  const triggerClass = block ? tt.triggerBlock : tt.trigger;
+  const contentClass = tt.placement(side, align);
 
   const RootTag = block ? "div" : "span";
   const TriggerTag = block ? "div" : "span";
@@ -54,7 +36,7 @@ export function Tooltip({
   return (
     <RootTag className={rootClass}>
       <TriggerTag className={triggerClass}>{children}</TriggerTag>
-      <span className={`${styles.content} ${placementClass}`} role="tooltip">
+      <span className={contentClass} role="tooltip">
         {content}
       </span>
     </RootTag>
@@ -82,7 +64,7 @@ export function DisabledTooltipWrap({
 
   return (
     <Tooltip align={align} content={content} side={side}>
-      <span className={styles.trigger}>{children}</span>
+      <span className={tt.trigger}>{children}</span>
     </Tooltip>
   );
 }

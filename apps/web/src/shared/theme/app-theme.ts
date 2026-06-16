@@ -5,6 +5,9 @@
 const fieldFocus =
   "focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20";
 
+const fieldFocusEmerald =
+  "focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20";
+
 const fieldBase = [
   "rounded-xl border border-[var(--app-field-border)] bg-[var(--app-field-bg)]",
   "text-sm text-[var(--app-text)] outline-none transition-all",
@@ -69,4 +72,66 @@ export const appShell = {
   iconButton:
     "p-2 rounded-lg text-[var(--app-text-subtle)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-overlay)] transition-all",
   hoverRow: "hover:bg-[var(--app-hover-overlay)] transition-colors",
+  formPage:
+    "mx-auto flex max-w-xl flex-1 flex-col gap-4 px-6 py-8 pb-12",
+  formPageTitle: "text-[1.75rem] font-semibold text-[var(--app-text)]",
+  formPageDescription: "leading-relaxed text-[var(--app-text-muted)]",
+  formPageForm: "flex flex-col gap-4",
+  formField: "flex flex-col gap-1.5",
+  formLabel: "text-sm text-[var(--app-text)]",
+  formFileInput: `w-full cursor-pointer ${fieldBase} file:mr-3 file:rounded-md file:border-0 file:bg-[var(--app-hover-overlay)] file:px-3 file:py-1 file:text-sm file:text-[var(--app-text)]`,
+  formVoiceFileInput: [
+    "w-full cursor-pointer rounded-xl border border-emerald-500/50 bg-[var(--app-field-bg)]",
+    "text-sm text-[var(--app-text)] outline-none transition-all",
+    fieldFocusEmerald,
+    "file:mr-3 file:rounded-md file:border-0 file:bg-[var(--app-hover-overlay)]",
+    "file:px-3 file:py-1 file:text-sm file:text-[var(--app-text)]",
+  ].join(" "),
+  formSubmit:
+    "inline-flex self-start items-center rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white no-underline transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60",
+  formStatus: "text-sm text-[var(--app-text-muted)]",
+  formMeta: "text-sm text-[var(--app-text-muted)]",
+  formHint:
+    "text-sm text-[var(--app-text-muted)] [&_a]:text-[var(--app-text)] [&_a]:underline-offset-2 hover:[&_a]:underline",
+  formConsentRow: "flex cursor-pointer items-start gap-2.5",
+  formConsentText: "text-sm leading-snug text-[var(--app-text-muted)]",
+  formConsentNotice: "text-xs leading-snug text-amber-900 dark:text-amber-200",
+  formError: "text-sm text-rose-600 dark:text-rose-400",
+  formModelList: "mt-2 flex flex-col gap-2",
+  formModelOption:
+    "flex w-full cursor-pointer items-center gap-2 rounded-lg border border-[var(--app-border-default)] bg-[var(--app-bg-surface)] px-3 py-2 text-left text-sm text-[var(--app-text)] transition-colors hover:border-[var(--app-border-strong)]",
+  formModelOptionSelected:
+    "flex w-full cursor-pointer items-center gap-2 rounded-lg border border-violet-500 bg-violet-600/10 px-3 py-2 text-left text-sm text-[var(--app-text)]",
+  siteHeader:
+    "flex items-center justify-between border-b border-[var(--app-border-subtle)] bg-[var(--app-bg-page)] px-6 py-4",
+  siteHeaderLogo: "text-lg font-semibold text-[var(--app-text)] no-underline",
+  siteHeaderNav: "flex gap-4",
+  siteHeaderNavLink:
+    "text-sm text-[var(--app-text-muted)] no-underline transition-colors hover:text-[var(--app-text)]",
+  siteHeaderActions: "flex items-center gap-3",
+  siteHeaderAuthActions: "flex items-center gap-2",
+  siteHeaderAuthButton:
+    "cursor-pointer rounded-md border border-[var(--app-border-strong)] bg-transparent px-3 py-1.5 text-sm text-[var(--app-text)]",
+  siteHeaderAuthButtonPrimary:
+    "cursor-pointer rounded-md border border-violet-600 bg-violet-600 px-3 py-1.5 text-sm text-white transition-colors hover:border-violet-500 hover:bg-violet-500",
+  siteHeaderDevBadge:
+    "rounded-md border border-dashed border-[var(--app-border-strong)] px-2 py-1 text-xs text-[var(--app-text-subtle)]",
+  placeholderPage:
+    "mx-auto flex max-w-xl flex-1 flex-col items-start justify-center gap-4 px-6 py-12",
+  placeholderPageTitle: "text-3xl font-semibold text-[var(--app-text)]",
+  placeholderPageDescription: "text-base leading-relaxed text-[var(--app-text-muted)]",
+  authPage: "flex flex-1 items-center justify-center px-4 py-8",
+  deleteIconButton:
+    "inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-[var(--app-border-default)] bg-[var(--app-bg-surface)] p-0 text-[var(--app-text-muted)] transition-colors hover:border-rose-200 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-45 dark:hover:border-rose-900 dark:hover:text-rose-400",
+  deleteIcon: "h-4 w-4",
+  themeToggleGroup:
+    "inline-flex items-center gap-0.5 rounded-full border border-[var(--app-border-default)] bg-[var(--app-bg-surface)] p-0.5",
+  themeToggleButton:
+    "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-[var(--app-text-muted)] transition-colors hover:bg-[var(--app-hover-overlay)] hover:text-[var(--app-text)]",
+  themeToggleButtonActive:
+    "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--app-hover-overlay)] text-[var(--app-text)]",
+  themeToggleIcon: "h-3.5 w-3.5",
+  themeTogglePlaceholder: "inline-block h-8 w-[5.75rem]",
+  kitsTestPlayer: "w-full",
+  kitsTestResult: "flex flex-col gap-1",
 } as const;

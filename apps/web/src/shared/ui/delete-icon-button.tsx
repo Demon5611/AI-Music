@@ -1,4 +1,4 @@
-import styles from "./delete-icon-button.module.css";
+import { appShell } from "@/shared/theme/app-theme";
 
 interface DeleteIconButtonProps {
   label: string;
@@ -14,7 +14,7 @@ export function DeleteIconButton({
   return (
     <button
       aria-label={label}
-      className={styles.button}
+      className={appShell.deleteIconButton}
       disabled={disabled}
       title={label}
       type="button"
@@ -22,7 +22,7 @@ export function DeleteIconButton({
     >
       <svg
         aria-hidden="true"
-        className={styles.icon}
+        className={appShell.deleteIcon}
         fill="none"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"

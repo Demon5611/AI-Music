@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { KitsInferenceJob } from "@ai-music/shared";
 import { env } from "@/shared/config/env";
 import { readKitsApiError } from "@/features/kits-test/parse-api-error";
-import styles from "./styles/kits-test.module.css";
+import { appShell } from "@/shared/theme/app-theme";
 
 const POLL_INTERVAL_MS = 2500;
 
@@ -110,28 +110,28 @@ export function KitsTestPanel() {
     job?.outputFileUrl ?? job?.lossyOutputFileUrl ?? job?.recombinedAudioFileUrl;
 
   return (
-    <section className={styles.section}>
-      <h1 className={styles.title}>Kits Voice Conversion (test)</h1>
-      <p className={styles.description}>
+    <section className={appShell.formPage}>
+      <h1 className={appShell.formPageTitle}>Kits Voice Conversion (test)</h1>
+      <p className={appShell.formPageDescription}>
         Загрузите аудио и отправьте job в Kits API через backend. Ключ не
         уходит в браузер.
       </p>
 
-      <form className={styles.form} onSubmit={handleSubmit}>
-        <label className={styles.field}>
-          <span className={styles.label}>Voice Model ID</span>
+      <form className={appShell.formPageForm} onSubmit={handleSubmit}>
+        <label className={appShell.formField}>
+          <span className={appShell.formLabel}>Voice Model ID</span>
           <input
-            className={styles.input}
+            className={appShell.fieldInput}
             value={voiceModelId}
             onChange={(event) => setVoiceModelId(event.target.value)}
             inputMode="numeric"
           />
         </label>
 
-        <label className={styles.field}>
-          <span className={styles.label}>Audio file</span>
+        <label className={appShell.formField}>
+          <span className={appShell.formLabel}>Audio file</span>
           <input
-            className={styles.fileInput}
+            className={appShell.formFileInput}
             type="file"
             accept="audio/*"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
@@ -139,7 +139,7 @@ export function KitsTestPanel() {
         </label>
 
         <button
-          className={styles.submit}
+          className={appShell.formSubmit}
           type="submit"
           disabled={isSubmitting || isPolling}
         >
@@ -147,20 +147,20 @@ export function KitsTestPanel() {
         </button>
       </form>
 
-      {isPolling ? <p className={styles.status}>Polling job status...</p> : null}
+      {isPolling ? <p className={appShell.formStatus}>Polling job status...</p> : null}
 
       {job ? (
-        <div className={styles.result}>
-          <p className={styles.meta}>Job ID: {job.id}</p>
-          <p className={styles.meta}>Status: {job.status}</p>
+        <div className={appShell.kitsTestResult}>
+          <p className={appShell.formMeta}>Job ID: {job.id}</p>
+          <p className={appShell.formMeta}>Status: {job.status}</p>
         </div>
       ) : null}
 
       {outputUrl ? (
-        <audio className={styles.player} controls src={outputUrl} />
+        <audio className={appShell.kitsTestPlayer} controls src={outputUrl} />
       ) : null}
 
-      {error ? <p className={styles.error}>{error}</p> : null}
+      {error ? <p className={appShell.formError}>{error}</p> : null}
     </section>
   );
 }

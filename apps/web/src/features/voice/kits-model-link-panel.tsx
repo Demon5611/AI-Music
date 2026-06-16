@@ -8,7 +8,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
-import styles from "@/shared/ui/form.module.css";
+import { appShell } from "@/shared/theme/app-theme";
+import { cn } from "@/lib/utils";
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.body && typeof error.body === "object") {
@@ -79,10 +80,10 @@ export function KitsModelLinkPanel() {
 
   if (!sampleId) {
     return (
-      <section className={styles.section}>
-        <h1 className={styles.title}>Привязка модели Kits</h1>
-        <p className={styles.error}>Сначала загрузите образец голоса в Music Create.</p>
-        <Link href="/music-create" className={styles.submit}>
+      <section className={appShell.formPage}>
+        <h1 className={appShell.formPageTitle}>Привязка модели Kits</h1>
+        <p className={appShell.formError}>Сначала загрузите образец голоса в Music Create.</p>
+        <Link className={appShell.formSubmit} href="/music-create">
           Перейти к Music Create
         </Link>
       </section>
@@ -90,13 +91,13 @@ export function KitsModelLinkPanel() {
   }
 
   if (!authReady) {
-    return <p className={styles.status}>Загрузка сессии...</p>;
+    return <p className={appShell.formStatus}>Загрузка сессии...</p>;
   }
 
   return (
-    <section className={styles.section}>
-      <h1 className={styles.title}>Привязка модели Kits</h1>
-      <p className={styles.description}>
+    <section className={appShell.formPage}>
+      <h1 className={appShell.formPageTitle}>Привязка модели Kits</h1>
+      <p className={appShell.formPageDescription}>
         Обучите голос на{" "}
         <a href="https://app.kits.ai/voices" target="_blank" rel="noreferrer noopener">
           app.kits.ai
@@ -104,11 +105,11 @@ export function KitsModelLinkPanel() {
         и укажите Voice Model ID для образца {sampleId}.
       </p>
 
-      <form className={styles.form} onSubmit={handleSubmit}>
-        <label className={styles.field}>
-          <span className={styles.label}>Kits Voice Model ID</span>
+      <form className={appShell.formPageForm} onSubmit={handleSubmit}>
+        <label className={appShell.formField}>
+          <span className={appShell.formLabel}>Kits Voice Model ID</span>
           <input
-            className={styles.input}
+            className={appShell.fieldInput}
             value={kitsVoiceModelId}
             onChange={(event) => {
               setKitsVoiceModelId(event.target.value);
@@ -120,20 +121,22 @@ export function KitsModelLinkPanel() {
         </label>
 
         {modelsQuery.isLoading ? (
-          <p className={styles.status}>Загрузка ваших моделей Kits...</p>
+          <p className={appShell.formStatus}>Загрузка ваших моделей Kits...</p>
         ) : null}
 
         {modelsQuery.data?.data.length ? (
-          <div className={styles.field}>
-            <span className={styles.label}>Или выберите из ваших моделей</span>
-            <div className={styles.modelList}>
+          <div className={appShell.formField}>
+            <span className={appShell.formLabel}>Или выберите из ваших моделей</span>
+            <div className={appShell.formModelList}>
               {modelsQuery.data.data.map((model) => (
                 <button
                   key={model.id}
                   type="button"
-                  className={`${styles.modelOption} ${
-                    selectedModelId === model.id ? styles.modelOptionSelected : ""
-                  }`}
+                  className={cn(
+                    selectedModelId === model.id
+                      ? appShell.formModelOptionSelected
+                      : appShell.formModelOption,
+                  )}
                   onClick={() => handleSelectModel(model)}
                 >
                   {model.title} (ID: {model.id})
@@ -144,15 +147,15 @@ export function KitsModelLinkPanel() {
         ) : null}
 
         {modelsQuery.error ? (
-          <p className={styles.hint}>Список моделей недоступен — введите ID вручную.</p>
+          <p className={appShell.formHint}>Список моделей недоступен — введите ID вручную.</p>
         ) : null}
 
-        <button className={styles.submit} type="submit" disabled={isSubmitting}>
+        <button className={appShell.formSubmit} type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Сохранение..." : "Привязать модель"}
         </button>
       </form>
 
-      {error ? <p className={styles.error}>{error}</p> : null}
+      {error ? <p className={appShell.formError}>{error}</p> : null}
     </section>
   );
 }

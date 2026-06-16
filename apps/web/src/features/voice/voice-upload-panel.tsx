@@ -6,6 +6,7 @@ import {
   MIN_VOICE_SAMPLE_DURATION_SEC,
   VOICE_CONSENT_PHRASE,
 } from "@ai-music/shared";
+import { Mic } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { readAudioDurationSec } from "@/features/voice/read-audio-duration";
@@ -14,7 +15,7 @@ import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { LoadingPanel } from "@/shared/ui/elevenlabs";
 import { me as editorStyles } from "@/features/music-editor/music-editor-classes";
-import formStyles from "@/shared/ui/form.module.css";
+import { appShell } from "@/shared/theme/app-theme";
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.body && typeof error.body === "object") {
@@ -141,6 +142,11 @@ export function VoiceUploadPanel({
   }
 
   function selectUploadedFile(nextFile: File | null) {
+    if (nextFile && !confirmed) {
+      setError("Подтвердите согласие перед загрузкой файла");
+      return;
+    }
+
     if (!nextFile) {
       clearSelectedFile();
       return;
@@ -213,6 +219,12 @@ export function VoiceUploadPanel({
     previewDurationSec !== null && previewDurationSec < MIN_VOICE_SAMPLE_DURATION_SEC;
   const isPreviewTooLong =
     previewDurationSec !== null && previewDurationSec > MAX_VOICE_SAMPLE_DURATION_SEC;
+  const consentRequired = !confirmed;
+  const voiceInputDisabled =
+    disabled || isSubmitting || consentRequired || Boolean(pendingInputMode);
+  const consentNoticeClassName = isEmbedded
+    ? editorStyles.ownVoiceConsentNotice
+    : appShell.formConsentNotice;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -265,20 +277,20 @@ export function VoiceUploadPanel({
     return isEmbedded ? <LoadingPanel lines={2} /> : <LoadingPanel />;
   }
 
-  const formClassName = isEmbedded ? editorStyles.ownVoiceForm : formStyles.form;
-  const fieldClassName = isEmbedded ? editorStyles.ownVoiceField : formStyles.field;
-  const labelClassName = isEmbedded ? editorStyles.fieldLabel : formStyles.label;
-  const inputClassName = isEmbedded ? editorStyles.textInput : formStyles.fileInput;
-  const submitClassName = isEmbedded ? editorStyles.primaryButton : formStyles.submit;
-  const hintClassName = isEmbedded ? editorStyles.panelHint : formStyles.description;
-  const errorClassName = isEmbedded ? editorStyles.error : formStyles.error;
+  const formClassName = isEmbedded ? editorStyles.ownVoiceForm : appShell.formPageForm;
+  const fieldClassName = isEmbedded ? editorStyles.ownVoiceField : appShell.formField;
+  const labelClassName = isEmbedded ? editorStyles.fieldLabel : appShell.formLabel;
+  const inputClassName = editorStyles.ownVoiceFileInput;
+  const submitClassName = isEmbedded ? editorStyles.primaryButton : appShell.formSubmit;
+  const hintClassName = isEmbedded ? editorStyles.panelHint : appShell.formPageDescription;
+  const errorClassName = isEmbedded ? editorStyles.error : appShell.formError;
 
   const content = (
     <>
       {!isEmbedded ? (
         <>
-          <h1 className={formStyles.title}>Запись голоса</h1>
-          <p className={formStyles.description}>
+          <h1 className={appShell.formPageTitle}>Запись голоса</h1>
+          <p className={appShell.formPageDescription}>
             Выберите один способ: запись с микрофона или загрузка файла ({durationHint}). Затем
             привяжите модель из Kits.
           </p>
@@ -290,6 +302,29 @@ export function VoiceUploadPanel({
       )}
 
       <form className={formClassName} onSubmit={handleSubmit}>
+        <div className={fieldClassName}>
+          <span className={labelClassName}>Согласие на обработку персональных данных.</span>
+          <label className={isEmbedded ? editorStyles.ownVoiceConsentRow : appShell.formConsentRow}>
+            <input
+              checked={confirmed}
+              className={appShell.accentCheckbox}
+              disabled={disabled || isSubmitting || isRecording}
+              type="checkbox"
+              onChange={(event) => setConfirmed(event.target.checked)}
+            />
+            <span
+              className={isEmbedded ? editorStyles.ownVoiceConsentText : appShell.formConsentText}
+            >
+              {VOICE_CONSENT_PHRASE}
+            </span>
+          </label>
+          {consentRequired ? (
+            <p className={consentNoticeClassName}>
+              Без подтверждения согласия запись голоса и загрузка файла недоступны.
+            </p>
+          ) : null}
+        </div>
+
         <div
           className={editorStyles.ownVoiceModeSwitch}
           role="group"
@@ -297,14 +332,14 @@ export function VoiceUploadPanel({
         >
           <VoiceModeButton
             active={inputMode === "record"}
-            disabled={disabled || isSubmitting || isRecording}
+            disabled={disabled || isSubmitting || isRecording || consentRequired}
             onSelect={() => requestInputMode("record")}
           >
             Микрофон
           </VoiceModeButton>
           <VoiceModeButton
             active={inputMode === "upload"}
-            disabled={disabled || isSubmitting || isRecording}
+            disabled={disabled || isSubmitting || isRecording || consentRequired}
             onSelect={() => requestInputMode("upload")}
           >
             Файл
@@ -339,11 +374,19 @@ export function VoiceUploadPanel({
             <div className={editorStyles.ownVoiceRecordRow}>
               {!isRecording ? (
                 <button
-                  className={editorStyles.toolButton}
-                  disabled={disabled || isSubmitting || Boolean(pendingInputMode)}
+                  className={editorStyles.ownVoiceRecordButton}
+                  disabled={voiceInputDisabled}
                   type="button"
-                  onClick={() => void startRecording()}
+                  onClick={() => {
+                    if (!confirmed) {
+                      setError("Подтвердите согласие перед записью голоса");
+                      return;
+                    }
+
+                    void startRecording();
+                  }}
                 >
+                  <Mic aria-hidden className={editorStyles.ownVoiceRecordButtonIcon} />
                   Запись
                 </button>
               ) : (
@@ -377,7 +420,7 @@ export function VoiceUploadPanel({
             <input
               key={fileInputKey}
               className={inputClassName}
-              disabled={disabled || isSubmitting || Boolean(pendingInputMode)}
+              disabled={voiceInputDisabled}
               type="file"
               accept="audio/*"
               onChange={(event) => {
@@ -434,22 +477,9 @@ export function VoiceUploadPanel({
           </div>
         ) : null}
 
-        <label className={fieldClassName}>
-          <span className={labelClassName}>Согласие</span>
-          <label className={isEmbedded ? editorStyles.panelHint : formStyles.hint}>
-            <input
-              checked={confirmed}
-              disabled={disabled || isSubmitting || isRecording}
-              type="checkbox"
-              onChange={(event) => setConfirmed(event.target.checked)}
-            />{" "}
-            {VOICE_CONSENT_PHRASE}
-          </label>
-        </label>
-
         <button
           className={submitClassName}
-          disabled={disabled || isSubmitting || isRecording}
+          disabled={disabled || isSubmitting || isRecording || consentRequired || !file}
           type="submit"
         >
           {isSubmitting ? "Загрузка..." : "Загрузить образец"}
@@ -465,5 +495,5 @@ export function VoiceUploadPanel({
     return <div className={editorStyles.ownVoicePanel}>{content}</div>;
   }
 
-  return <section className={formStyles.section}>{content}</section>;
+  return <section className={appShell.formPage}>{content}</section>;
 }

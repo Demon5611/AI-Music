@@ -3,9 +3,9 @@
 import { ApiError } from "@ai-music/api-client";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { pf } from "@/features/profile/profile-classes";
 import { useApi } from "@/shared/providers/api-provider";
 import { env } from "@/shared/config/env";
-import styles from "./styles/profile-panel.module.css";
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.body && typeof error.body === "object") {
@@ -39,15 +39,15 @@ export function ProfilePanel() {
   const error = userQuery.error ?? creditsQuery.error;
 
   if (isLoading) {
-    return <p className={styles.status}>Загрузка профиля...</p>;
+    return <p className={pf.status}>Загрузка профиля...</p>;
   }
 
   if (error) {
     return (
-      <div className={styles.errorBox}>
-        <p className={styles.error}>{resolveErrorMessage(error)}</p>
+      <div className={pf.errorBox}>
+        <p className={pf.error}>{resolveErrorMessage(error)}</p>
         {!env.isClerkEnabled ? (
-          <p className={styles.hint}>
+          <p className={pf.hint}>
             Убедитесь, что API запущен (`pnpm dev:api`) и Docker с Postgres поднят (`pnpm
             docker:up`).
           </p>
@@ -64,35 +64,35 @@ export function ProfilePanel() {
   }
 
   return (
-    <section className={styles.section}>
-      <h1 className={styles.title}>Профиль</h1>
+    <section className={pf.section}>
+      <h1 className={pf.title}>Профиль</h1>
 
-      <dl className={styles.details}>
-        <div className={styles.row}>
-          <dt className={styles.label}>Email</dt>
-          <dd className={styles.value}>{user.email}</dd>
+      <dl className={pf.details}>
+        <div className={pf.row}>
+          <dt className={pf.label}>Email</dt>
+          <dd className={pf.value}>{user.email}</dd>
         </div>
-        <div className={styles.row}>
-          <dt className={styles.label}>Имя</dt>
-          <dd className={styles.value}>{user.name ?? "—"}</dd>
+        <div className={pf.row}>
+          <dt className={pf.label}>Имя</dt>
+          <dd className={pf.value}>{user.name ?? "—"}</dd>
         </div>
-        <div className={styles.row}>
-          <dt className={styles.label}>Credits</dt>
-          <dd className={styles.value}>{balance}</dd>
+        <div className={pf.row}>
+          <dt className={pf.label}>Credits</dt>
+          <dd className={pf.value}>{balance}</dd>
         </div>
         {!env.isClerkEnabled ? (
-          <div className={styles.row}>
-            <dt className={styles.label}>Dev user</dt>
-            <dd className={styles.value}>{user.id}</dd>
+          <div className={pf.row}>
+            <dt className={pf.label}>Dev user</dt>
+            <dd className={pf.value}>{user.id}</dd>
           </div>
         ) : null}
       </dl>
 
-      <div className={styles.actions}>
-        <Link href="/music-create" className={styles.primaryLink}>
+      <div className={pf.actions}>
+        <Link className={pf.primaryLink} href="/music-create">
           Создать трек
         </Link>
-        <Link href="/pricing" className={styles.secondaryLink}>
+        <Link className={pf.secondaryLink} href="/pricing">
           Тарифы
         </Link>
       </div>

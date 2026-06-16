@@ -10,13 +10,13 @@ export const me = {
   sectionHintsHidden: "[&_.panel-hint]:hidden",
   title: "text-[1.75rem] font-bold tracking-tight text-[var(--app-text)]",
   editorHeader: "flex flex-wrap items-center justify-between gap-4",
-  hintsToggle: "inline-flex cursor-pointer select-none items-center gap-2.5",
+  hintsToggle: "group inline-flex cursor-pointer select-none items-center gap-2.5",
   hintsToggleLabel: "text-sm font-medium text-[var(--app-text-muted)]",
   hintsToggleInput: "peer sr-only",
   hintsToggleTrack:
-    "relative h-[1.375rem] w-10 rounded-full bg-[var(--app-border-default)] transition-colors peer-checked:bg-violet-600 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-violet-500/50",
+    "relative h-[1.375rem] w-10 rounded-full bg-[var(--app-border-default)] transition-colors group-has-[:checked]:bg-violet-600 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-violet-500/50",
   hintsToggleThumb:
-    "absolute left-0.5 top-0.5 h-[1.125rem] w-[1.125rem] rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-[1.125rem]",
+    "absolute left-0.5 top-0.5 h-[1.125rem] w-[1.125rem] rounded-full bg-white shadow-sm transition-transform group-has-[:checked]:translate-x-[1.125rem]",
   layout: "grid items-start gap-4 max-[960px]:grid-cols-1 grid-cols-[minmax(0,1.65fr)_minmax(280px,1fr)]",
   mainColumn: "flex min-w-0 flex-col gap-4",
   sideColumn: "flex min-w-0 flex-col gap-4",
@@ -62,7 +62,7 @@ export const me = {
     "rounded-xl border border-violet-500/30 bg-violet-600/10 px-4 py-3.5",
   contextTitle: "mb-1.5 text-sm font-semibold text-[var(--app-text)]",
   contextGrid:
-    "flex flex-wrap gap-x-5 gap-y-3 text-sm text-violet-300 dark:text-violet-200",
+    "flex flex-wrap gap-x-5 gap-y-3 text-sm text-violet-900 dark:text-violet-200",
   trackList: "flex flex-col gap-3",
   trackLaneRow:
     "grid cursor-pointer grid-cols-[minmax(120px,160px)_auto_minmax(0,1fr)] items-center gap-3 rounded-[0.625rem] border border-[var(--app-border-subtle)] bg-[var(--app-bg-elevated)] p-2.5",
@@ -131,11 +131,17 @@ export const me = {
   ownVoiceModeButtonActive: `${btnBase} flex-1 border-violet-600 bg-violet-600 text-white`,
   ownVoiceReplaceWarning:
     "flex flex-col gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3",
-  ownVoiceReplaceWarningText: "m-0 text-sm text-amber-200",
+  ownVoiceReplaceWarningText: "m-0 text-sm text-amber-900 dark:text-amber-200",
   ownVoiceReplaceWarningActions: "flex flex-wrap gap-2",
+  ownVoiceConsentRow: "flex cursor-pointer items-start gap-2.5",
+  ownVoiceConsentText: "text-sm leading-snug text-[var(--app-text-muted)]",
+  ownVoiceConsentNotice: "text-xs leading-snug text-amber-900 dark:text-amber-200",
+  ownVoiceFileInput: appShell.formVoiceFileInput,
   ownVoiceForm: "flex flex-col gap-3",
   ownVoiceField: "flex flex-col gap-1.5",
   ownVoiceRecordRow: "flex flex-wrap items-center gap-2",
+  ownVoiceRecordButton: `${btnBase} inline-flex items-center gap-2 border-violet-600 bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:border-violet-500 hover:bg-violet-500 disabled:border-violet-600/30 disabled:bg-violet-600/30 disabled:text-white/50`,
+  ownVoiceRecordButtonIcon: "h-4 w-4 shrink-0",
   ownVoiceRecordingLabel: "text-[0.8125rem] text-[var(--app-text-muted)]",
   ownVoicePreview:
     "flex flex-col gap-2 rounded-lg border border-[var(--app-border-subtle)] bg-[var(--app-bg-elevated)] p-3",

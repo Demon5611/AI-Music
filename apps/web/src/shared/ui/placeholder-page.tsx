@@ -1,5 +1,5 @@
 import Link from "next/link";
-import styles from "./placeholder-page.module.css";
+import { appShell } from "@/shared/theme/app-theme";
 
 interface PlaceholderPageProps {
   title: string;
@@ -15,11 +15,11 @@ export function PlaceholderPage({
   actionLabel,
 }: PlaceholderPageProps) {
   return (
-    <section className={styles.section}>
-      <h1 className={styles.title}>{title}</h1>
-      <p className={styles.description}>{description}</p>
+    <section className={appShell.placeholderPage}>
+      <h1 className={appShell.placeholderPageTitle}>{title}</h1>
+      <p className={appShell.placeholderPageDescription}>{description}</p>
       {actionHref && actionLabel ? (
-        <Link href={actionHref} className={styles.action}>
+        <Link className={appShell.formSubmit} href={actionHref}>
           {actionLabel}
         </Link>
       ) : null}

@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
+import { appShell } from "@/shared/theme/app-theme";
 import {
   AiProcessingStatus,
   GENERATION_STATUS_LABELS,
@@ -13,7 +14,6 @@ import {
   LoadingPanel,
   resolveGenerationProgress,
 } from "@/shared/ui/elevenlabs";
-import styles from "@/shared/ui/form.module.css";
 
 const TERMINAL_STATUSES = new Set<GenerationJob["status"]>([
   "completed",
@@ -59,7 +59,7 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
 
   if (!authReady) {
     return (
-      <section className={styles.section}>
+      <section className={appShell.formPage}>
         <LoadingPanel />
       </section>
     );
@@ -67,8 +67,8 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
 
   if (jobQuery.isLoading) {
     return (
-      <section className={styles.section}>
-        <h1 className={styles.title}>Генерация</h1>
+      <section className={appShell.formPage}>
+        <h1 className={appShell.formPageTitle}>Генерация</h1>
         <LoadingPanel />
       </section>
     );
@@ -76,9 +76,9 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
 
   if (jobQuery.error) {
     return (
-      <section className={styles.section}>
-        <h1 className={styles.title}>Генерация</h1>
-        <p className={styles.error}>{resolveErrorMessage(jobQuery.error)}</p>
+      <section className={appShell.formPage}>
+        <h1 className={appShell.formPageTitle}>Генерация</h1>
+        <p className={appShell.formError}>{resolveErrorMessage(jobQuery.error)}</p>
       </section>
     );
   }
@@ -92,9 +92,9 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
   const inProgress = isGenerationInProgress(job.status);
 
   return (
-    <section className={styles.section}>
-      <h1 className={styles.title}>Генерация</h1>
-      <p className={styles.meta}>Job ID: {job.id}</p>
+    <section className={appShell.formPage}>
+      <h1 className={appShell.formPageTitle}>Генерация</h1>
+      <p className={appShell.formMeta}>Job ID: {job.id}</p>
 
       {inProgress ? (
         <AiProcessingStatus
@@ -104,22 +104,22 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
           progress={resolveGenerationProgress(job.status)}
         />
       ) : (
-        <p className={styles.meta}>Статус: {GENERATION_STATUS_LABELS[job.status]}</p>
+        <p className={appShell.formMeta}>Статус: {GENERATION_STATUS_LABELS[job.status]}</p>
       )}
 
       {job.status === "failed" && job.errorMessage ? (
-        <p className={styles.error}>{job.errorMessage}</p>
+        <p className={appShell.formError}>{job.errorMessage}</p>
       ) : null}
 
       {job.status === "completed" && job.trackId ? (
-        <div className={styles.field}>
-          <Link href={`/track/${job.trackId}`} className={styles.submit}>
+        <div className={appShell.formField}>
+          <Link className={appShell.formSubmit} href={`/track/${job.trackId}`}>
             Открыть трек
           </Link>
         </div>
       ) : null}
 
-      <Link href="/profile" className={styles.hint}>
+      <Link className={appShell.formHint} href="/profile">
         Вернуться в профиль
       </Link>
     </section>
