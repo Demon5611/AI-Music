@@ -133,7 +133,6 @@ export const me = {
   ownVoiceReplaceWarningText: "m-0 text-sm text-amber-900 dark:text-amber-200",
   ownVoiceReplaceWarningActions: "flex flex-wrap gap-2",
   ownVoiceConsentRow: "flex cursor-pointer items-start gap-2.5",
-  ownVoiceConsentText: "text-sm leading-snug text-[var(--app-text-muted)]",
   ownVoiceConsentNotice: "text-xs leading-snug text-amber-900 dark:text-amber-200",
   ownVoiceFileInput: appShell.formVoiceFileInput,
   ownVoiceForm: "flex flex-col gap-3",

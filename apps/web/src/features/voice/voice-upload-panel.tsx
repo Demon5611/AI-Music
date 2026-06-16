@@ -10,6 +10,8 @@ import { Mic } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { readAudioDurationSec } from "@/features/voice/read-audio-duration";
+import { VoiceRecordingTipsPanel } from "@/features/voice/voice-recording-tips-panel";
+import { voiceUi } from "@/features/voice/voice-classes";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
@@ -33,7 +35,6 @@ function resolveVoiceUploadStyles(variant: VoiceUploadVariant) {
     hint: isLanding ? lp.voiceHint : appShell.formPageDescription,
     error: isLanding ? editorStyles.error : appShell.formError,
     consentRow: isLanding ? editorStyles.ownVoiceConsentRow : appShell.formConsentRow,
-    consentText: isLanding ? editorStyles.ownVoiceConsentText : appShell.formConsentText,
     consentNotice: isLanding ? editorStyles.ownVoiceConsentNotice : appShell.formConsentNotice,
   };
 }
@@ -334,17 +335,19 @@ export function VoiceUploadPanel({
 
       <form className={formClassName} onSubmit={handleSubmit}>
         <div className={fieldClassName}>
-          <span className={labelClassName}>Согласие на обработку персональных данных.</span>
           <label className={styles.consentRow}>
             <input
               checked={confirmed}
-              className={appShell.accentCheckbox}
+              className={voiceUi.consentCheckbox}
               disabled={disabled || isSubmitting || isRecording}
               type="checkbox"
               onChange={(event) => setConfirmed(event.target.checked)}
             />
-            <span className={styles.consentText}>
-              {VOICE_CONSENT_PHRASE}
+            <span className={voiceUi.consentContent}>
+              <span className={voiceUi.consentTitle}>
+                Согласие на обработку персональных данных.
+              </span>
+              <span className={voiceUi.consentPhrase}>{VOICE_CONSENT_PHRASE}</span>
             </span>
           </label>
           {consentRequired ? (
@@ -374,6 +377,8 @@ export function VoiceUploadPanel({
             Файл
           </VoiceModeButton>
         </div>
+
+        <VoiceRecordingTipsPanel />
 
         {replaceWarningMessage ? (
           <div className={editorStyles.ownVoiceReplaceWarning}>

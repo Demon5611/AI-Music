@@ -58,6 +58,17 @@ KITS_API_BASE_URL=https://api.kits.ai
 - Kits API key lives on server only (`apps/api`, `apps/worker`).
 - Never expose key to Next.js client bundle.
 
+## Voice sample recording (UI)
+
+Short reference sample (10–120 sec) before linking a Kits voice model. Tips follow Kits training guides:
+
+- [Recording environment](https://docs.kits.ai/train/recording-environment) — quiet room, no reverb/headphone bleed
+- [Volume level](https://docs.kits.ai/train/volume-level) — moderate levels, avoid clipping
+- [File quality](https://docs.kits.ai/train/file-quality-settings) — WAV/MP3/FLAC, 44.1/48 kHz
+- [Voice conversion API](https://docs.kits.ai/api-reference/api-endpoints/voice-conversion-api/create-new-voice-conversion-job) — accepts wav/mp3/flac, max 100MB
+
+UI: `VoiceRecordingTipsPanel` in `voice-upload-panel.tsx`.
+
 ## Error handling
 
 Use `handle-kits-error.ts` in API routes. Map to user-safe messages; log vendor body server-side only.
