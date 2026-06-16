@@ -24,6 +24,10 @@ export class KitsApiError extends Error {
       return "Неверный Kits API key";
     }
 
+    if (this.status === 403) {
+      return "Доступ к ресурсу Kits запрещён. Проверьте ID модели и аккаунт API key.";
+    }
+
     if (this.status === 429) {
       return "Превышен лимит запросов Kits API";
     }
@@ -33,7 +37,6 @@ export class KitsApiError extends Error {
 
   isFreeTierForbidden(): boolean {
     return (
-      this.status === 403 ||
       this.code === FREE_TIER_FORBIDDEN_CODE ||
       this.message.toLowerCase().includes("free tier")
     );

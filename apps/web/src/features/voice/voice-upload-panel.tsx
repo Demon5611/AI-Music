@@ -122,6 +122,7 @@ export function VoiceUploadPanel({
   const [pendingInputMode, setPendingInputMode] = useState<VoiceInputMode | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [previewDurationSec, setPreviewDurationSec] = useState<number | null>(null);
+  const [recordedDurationHintSec, setRecordedDurationHintSec] = useState<number | null>(null);
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,10 +151,35 @@ export function VoiceUploadPanel({
     };
   }, [previewUrl]);
 
+  useEffect(() => {
+    if (!file) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void readAudioDurationSec(file)
+      .then((durationSec) => {
+        if (!cancelled) {
+          setPreviewDurationSec(durationSec);
+        }
+      })
+      .catch(() => {
+        if (!cancelled && recordedDurationHintSec !== null) {
+          setPreviewDurationSec(recordedDurationHintSec);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [file, recordedDurationHintSec]);
+
   function clearSelectedFile() {
     setFile(null);
     setFileSource(null);
     setPreviewDurationSec(null);
+    setRecordedDurationHintSec(null);
     setFileInputKey((value) => value + 1);
     setError(null);
   }
@@ -177,14 +203,16 @@ export function VoiceUploadPanel({
 
     setFile(nextFile);
     setFileSource("upload");
+    setRecordedDurationHintSec(null);
     setPreviewDurationSec(null);
     setError(null);
   }
 
-  function selectRecordedFile(nextFile: File) {
+  function selectRecordedFile(nextFile: File, durationHintSec: number) {
     setFile(nextFile);
     setFileSource("record");
-    setPreviewDurationSec(null);
+    setRecordedDurationHintSec(durationHintSec);
+    setPreviewDurationSec(durationHintSec);
     setError(null);
   }
 
@@ -218,14 +246,26 @@ export function VoiceUploadPanel({
 
   async function handleStopRecording() {
     setRecorderError(null);
-    const recordedFile = await stopRecording();
+    const recording = await stopRecording();
 
-    if (!recordedFile) {
+    if (!recording) {
       setError("Запись пуста — попробуйте ещё раз");
       return;
     }
 
-    selectRecordedFile(recordedFile);
+    selectRecordedFile(recording.file, recording.durationSec);
+  }
+
+  async function resolveUploadDurationSec(uploadFile: File): Promise<number> {
+    try {
+      return await readAudioDurationSec(uploadFile);
+    } catch (readError) {
+      if (fileSource === "record" && recordedDurationHintSec !== null) {
+        return recordedDurationHintSec;
+      }
+
+      throw readError;
+    }
   }
 
   const replaceWarningMessage =
@@ -264,7 +304,7 @@ export function VoiceUploadPanel({
     setIsSubmitting(true);
 
     try {
-      const durationSec = await readAudioDurationSec(file);
+      const durationSec = await resolveUploadDurationSec(file);
 
       if (durationSec < MIN_VOICE_SAMPLE_DURATION_SEC) {
         throw new Error(`Минимальная длительность — ${MIN_VOICE_SAMPLE_DURATION_SEC} сек`);
@@ -487,13 +527,6 @@ export function VoiceUploadPanel({
               controls
               preload="metadata"
               src={previewUrl}
-              onLoadedMetadata={(event) => {
-                const duration = event.currentTarget.duration;
-
-                if (Number.isFinite(duration) && duration > 0) {
-                  setPreviewDurationSec(duration);
-                }
-              }}
             />
             {isPreviewTooShort ? (
               <p className={errorClassName}>

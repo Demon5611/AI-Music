@@ -10,8 +10,17 @@ export function parseKitsApiError(
   body: KitsApiErrorResponse,
   status: number,
 ): string {
-  if (status === 403 || body.code === FREE_TIER_CODE) {
+  const message = body.error ?? body.details ?? "";
+
+  if (
+    body.code === FREE_TIER_CODE ||
+    message.toLowerCase().includes("free tier")
+  ) {
     return "Нужен платный план Kits для API";
+  }
+
+  if (status === 403) {
+    return "Доступ к ресурсу Kits запрещён. Проверьте ID модели и аккаунт API key.";
   }
 
   if (body.error) {

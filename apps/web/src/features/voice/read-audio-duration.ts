@@ -1,27 +1,110 @@
-function getAudioDurationSec(file: File): Promise<number> {
+const WEBM_SEEK_CAP_SEC = 1e10;
+
+function isValidDuration(duration: number): boolean {
+  return Number.isFinite(duration) && duration > 0;
+}
+
+function readDurationFromAudioElement(objectUrl: string): Promise<number> {
   return new Promise((resolve, reject) => {
-    const audio = new Audio();
-    const objectUrl = URL.createObjectURL(file);
+    const audio = document.createElement("audio");
+    let settled = false;
+
+    const settle = (handler: () => void) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      URL.revokeObjectURL(objectUrl);
+      audio.removeAttribute("src");
+      audio.load();
+      handler();
+    };
+
+    const resolveDuration = (duration: number) => {
+      if (!isValidDuration(duration)) {
+        settle(() => reject(new Error("Некорректная длительность аудио")));
+        return;
+      }
+
+      settle(() => resolve(duration));
+    };
+
+    const seekForWebmDuration = () => {
+      const onSeeked = () => {
+        audio.removeEventListener("seeked", onSeeked);
+        resolveDuration(audio.duration);
+      };
+
+      audio.addEventListener("seeked", onSeeked);
+      audio.currentTime = WEBM_SEEK_CAP_SEC;
+    };
 
     audio.preload = "metadata";
-    audio.onloadedmetadata = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(Math.round(audio.duration));
-    };
-    audio.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Не удалось прочитать длительность аудио"));
-    };
+    audio.addEventListener(
+      "loadedmetadata",
+      () => {
+        if (isValidDuration(audio.duration)) {
+          resolveDuration(audio.duration);
+          return;
+        }
+
+        if (audio.duration === Infinity) {
+          seekForWebmDuration();
+          return;
+        }
+
+        resolveDuration(audio.duration);
+      },
+      { once: true },
+    );
+    audio.addEventListener(
+      "error",
+      () => settle(() => reject(new Error("Не удалось прочитать длительность аудио"))),
+      { once: true },
+    );
     audio.src = objectUrl;
   });
 }
 
-export async function readAudioDurationSec(file: File): Promise<number> {
-  const durationSec = await getAudioDurationSec(file);
+async function readDurationFromWebAudio(file: File): Promise<number> {
+  const context = new AudioContext();
 
-  if (!Number.isFinite(durationSec) || durationSec <= 0) {
-    throw new Error("Некорректная длительность аудио");
+  try {
+    const bytes = await file.arrayBuffer();
+    const audioBuffer = await context.decodeAudioData(bytes.slice(0));
+
+    return audioBuffer.duration;
+  } finally {
+    await context.close();
+  }
+}
+
+export function normalizeAudioDurationSec(durationSec: number): number {
+  return Math.round(durationSec);
+}
+
+export async function readAudioDurationSec(file: File): Promise<number> {
+  try {
+    const decodedDurationSec = await readDurationFromWebAudio(file);
+
+    if (isValidDuration(decodedDurationSec)) {
+      return normalizeAudioDurationSec(decodedDurationSec);
+    }
+  } catch {
+    // Fallback when Web Audio cannot decode the container/codec.
   }
 
-  return durationSec;
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const metadataDurationSec = await readDurationFromAudioElement(objectUrl);
+    return normalizeAudioDurationSec(metadataDurationSec);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error("Не удалось прочитать длительность аудио");
+  }
 }

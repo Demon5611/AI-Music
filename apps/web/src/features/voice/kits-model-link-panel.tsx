@@ -102,7 +102,13 @@ export function KitsModelLinkPanel() {
         <a href="https://app.kits.ai/voices" target="_blank" rel="noreferrer noopener">
           app.kits.ai
         </a>{" "}
-        и укажите Voice Model ID для образца {sampleId}.
+        и укажите Voice Model ID для образца {sampleId}. ID должен принадлежать вашему аккаунту Kits
+        (тот же, для которого выдан API key на{" "}
+        <a href="https://app.kits.ai/api-access" target="_blank" rel="noreferrer noopener">
+          app.kits.ai/api-access
+        </a>
+        ). Переменная KITS_TEST_VOICE_MODEL_ID в .env используется только на странице kits-test,
+        а не на этом шаге.
       </p>
 
       <form className={appShell.formPageForm} onSubmit={handleSubmit}>
@@ -116,7 +122,7 @@ export function KitsModelLinkPanel() {
               setSelectedModelId(null);
             }}
             inputMode="numeric"
-            placeholder="Например, 1014961"
+            placeholder="ID вашей модели после обучения на Kits"
           />
         </label>
 
@@ -124,9 +130,9 @@ export function KitsModelLinkPanel() {
           <p className={appShell.formStatus}>Загрузка ваших моделей Kits...</p>
         ) : null}
 
-        {modelsQuery.data?.data.length ? (
+        {modelsQuery.isSuccess && modelsQuery.data.data.length > 0 ? (
           <div className={appShell.formField}>
-            <span className={appShell.formLabel}>Или выберите из ваших моделей</span>
+            <span className={appShell.formLabel}>Выберите свою модель</span>
             <div className={appShell.formModelList}>
               {modelsQuery.data.data.map((model) => (
                 <button
@@ -146,8 +152,22 @@ export function KitsModelLinkPanel() {
           </div>
         ) : null}
 
+        {modelsQuery.isSuccess && modelsQuery.data.data.length === 0 ? (
+          <p className={appShell.formHint}>
+            В аккаунте Kits пока нет обученных голосов — поэтому список пуст. Создайте модель в
+            разделе{" "}
+            <a href="https://app.kits.ai/voices" target="_blank" rel="noreferrer noopener">
+              Clone Voices
+            </a>
+            , обновите эту страницу и выберите ID из списка. Не используйте пример 1014961.
+          </p>
+        ) : null}
+
         {modelsQuery.error ? (
-          <p className={appShell.formHint}>Список моделей недоступен — введите ID вручную.</p>
+          <p className={appShell.formHint}>
+            Список моделей Kits недоступен — проверьте KITS_API_KEY, платный план API и перезапуск
+            API. Введите ID своей модели вручную.
+          </p>
         ) : null}
 
         <button className={appShell.formSubmit} type="submit" disabled={isSubmitting}>

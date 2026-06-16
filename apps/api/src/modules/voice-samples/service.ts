@@ -3,7 +3,7 @@ import {
   linkKitsVoiceModelSchema,
   uploadVoiceSampleFieldsSchema,
 } from "@ai-music/shared";
-import { createKitsClient } from "@ai-music/ai-providers";
+import { createKitsClient, KitsApiError } from "@ai-music/ai-providers";
 import { ForbiddenError, NotFoundError } from "../../common/errors.js";
 import {
   buildVoiceSampleKey,
@@ -121,7 +121,33 @@ export async function linkKitsVoiceModel(
   try {
     const kits = createKitsClient();
     await kits.getVoiceModel(parsed.data.kitsVoiceModelId);
-  } catch {
+  } catch (error) {
+    if (error instanceof KitsApiError) {
+      if (error.status === 404) {
+        throw new NotFoundError(
+          `Модель Kits ${parsed.data.kitsVoiceModelId} не найдена. Создайте голос в app.kits.ai и укажите его ID.`,
+        );
+      }
+
+      if (error.isFreeTierForbidden()) {
+        throw new ForbiddenError(error.userMessage);
+      }
+
+      if (error.status === 403) {
+        throw new NotFoundError(
+          `Модель Kits ${parsed.data.kitsVoiceModelId} недоступна для вашего API key. Создайте голос в app.kits.ai и выберите его ID из списка.`,
+        );
+      }
+
+      throw new ForbiddenError(error.userMessage);
+    }
+
+    if (error instanceof Error && error.message.includes("KITS_API")) {
+      throw new ForbiddenError(
+        "Kits API не настроен: проверьте KITS_API_KEY и KITS_API_BASE_URL в .env и перезапустите API.",
+      );
+    }
+
     throw new NotFoundError("Kits voice model not found");
   }
 

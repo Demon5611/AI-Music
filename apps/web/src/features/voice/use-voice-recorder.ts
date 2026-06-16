@@ -19,6 +19,11 @@ function buildRecordingFile(blob: Blob, mimeType: string): File {
   return new File([blob], `voice-recording.${extension}`, { type: mimeType });
 }
 
+export interface VoiceRecordingResult {
+  durationSec: number;
+  file: File;
+}
+
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -28,7 +33,8 @@ export function useVoiceRecorder() {
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<number | null>(null);
-  const stopResolverRef = useRef<((file: File | null) => void) | null>(null);
+  const elapsedSecRef = useRef(0);
+  const stopResolverRef = useRef<((result: VoiceRecordingResult | null) => void) | null>(null);
 
   const cleanupStream = useCallback(() => {
     if (timerRef.current !== null) {
@@ -40,6 +46,7 @@ export function useVoiceRecorder() {
     streamRef.current = null;
     mediaRecorderRef.current = null;
     chunksRef.current = [];
+    elapsedSecRef.current = 0;
     setIsRecording(false);
   }, []);
 
@@ -79,10 +86,13 @@ export function useVoiceRecorder() {
         const recordedMimeType = mediaRecorder.mimeType || mimeType || "audio/webm";
         const blob = new Blob(chunksRef.current, { type: recordedMimeType });
         const file = blob.size > 0 ? buildRecordingFile(blob, recordedMimeType) : null;
+        const durationSec = elapsedSecRef.current;
 
         cleanupStream();
         setElapsedSec(0);
-        stopResolverRef.current?.(file);
+        stopResolverRef.current?.(
+          file ? { durationSec: Math.max(durationSec, 1), file } : null,
+        );
         stopResolverRef.current = null;
       };
 
@@ -96,10 +106,12 @@ export function useVoiceRecorder() {
       mediaRecorder.start(250);
       setIsRecording(true);
       setElapsedSec(0);
+      elapsedSecRef.current = 0;
 
       timerRef.current = window.setInterval(() => {
         setElapsedSec((value) => {
           const nextValue = value + 1;
+          elapsedSecRef.current = nextValue;
 
           if (
             nextValue >= MAX_VOICE_SAMPLE_DURATION_SEC &&
@@ -117,7 +129,7 @@ export function useVoiceRecorder() {
     }
   }, [cleanupStream]);
 
-  const stopRecording = useCallback(async (): Promise<File | null> => {
+  const stopRecording = useCallback(async (): Promise<VoiceRecordingResult | null> => {
     const recorder = mediaRecorderRef.current;
 
     if (!recorder || recorder.state === "inactive") {
