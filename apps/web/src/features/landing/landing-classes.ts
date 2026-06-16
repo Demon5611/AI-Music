@@ -11,17 +11,10 @@ export const lp = {
   titleGradient:
     "text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-300 to-violet-400",
   subtitle: `relative z-10 text-base md:text-lg ${appShell.textSubtle} max-w-lg mb-10 leading-relaxed`,
-  promptWrap: "relative z-10 w-full max-w-2xl mb-4",
-  promptCard: appShell.promptCard,
-  promptTextareaWrap: "relative",
-  promptTextarea:
-    "w-full bg-transparent px-5 pt-4 pb-8 text-sm text-[var(--app-text)] placeholder:text-[var(--app-text-subtle)] outline-none resize-none",
-  charCounter: appShell.charCounter,
-  charCounterLimit: appShell.charCounterLimit,
-  promptCounterPos: "pointer-events-none absolute bottom-2 right-5",
-  promptActions: "flex items-center justify-between px-4 pb-3",
-  iconButton: appShell.iconButton,
-  createButton: appShell.btnPrimarySm,
+  voiceWrap: "relative z-10 w-full max-w-2xl mb-4 text-left",
+  voiceCard: `${appShell.promptCard} p-4 md:p-5`,
+  voiceHint: `text-sm ${appShell.textMuted} mb-1`,
+  voiceSubmit: `${appShell.btnPrimary} w-full`,
   note: `relative z-10 text-xs ${appShell.textSubtle}`,
   statsGrid:
     "relative z-10 mx-4 md:mx-auto md:max-w-4xl grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--app-hover-overlay)] rounded-2xl overflow-hidden mb-20",

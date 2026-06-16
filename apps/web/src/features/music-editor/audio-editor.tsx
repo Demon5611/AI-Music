@@ -2,7 +2,6 @@
 
 import { ApiError } from "@ai-music/api-client";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
-import { useRouter } from "next/navigation";
 import { useClientMounted } from "@/shared/hooks/use-client-mounted";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
 import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
@@ -181,7 +180,6 @@ export function AudioEditor({ songId }: AudioEditorProps) {
 
 function AudioEditorContent({ songId }: AudioEditorProps) {
   const api = useApi();
-  const router = useRouter();
   const { hintsVisible } = useHintsVisibility();
   const hydrate = useAudioEditorStore((state) => state.hydrate);
   const setError = useAudioEditorStore((state) => state.setError);
@@ -335,7 +333,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
             onMoveLeft={() => moveRegion("left")}
             onMoveRight={() => moveRegion("right")}
             onReplaceVocal={() => setVoiceDialogOpen(true)}
-            onOwnVoiceUploaded={(sampleId) => router.push(`/consent?id=${sampleId}`)}
             onSplit={splitRegion}
           />
         </div>

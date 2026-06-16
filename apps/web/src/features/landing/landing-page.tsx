@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { FREE_DEMO_CREDITS } from "@ai-music/shared";
+import { VoiceUploadPanel } from "@/features/voice/voice-upload-panel";
 import { lp } from "./landing-classes";
-
-import { IconArrow, IconPlay } from "./landing-icons";
-import { LandingPromptBar } from "./landing-prompt-bar";
 
 export function LandingPage() {
   return (
@@ -22,11 +20,10 @@ export function LandingPage() {
         </h1>
 
         <p className={lp.subtitle}>
-          Задай prompt для трека, стиль, образец голоса — и через несколько минут готовый трек с твоим
-          голосом.
+          Запиши свой голос или загрузи образец — и создай трек с твоим вокалом за несколько минут.
         </p>
 
-        <LandingPromptBar />
+        <VoiceUploadPanel variant="landing" />
 
         <p className={lp.note}>
           {FREE_DEMO_CREDITS} demo credits для новых пользователей · без кредитной карты

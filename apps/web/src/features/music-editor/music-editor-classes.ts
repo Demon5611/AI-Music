@@ -125,7 +125,6 @@ export const me = {
   voiceModelPagination: "mb-3 flex items-center justify-between gap-2",
   voiceModelPaginationLabel: "text-center text-[0.8125rem] text-[var(--app-text-muted)]",
   dialogActions: "mt-3 flex justify-end gap-2",
-  ownVoicePanel: "flex flex-col gap-3",
   ownVoiceModeSwitch: "flex gap-1.5",
   ownVoiceModeButton: `${btnBase} flex-1 border-[var(--app-border-default)] bg-[var(--app-bg-surface)] text-[var(--app-text)]`,
   ownVoiceModeButtonActive: `${btnBase} flex-1 border-violet-600 bg-violet-600 text-white`,

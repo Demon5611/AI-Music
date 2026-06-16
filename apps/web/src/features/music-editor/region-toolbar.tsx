@@ -1,6 +1,5 @@
 "use client";
 
-import { VoiceUploadPanel } from "@/features/voice/voice-upload-panel";
 import { Tooltip, DisabledTooltipWrap } from "@/shared/ui/tooltip";
 import { me } from "@/features/music-editor/music-editor-classes";
 
@@ -15,7 +14,6 @@ interface RegionToolbarProps {
   onMoveLeft: () => void;
   onMoveRight: () => void;
   onReplaceVocal: () => void;
-  onOwnVoiceUploaded: (sampleId: string) => void;
 }
 
 function RegionActionButton({
@@ -62,7 +60,6 @@ export function RegionToolbar({
   onMoveLeft,
   onMoveRight,
   onReplaceVocal,
-  onOwnVoiceUploaded,
 }: RegionToolbarProps) {
   const actionsDisabled = disabled || !regionSelected;
 
@@ -133,14 +130,6 @@ export function RegionToolbar({
             onClick={onReplaceVocal}
           />
         </div>
-      </div>
-      <div className={me.toolbarSection}>
-        <p className={me.toolbarSectionTitle}>Заменить дорожку Vocal своим вокалом</p>
-        <VoiceUploadPanel
-          disabled={actionsDisabled}
-          variant="embedded"
-          onSuccess={onOwnVoiceUploaded}
-        />
       </div>
     </div>
   );

@@ -13,9 +13,30 @@ import { readAudioDurationSec } from "@/features/voice/read-audio-duration";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
-import { LoadingPanel } from "@/shared/ui/elevenlabs";
+import { lp } from "@/features/landing/landing-classes";
 import { me as editorStyles } from "@/features/music-editor/music-editor-classes";
+import { LoadingPanel } from "@/shared/ui/elevenlabs";
 import { appShell } from "@/shared/theme/app-theme";
+
+type VoiceUploadVariant = "page" | "landing";
+
+function resolveVoiceUploadStyles(variant: VoiceUploadVariant) {
+  const isLanding = variant === "landing";
+
+  return {
+    isLanding,
+    isPage: variant === "page",
+    form: isLanding ? editorStyles.ownVoiceForm : appShell.formPageForm,
+    field: isLanding ? editorStyles.ownVoiceField : appShell.formField,
+    label: isLanding ? editorStyles.fieldLabel : appShell.formLabel,
+    submit: isLanding ? lp.voiceSubmit : appShell.formSubmit,
+    hint: isLanding ? lp.voiceHint : appShell.formPageDescription,
+    error: isLanding ? editorStyles.error : appShell.formError,
+    consentRow: isLanding ? editorStyles.ownVoiceConsentRow : appShell.formConsentRow,
+    consentText: isLanding ? editorStyles.ownVoiceConsentText : appShell.formConsentText,
+    consentNotice: isLanding ? editorStyles.ownVoiceConsentNotice : appShell.formConsentNotice,
+  };
+}
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.body && typeof error.body === "object") {
@@ -83,7 +104,7 @@ function VoiceModeButton({ active, children, disabled, onSelect }: VoiceModeButt
 interface VoiceUploadPanelProps {
   disabled?: boolean;
   onSuccess?: (sampleId: string) => void;
-  variant?: "page" | "embedded";
+  variant?: VoiceUploadVariant;
 }
 
 export function VoiceUploadPanel({
@@ -114,7 +135,8 @@ export function VoiceUploadPanel({
     stopRecording,
   } = useVoiceRecorder();
 
-  const isEmbedded = variant === "embedded";
+  const styles = resolveVoiceUploadStyles(variant);
+  const { isLanding, isPage } = styles;
   const durationHint = `${MIN_VOICE_SAMPLE_DURATION_SEC}–${MAX_VOICE_SAMPLE_DURATION_SEC} сек`;
 
   useEffect(() => {
@@ -222,9 +244,7 @@ export function VoiceUploadPanel({
   const consentRequired = !confirmed;
   const voiceInputDisabled =
     disabled || isSubmitting || consentRequired || Boolean(pendingInputMode);
-  const consentNoticeClassName = isEmbedded
-    ? editorStyles.ownVoiceConsentNotice
-    : appShell.formConsentNotice;
+  const consentNoticeClassName = styles.consentNotice;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -274,20 +294,30 @@ export function VoiceUploadPanel({
   }
 
   if (!authReady) {
-    return isEmbedded ? <LoadingPanel lines={2} /> : <LoadingPanel />;
+    if (isLanding) {
+      return (
+        <div className={lp.voiceWrap}>
+          <div className={lp.voiceCard}>
+            <LoadingPanel lines={3} />
+          </div>
+        </div>
+      );
+    }
+
+    return <LoadingPanel />;
   }
 
-  const formClassName = isEmbedded ? editorStyles.ownVoiceForm : appShell.formPageForm;
-  const fieldClassName = isEmbedded ? editorStyles.ownVoiceField : appShell.formField;
-  const labelClassName = isEmbedded ? editorStyles.fieldLabel : appShell.formLabel;
+  const formClassName = styles.form;
+  const fieldClassName = styles.field;
+  const labelClassName = styles.label;
   const inputClassName = editorStyles.ownVoiceFileInput;
-  const submitClassName = isEmbedded ? editorStyles.primaryButton : appShell.formSubmit;
-  const hintClassName = isEmbedded ? editorStyles.panelHint : appShell.formPageDescription;
-  const errorClassName = isEmbedded ? editorStyles.error : appShell.formError;
+  const submitClassName = styles.submit;
+  const hintClassName = styles.hint;
+  const errorClassName = styles.error;
 
   const content = (
     <>
-      {!isEmbedded ? (
+      {isPage ? (
         <>
           <h1 className={appShell.formPageTitle}>Запись голоса</h1>
           <p className={appShell.formPageDescription}>
@@ -298,13 +328,14 @@ export function VoiceUploadPanel({
       ) : (
         <p className={hintClassName}>
           Выберите один способ: запись с микрофона или загрузка файла ({durationHint}).
+          {isLanding ? " Затем создайте трек с вашим вокалом." : null}
         </p>
       )}
 
       <form className={formClassName} onSubmit={handleSubmit}>
         <div className={fieldClassName}>
           <span className={labelClassName}>Согласие на обработку персональных данных.</span>
-          <label className={isEmbedded ? editorStyles.ownVoiceConsentRow : appShell.formConsentRow}>
+          <label className={styles.consentRow}>
             <input
               checked={confirmed}
               className={appShell.accentCheckbox}
@@ -312,9 +343,7 @@ export function VoiceUploadPanel({
               type="checkbox"
               onChange={(event) => setConfirmed(event.target.checked)}
             />
-            <span
-              className={isEmbedded ? editorStyles.ownVoiceConsentText : appShell.formConsentText}
-            >
+            <span className={styles.consentText}>
               {VOICE_CONSENT_PHRASE}
             </span>
           </label>
@@ -491,8 +520,12 @@ export function VoiceUploadPanel({
     </>
   );
 
-  if (isEmbedded) {
-    return <div className={editorStyles.ownVoicePanel}>{content}</div>;
+  if (isLanding) {
+    return (
+      <div className={lp.voiceWrap}>
+        <div className={lp.voiceCard}>{content}</div>
+      </div>
+    );
   }
 
   return <section className={appShell.formPage}>{content}</section>;
