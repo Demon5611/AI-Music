@@ -2,7 +2,7 @@
 
 import { useHintsVisibility } from "@/shared/providers/hints-visibility-provider";
 import { useState } from "react";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
 
 export function EditorHelpPanel() {
   const { hintsVisible } = useHintsVisibility();
@@ -13,16 +13,16 @@ export function EditorHelpPanel() {
   }
 
   return (
-    <div className={styles.helpPanel}>
+    <div className={me.helpPanel}>
       <button
-        className={styles.helpToggle}
+        className={me.helpToggle}
         type="button"
         onClick={() => setOpen((value) => !value)}
       >
         Как пользоваться редактором ?
       </button>
       {open ? (
-        <ol className={styles.helpList}>
+        <ol className={me.helpList}>
           <li>Кликните timeline, чтобы выбрать регион под playhead</li>
           <li>Split и другие Region actions применяются к выбранному региону</li>
           <li>Выберите дорожку Vocal или Instrumental</li>

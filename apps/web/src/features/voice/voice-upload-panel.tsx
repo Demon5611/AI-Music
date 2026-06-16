@@ -13,7 +13,7 @@ import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { LoadingPanel } from "@/shared/ui/elevenlabs";
-import editorStyles from "@/features/music-editor/styles/music-editor.module.css";
+import { me as editorStyles } from "@/features/music-editor/music-editor-classes";
 import formStyles from "@/shared/ui/form.module.css";
 
 function resolveErrorMessage(error: unknown): string {
@@ -39,6 +39,45 @@ function formatRecordingTime(seconds: number): string {
 }
 
 type VoiceInputMode = "record" | "upload";
+
+interface VoiceModeButtonProps {
+  active: boolean;
+  children: string;
+  disabled: boolean;
+  onSelect: () => void;
+}
+
+function VoiceModeButton({ active, children, disabled, onSelect }: VoiceModeButtonProps) {
+  const className = active
+    ? editorStyles.ownVoiceModeButtonActive
+    : editorStyles.ownVoiceModeButton;
+
+  if (active) {
+    return (
+      <button
+        aria-pressed="true"
+        className={className}
+        disabled={disabled}
+        type="button"
+        onClick={onSelect}
+      >
+        {children}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      aria-pressed="false"
+      className={className}
+      disabled={disabled}
+      type="button"
+      onClick={onSelect}
+    >
+      {children}
+    </button>
+  );
+}
 
 interface VoiceUploadPanelProps {
   disabled?: boolean;
@@ -75,7 +114,6 @@ export function VoiceUploadPanel({
   } = useVoiceRecorder();
 
   const isEmbedded = variant === "embedded";
-  const styles = isEmbedded ? editorStyles : formStyles;
   const durationHint = `${MIN_VOICE_SAMPLE_DURATION_SEC}–${MAX_VOICE_SAMPLE_DURATION_SEC} сек`;
 
   useEffect(() => {
@@ -227,20 +265,20 @@ export function VoiceUploadPanel({
     return isEmbedded ? <LoadingPanel lines={2} /> : <LoadingPanel />;
   }
 
-  const formClassName = isEmbedded ? editorStyles.ownVoiceForm : styles.form;
-  const fieldClassName = isEmbedded ? editorStyles.ownVoiceField : styles.field;
-  const labelClassName = isEmbedded ? editorStyles.fieldLabel : styles.label;
-  const inputClassName = isEmbedded ? editorStyles.textInput : styles.fileInput;
-  const submitClassName = isEmbedded ? editorStyles.primaryButton : styles.submit;
-  const hintClassName = isEmbedded ? editorStyles.panelHint : styles.description;
-  const errorClassName = isEmbedded ? editorStyles.error : styles.error;
+  const formClassName = isEmbedded ? editorStyles.ownVoiceForm : formStyles.form;
+  const fieldClassName = isEmbedded ? editorStyles.ownVoiceField : formStyles.field;
+  const labelClassName = isEmbedded ? editorStyles.fieldLabel : formStyles.label;
+  const inputClassName = isEmbedded ? editorStyles.textInput : formStyles.fileInput;
+  const submitClassName = isEmbedded ? editorStyles.primaryButton : formStyles.submit;
+  const hintClassName = isEmbedded ? editorStyles.panelHint : formStyles.description;
+  const errorClassName = isEmbedded ? editorStyles.error : formStyles.error;
 
   const content = (
     <>
       {!isEmbedded ? (
         <>
-          <h1 className={styles.title}>Запись голоса</h1>
-          <p className={styles.description}>
+          <h1 className={formStyles.title}>Запись голоса</h1>
+          <p className={formStyles.description}>
             Выберите один способ: запись с микрофона или загрузка файла ({durationHint}). Затем
             привяжите модель из Kits.
           </p>
@@ -254,37 +292,23 @@ export function VoiceUploadPanel({
       <form className={formClassName} onSubmit={handleSubmit}>
         <div
           className={editorStyles.ownVoiceModeSwitch}
-          role="tablist"
+          role="group"
           aria-label="Способ ввода голоса"
         >
-          <button
-            aria-selected={inputMode === "record"}
-            className={
-              inputMode === "record"
-                ? editorStyles.ownVoiceModeButtonActive
-                : editorStyles.ownVoiceModeButton
-            }
+          <VoiceModeButton
+            active={inputMode === "record"}
             disabled={disabled || isSubmitting || isRecording}
-            role="tab"
-            type="button"
-            onClick={() => requestInputMode("record")}
+            onSelect={() => requestInputMode("record")}
           >
             Микрофон
-          </button>
-          <button
-            aria-selected={inputMode === "upload"}
-            className={
-              inputMode === "upload"
-                ? editorStyles.ownVoiceModeButtonActive
-                : editorStyles.ownVoiceModeButton
-            }
+          </VoiceModeButton>
+          <VoiceModeButton
+            active={inputMode === "upload"}
             disabled={disabled || isSubmitting || isRecording}
-            role="tab"
-            type="button"
-            onClick={() => requestInputMode("upload")}
+            onSelect={() => requestInputMode("upload")}
           >
             Файл
-          </button>
+          </VoiceModeButton>
         </div>
 
         {replaceWarningMessage ? (
@@ -412,7 +436,7 @@ export function VoiceUploadPanel({
 
         <label className={fieldClassName}>
           <span className={labelClassName}>Согласие</span>
-          <label className={isEmbedded ? editorStyles.panelHint : styles.hint}>
+          <label className={isEmbedded ? editorStyles.panelHint : formStyles.hint}>
             <input
               checked={confirmed}
               disabled={disabled || isSubmitting || isRecording}
@@ -441,5 +465,5 @@ export function VoiceUploadPanel({
     return <div className={editorStyles.ownVoicePanel}>{content}</div>;
   }
 
-  return <section className={styles.section}>{content}</section>;
+  return <section className={formStyles.section}>{content}</section>;
 }

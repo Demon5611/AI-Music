@@ -40,7 +40,9 @@ import {
   type PendingTimelineOperation,
   type TimelineStemSource,
 } from "@/features/music-editor/utils/waveform-playlist-utils";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
+import playlistStyles from "@/features/music-editor/styles/music-editor-playlist.module.css";
+import { cn } from "@/lib/utils";
 
 interface WaveformTimelineProps {
   regions: SongRegionDto[];
@@ -65,6 +67,16 @@ const TRACK_COLORS: Record<EditorTrackId, string> = {
   vocal: "#93c5fd",
   instrumental: "#86efac",
 };
+
+const PLAYLIST_TRACK_LABEL_CLASS: Record<EditorTrackId, string> = {
+  vocal: me.playlistTrackLabelVocal,
+  instrumental: me.playlistTrackLabelInstrumental,
+};
+
+const PLAYLIST_PROVIDER_THEME = {
+  surfaceColor: "transparent",
+  selectedTrackControlsBackground: "transparent",
+} as const;
 
 const PERSIST_DEBOUNCE_MS = 450;
 
@@ -375,7 +387,11 @@ export function WaveformTimeline({
       }
 
       return (
-        <div className={styles.playlistTrackLabel} title={source.label}>
+        <div
+          className={cn(me.playlistTrackLabel, PLAYLIST_TRACK_LABEL_CLASS[source.id])}
+          data-stem-id={source.id}
+          title={source.label}
+        >
           {source.label}
         </div>
       );
@@ -523,12 +539,12 @@ export function WaveformTimeline({
   );
 
   return (
-    <div className={styles.timelineBlock} id="editor-timeline">
-      <div className={styles.timelineHeader}>
-        <div className={styles.timelineTitleRow}>
-          <p className={styles.blockLabel}>Timeline</p>
+    <div className={me.timelineBlock} id="editor-timeline">
+      <div className={me.timelineHeader}>
+        <div className={me.timelineTitleRow}>
+          <p className={me.blockLabel}>Timeline</p>
           <button
-            className={linkedTracks ? styles.timelineModeButtonActive : styles.timelineModeButton}
+            className={linkedTracks ? me.timelineModeButtonActive : me.timelineModeButton}
             disabled={transportDisabled}
             type="button"
             onClick={() => setLinkedTracks(!linkedTracks)}
@@ -539,13 +555,13 @@ export function WaveformTimeline({
         <TransportControls disabled={transportDisabled} />
       </div>
 
-      {error ? <p className={styles.error}>{error}</p> : null}
-      {isInitialTrackLoad ? <p className={styles.panelHint}>Загрузка waveform...</p> : null}
+      {error ? <p className={me.error}>{error}</p> : null}
+      {isInitialTrackLoad ? <p className={me.panelHint}>Загрузка waveform...</p> : null}
 
       {providerTracks.length > 0 || isInitialTrackLoad ? (
-        <div className={styles.playlistShell} ref={playlistShellRef}>
+        <div className={cn(me.playlistShell, playlistStyles.shell)} ref={playlistShellRef}>
           {!canMountTimeline && timelineReady ? (
-            <p className={styles.playlistShellHint}>Подготовка timeline...</p>
+            <p className={me.playlistShellHint}>Подготовка timeline...</p>
           ) : null}
           {timelineReady ? (
             <WaveformPlaylistProvider
@@ -555,6 +571,7 @@ export function WaveformTimeline({
               mono
               sampleRate={AUDIO_CONTEXT_OPTIONS.sampleRate}
               samplesPerPixel={fitTimelineZoom.samplesPerPixel}
+              theme={PLAYLIST_PROVIDER_THEME}
               zoomLevels={fitTimelineZoom.zoomLevels}
               timescale
               tracks={providerTracks}
@@ -599,7 +616,7 @@ export function WaveformTimeline({
         </div>
       ) : null}
 
-      <p className={styles.timelineHint}>
+      <p className={me.timelineHint}>
         {linkedTracks
           ? "Linked mode: drag и trim применяются синхронно к Vocal и Instrumental."
           : "Independent mode: drag и trim применяются только к дорожке, которую вы редактируете."}{" "}

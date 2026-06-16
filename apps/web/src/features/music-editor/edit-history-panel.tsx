@@ -6,7 +6,7 @@ import {
   selectRegionLabel,
   useAudioEditorStore,
 } from "@/features/music-editor/store/audio-editor-store";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
 
 interface EditHistoryPanelProps {
   operations: EditOperation[];
@@ -66,21 +66,21 @@ export function EditHistoryPanel({
   const setSelectedRegion = useAudioEditorStore((state) => state.setSelectedRegion);
 
   return (
-    <div className={styles.panel}>
-      <h3 className={styles.panelTitle}>Edit history</h3>
+    <div className={me.panel}>
+      <h3 className={me.panelTitle}>Edit history</h3>
 
       {operations.length === 0 ? (
-        <p className={styles.panelHint}>Операции появятся здесь после первого изменения</p>
+        <p className={me.panelHint}>Операции появятся здесь после первого изменения</p>
       ) : (
-        <ol className={styles.historyList}>
+        <ol className={me.historyList}>
           {operations.map((operation, index) => {
             const regionId = "regionId" in operation ? operation.regionId : null;
 
             return (
-              <li className={styles.historyItem} key={`${operation.type}-${index}`}>
+              <li className={me.historyItem} key={`${operation.type}-${index}`}>
                 <Tooltip content="Кликните, чтобы перейти к фрагменту, который был изменен">
                   <button
-                    className={styles.historyButton}
+                    className={me.historyButton}
                     type="button"
                     onClick={() => {
                       if (regionId) {
@@ -97,10 +97,10 @@ export function EditHistoryPanel({
         </ol>
       )}
 
-      <div className={styles.toolbarRow}>
+      <div className={me.toolbarRow}>
         <Tooltip content="Отменить последнее изменение">
           <button
-            className={styles.toolButton}
+            className={me.toolButton}
             disabled={disabled || operations.length === 0}
             type="button"
             onClick={onUndo}
@@ -110,7 +110,7 @@ export function EditHistoryPanel({
         </Tooltip>
         <Tooltip content="Вернуть отмененное изменение">
           <button
-            className={styles.toolButton}
+            className={me.toolButton}
             disabled={disabled || undoneOperations.length === 0}
             type="button"
             onClick={onRedo}

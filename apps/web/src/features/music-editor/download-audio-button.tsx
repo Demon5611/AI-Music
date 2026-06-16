@@ -3,7 +3,7 @@
 import { useAuth } from "@clerk/nextjs";
 import { useState } from "react";
 import { createDevAuthToken, env } from "@/shared/config/env";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
 
 interface DownloadAudioButtonProps {
   audioUrl: string;
@@ -44,7 +44,7 @@ function DevDownloadButton({
 
   return (
     <button
-      className={styles.toolButton}
+      className={me.toolButton}
       disabled={isDownloading}
       type="button"
       onClick={() => void handleDownload()}
@@ -89,7 +89,7 @@ function ClerkDownloadButton({
 
   return (
     <button
-      className={styles.toolButton}
+      className={me.toolButton}
       disabled={isDownloading}
       type="button"
       onClick={() => void handleDownload()}

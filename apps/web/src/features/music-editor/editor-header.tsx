@@ -1,7 +1,7 @@
 "use client";
 
 import { useHintsVisibility } from "@/shared/providers/hints-visibility-provider";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
 
 interface EditorHeaderProps {
   title: string;
@@ -11,18 +11,18 @@ export function EditorHeader({ title }: EditorHeaderProps) {
   const { hintsVisible, setHintsVisible } = useHintsVisibility();
 
   return (
-    <div className={styles.editorHeader}>
-      <h1 className={styles.title}>{title || "Audio Editor"}</h1>
-      <label className={styles.hintsToggle}>
-        <span className={styles.hintsToggleLabel}>Подсказки</span>
+    <div className={me.editorHeader}>
+      <h1 className={me.title}>{title || "Audio Editor"}</h1>
+      <label className={me.hintsToggle}>
+        <span className={me.hintsToggleLabel}>Подсказки</span>
         <input
           checked={hintsVisible}
-          className={styles.hintsToggleInput}
+          className={me.hintsToggleInput}
           type="checkbox"
           onChange={(event) => setHintsVisible(event.target.checked)}
         />
-        <span className={styles.hintsToggleTrack} aria-hidden="true">
-          <span className={styles.hintsToggleThumb} />
+        <span className={me.hintsToggleTrack} aria-hidden="true">
+          <span className={me.hintsToggleThumb} />
         </span>
       </label>
     </div>

@@ -22,7 +22,8 @@ import {
   HintsVisibilityProvider,
   useHintsVisibility,
 } from "@/shared/providers/hints-visibility-provider";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
+import { cn } from "@/lib/utils";
 import { useEditorTransportShortcuts } from "./hooks/use-editor-transport-shortcuts";
 import { useEditorInitialLoad } from "./hooks/use-editor-initial-load";
 import dynamic from "next/dynamic";
@@ -32,12 +33,12 @@ const WaveformTimeline = dynamic(
     import("@/features/music-editor/waveform-timeline").then((module) => module.WaveformTimeline),
   {
     ssr: false,
-    loading: () => <p className={styles.panelHint}>Загрузка timeline...</p>,
+    loading: () => <p className={me.panelHint}>Загрузка timeline...</p>,
   },
 );
 
 function TimelinePlaceholder() {
-  return <p className={styles.panelHint}>Загрузка timeline...</p>;
+  return <p className={me.panelHint}>Загрузка timeline...</p>;
 }
 
 function DeferredWaveformTimeline(props: ComponentProps<typeof WaveformTimeline>) {
@@ -99,15 +100,15 @@ function EditorPreparationStatus({
   );
   const elapsedLabel = formatElapsedTime(elapsedSeconds);
   const estimateLabel = formatElapsedTime(EDITOR_PREPARATION_ESTIMATE_SEC);
-  const rootClassName = compact ? styles.preparationStatusCompact : styles.preparationStatus;
+  const rootClassName = compact ? me.preparationStatusCompact : me.preparationStatus;
 
   return (
     <div className={rootClassName}>
-      <div className={styles.preparationHeader}>
-        <span className={styles.preparationSpinner} aria-hidden="true" />
+      <div className={me.preparationHeader}>
+        <span className={me.preparationSpinner} aria-hidden="true" />
         <div>
-          <p className={styles.preparationTitle}>{message}</p>
-          <p className={styles.preparationMeta}>
+          <p className={me.preparationTitle}>{message}</p>
+          <p className={me.preparationMeta}>
             {mounted
               ? `Прошло ${elapsedLabel}. Обычно это занимает до ${estimateLabel}.`
               : "Подготовка может занять до минуты."}
@@ -115,14 +116,14 @@ function EditorPreparationStatus({
         </div>
       </div>
 
-      <div className={styles.preparationProgressRow}>
+      <div className={me.preparationProgressRow}>
         <progress
           aria-label="Подготовка"
-          className={styles.preparationProgress}
+          className={me.preparationProgress}
           max={100}
           value={mounted ? progress : 0}
         />
-        <span className={styles.preparationProgressValue}>{mounted ? `${progress}%` : "0%"}</span>
+        <span className={me.preparationProgressValue}>{mounted ? `${progress}%` : "0%"}</span>
       </div>
     </div>
   );
@@ -260,13 +261,13 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   })();
 
   return (
-    <section className={`${styles.section} ${hintsVisible ? "" : styles.hintsHidden}`}>
+    <section className={cn(me.section, !hintsVisible && me.sectionHintsHidden)}>
       <EditorHeader title={title || "Audio Editor"} />
 
       <EditorHelpPanel />
 
       {!editorReady ? (
-        <div className={styles.statusCard}>
+        <div className={me.statusCard}>
           <EditorPreparationStatus key={statusMessage} message={statusMessage} />
         </div>
       ) : null}
@@ -299,14 +300,14 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
         onSelectRegion={setSelectedRegion}
       />
 
-      <div className={styles.layout}>
-        <div className={styles.mainColumn}>
-          <div className={styles.panel}>
-            <h3 className={styles.panelTitle}>Tracks (изменения в рамках всего трека)</h3>
+      <div className={me.layout}>
+        <div className={me.mainColumn}>
+          <div className={me.panel}>
+            <h3 className={me.panelTitle}>Tracks (изменения в рамках всего трека)</h3>
             {!stemsReady ? (
               <EditorPreparationStatus compact key={statusMessage} message={statusMessage} />
             ) : null}
-            <div className={styles.trackList}>
+            <div className={me.trackList}>
               {tracks.map((track) => (
                 <TrackLane
                   key={track.id}
@@ -339,7 +340,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
           />
         </div>
 
-        <div className={styles.sideColumn}>
+        <div className={me.sideColumn}>
           <EditHistoryPanel
             disabled={controlsDisabled}
             operations={operations}
@@ -365,7 +366,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
         onConfirm={voiceTransfer}
       />
 
-      {error ? <p className={styles.error}>{error}</p> : null}
+      {error ? <p className={me.error}>{error}</p> : null}
     </section>
   );
 }

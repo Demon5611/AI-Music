@@ -3,7 +3,7 @@
 import { Tooltip } from "@/shared/ui/tooltip";
 import { formatTimeMs } from "@/features/music-editor/utils/format-time";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
 
 interface TransportControlsProps {
   disabled?: boolean;
@@ -22,10 +22,10 @@ export function TransportControls({ disabled = false }: TransportControlsProps) 
   const zoom = useAudioEditorStore((state) => state.zoom);
 
   return (
-    <div className={styles.transportBar}>
+    <div className={me.transportBar}>
       <Tooltip content="Воспроизвести или поставить трек на паузу (Space)">
         <button
-          className={styles.transportButton}
+          className={me.transportButton}
           disabled={disabled}
           type="button"
           onClick={togglePlay}
@@ -36,7 +36,7 @@ export function TransportControls({ disabled = false }: TransportControlsProps) 
 
       <Tooltip content="Остановить и вернуться в начало">
         <button
-          className={styles.transportButton}
+          className={me.transportButton}
           disabled={disabled}
           type="button"
           onClick={stop}
@@ -48,7 +48,7 @@ export function TransportControls({ disabled = false }: TransportControlsProps) 
       <Tooltip content="Зациклить выбранный фрагмент">
         <button
           className={
-            loopSelected ? styles.transportButtonActive : styles.transportButton
+            loopSelected ? me.transportButtonActive : me.transportButton
           }
           disabled={disabled || !selectedRegionId}
           type="button"
@@ -58,14 +58,14 @@ export function TransportControls({ disabled = false }: TransportControlsProps) 
         </button>
       </Tooltip>
 
-      <span className={styles.transportTime}>
+      <span className={me.transportTime}>
         {formatTimeMs(currentTimeMs)} / {formatTimeMs(durationMs)}
       </span>
 
-      <div className={styles.transportZoom}>
+      <div className={me.transportZoom}>
         <Tooltip content="Уменьшить масштаб timeline">
           <button
-            className={styles.transportButton}
+            className={me.transportButton}
             disabled={disabled}
             type="button"
             onClick={() => setZoom(zoom - 10)}
@@ -75,7 +75,7 @@ export function TransportControls({ disabled = false }: TransportControlsProps) 
         </Tooltip>
         <Tooltip content="Увеличить масштаб timeline">
           <button
-            className={styles.transportButton}
+            className={me.transportButton}
             disabled={disabled}
             type="button"
             onClick={() => setZoom(zoom + 10)}

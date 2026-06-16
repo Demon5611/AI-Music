@@ -10,7 +10,7 @@ import {
   KITS_VOICE_MODELS_MAX_SEARCH_PAGES,
   KITS_VOICE_MODELS_PAGE_SIZE,
 } from "@/features/music-editor/utils/kits-voice-models";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
 
 interface VoiceTransferDialogProps {
   open: boolean;
@@ -171,15 +171,15 @@ export function VoiceTransferDialog({
     : "Каталог royalty-free голосов";
 
   return (
-    <div className={styles.dialogBackdrop}>
-      <div className={styles.dialogCardWide}>
-        <h3 className={styles.panelTitle}>Заменить вокал (Kits)</h3>
-        <p className={styles.dialogHint}>{catalogHint}</p>
+    <div className={me.dialogBackdrop}>
+      <div className={me.dialogCardWide}>
+        <h3 className={me.panelTitle}>Заменить вокал (Kits)</h3>
+        <p className={me.dialogHint}>{catalogHint}</p>
 
-        <label className={styles.fieldLabel}>
+        <label className={me.fieldLabel}>
           Поиск
           <input
-            className={styles.textInput}
+            className={me.textInput}
             disabled={disabled || isSubmitting}
             placeholder="Pop Female, LoFi, 1014961..."
             value={searchQuery}
@@ -196,29 +196,29 @@ export function VoiceTransferDialog({
         ) : null}
 
         {!isLoading && models.length > 0 ? (
-          <div className={styles.voiceModelListSection}>
-            <p className={styles.voiceModelListTitle}>
+          <div className={me.voiceModelListSection}>
+            <p className={me.voiceModelListTitle}>
               {isSearchActive
                 ? `Найдено: ${models.length}`
                 : `Голоса на странице: ${models.length}`}
             </p>
-            <div className={styles.voiceModelList}>
+            <div className={me.voiceModelList}>
               {models.map((model) => (
                 <button
                   key={model.id}
                   className={
                     selectedId === model.id
-                      ? styles.voiceModelOptionSelected
-                      : styles.voiceModelOption
+                      ? me.voiceModelOptionSelected
+                      : me.voiceModelOption
                   }
                   disabled={disabled || isSubmitting}
                   type="button"
                   onClick={() => handleSelectModel(model.id)}
                 >
-                  <span className={styles.voiceModelOptionTitle}>{model.title}</span>
-                  <span className={styles.voiceModelOptionMeta}>ID {model.id}</span>
+                  <span className={me.voiceModelOptionTitle}>{model.title}</span>
+                  <span className={me.voiceModelOptionMeta}>ID {model.id}</span>
                   {model.tags.length > 0 ? (
-                    <span className={styles.voiceModelOptionTags}>
+                    <span className={me.voiceModelOptionTags}>
                       {model.tags.slice(0, 4).join(", ")}
                     </span>
                   ) : null}
@@ -229,7 +229,7 @@ export function VoiceTransferDialog({
         ) : null}
 
         {!isLoading && models.length === 0 && !error ? (
-          <p className={styles.dialogHint}>
+          <p className={me.dialogHint}>
             {isSearchActive
               ? "Ничего не найдено. Измените запрос или укажите id вручную."
               : "Каталог пуст на этой странице."}
@@ -237,21 +237,21 @@ export function VoiceTransferDialog({
         ) : null}
 
         {!isSearchActive && paginationMeta ? (
-          <div className={styles.voiceModelPagination}>
+          <div className={me.voiceModelPagination}>
             <button
-              className={styles.toolButton}
+              className={me.toolButton}
               disabled={disabled || isSubmitting || paginationMeta.currentPage <= 1}
               type="button"
               onClick={() => setPage((current) => Math.max(1, current - 1))}
             >
               Назад
             </button>
-            <span className={styles.voiceModelPaginationLabel}>
+            <span className={me.voiceModelPaginationLabel}>
               Страница {paginationMeta.currentPage} из {paginationMeta.lastPage}
               {paginationMeta.total > 0 ? ` (${paginationMeta.total} голосов)` : null}
             </span>
             <button
-              className={styles.toolButton}
+              className={me.toolButton}
               disabled={
                 disabled || isSubmitting || paginationMeta.currentPage >= paginationMeta.lastPage
               }
@@ -263,10 +263,10 @@ export function VoiceTransferDialog({
           </div>
         ) : null}
 
-        <label className={styles.fieldLabel}>
+        <label className={me.fieldLabel}>
           Или введите Kits voice model id
           <input
-            className={styles.textInput}
+            className={me.textInput}
             disabled={disabled || isSubmitting}
             inputMode="numeric"
             placeholder="1014961"
@@ -278,10 +278,10 @@ export function VoiceTransferDialog({
           />
         </label>
 
-        {error ? <p className={styles.error}>{error}</p> : null}
-        <div className={styles.dialogActions}>
+        {error ? <p className={me.error}>{error}</p> : null}
+        <div className={me.dialogActions}>
           <button
-            className={styles.toolButton}
+            className={me.toolButton}
             disabled={isSubmitting}
             type="button"
             onClick={onClose}
@@ -289,7 +289,7 @@ export function VoiceTransferDialog({
             Отмена
           </button>
           <button
-            className={styles.primaryButton}
+            className={me.primaryButton}
             disabled={disabled || isSubmitting}
             type="button"
             onClick={() => void handleConfirm()}

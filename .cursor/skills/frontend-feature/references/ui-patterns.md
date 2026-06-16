@@ -1,5 +1,12 @@
 # Frontend UI patterns
 
+## Styling (required)
+
+- **Always use Tailwind** for UI styles. Map shared tokens via `appShell` (`@/shared/theme/app-theme`) or feature maps (`lp`, `mt`, `me`).
+- **No inline styles** except dynamic CSS variables required by third-party widgets (e.g. `--track-progress` on timeline).
+- **CSS modules** only for `:global()` overrides of external libraries (`music-editor-playlist.module.css` for `@waveform-playlist`).
+- Theme: `next-themes` toggles `.dark` on `<html>`; colors use `var(--app-*)` from `globals.css`.
+
 ## CSS tokens (globals.css)
 
 Project CSS modules use:
@@ -54,10 +61,10 @@ import { AudioPreviewPlayer } from "@/shared/ui/elevenlabs/audio-preview-player"
 
 ## Music editor (custom stack)
 
-Not ElevenLabs UI:
+Not ElevenLabs UI. Styles: Tailwind via `me` from `music-editor-classes.ts`.
 
 - `waveform-timeline.tsx`, `track-lane`, `transport-controls`
-- `@waveform-playlist/*` for timeline
+- `@waveform-playlist/*` for timeline — playlist `:global` CSS in `styles/music-editor-playlist.module.css` only
 - `audio-editor-store.ts` (Zustand) for editor state
 - dnd-kit for drag operations
 
@@ -81,4 +88,4 @@ Clerk: `app/sign-in/[[...sign-in]]/page.tsx`. Middleware in `middleware.ts`.
 
 - Components: PascalCase `voice-transfer-dialog.tsx`
 - Hooks: `use-*.ts`
-- Styles: kebab-case `music-editor.module.css`
+- Styles: kebab-case `music-editor-classes.ts` (Tailwind map `me`), not CSS modules for layout/components

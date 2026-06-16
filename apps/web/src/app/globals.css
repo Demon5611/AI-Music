@@ -28,6 +28,11 @@
     transparent 70%
   );
 
+  /* Music editor — stem label column (pastel on any app theme) */
+  --editor-stem-vocal-bg: #93c5fd;
+  --editor-stem-instrumental-bg: #86efac;
+  --editor-stem-label-text: #171717;
+
   /* Project tokens (CSS modules) */
   --background: var(--app-bg-page);
   --foreground: var(--app-text);
@@ -134,6 +139,8 @@
     #4c1d95 40%,
     transparent 70%
   );
+
+  --editor-stem-label-text: #000000;
 
   --background: var(--app-bg-page);
   --foreground: var(--app-text);

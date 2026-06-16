@@ -7,7 +7,7 @@ import {
   useAudioEditorStore,
 } from "@/features/music-editor/store/audio-editor-store";
 import { formatTimeRangeMs } from "@/features/music-editor/utils/format-time";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
 
 export function SelectedContextPanel() {
   const selectedRegion = useAudioEditorStore(selectSelectedRegion);
@@ -27,10 +27,10 @@ export function SelectedContextPanel() {
       block
       content="Здесь показано, к какому фрагменту и дорожке будет применено действие"
     >
-      <div className={styles.contextPanel}>
-        <p className={styles.contextTitle}>Editing:</p>
+      <div className={me.contextPanel}>
+        <p className={me.contextTitle}>Editing:</p>
         {selectedRegion ? (
-          <div className={styles.contextGrid}>
+          <div className={me.contextGrid}>
             <span>Track: {trackLabel}</span>
             <span>Region: {selectRegionLabel(selectedRegion)}</span>
             <span>
@@ -48,7 +48,7 @@ export function SelectedContextPanel() {
             ) : null}
           </div>
         ) : (
-          <p className={styles.panelHint}>
+          <p className={me.panelHint}>
             Кликните timeline, чтобы выбрать регион. Выделите фрагмент на
             waveform и нажмите Delete, чтобы вырезать его. Split режет в позиции
             playhead.

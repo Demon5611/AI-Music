@@ -2,7 +2,7 @@
 
 import { VoiceUploadPanel } from "@/features/voice/voice-upload-panel";
 import { Tooltip, DisabledTooltipWrap } from "@/shared/ui/tooltip";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
 
 interface RegionToolbarProps {
   disabled: boolean;
@@ -33,10 +33,10 @@ function RegionActionButton({
 }) {
   const className =
     variant === "destructive"
-      ? styles.toolButtonDestructive
+      ? me.toolButtonDestructive
       : variant === "ai"
-        ? styles.toolButtonAi
-        : styles.toolButton;
+        ? me.toolButtonAi
+        : me.toolButton;
 
   const button = (
     <button className={className} disabled={disabled} type="button" onClick={onClick}>
@@ -67,15 +67,15 @@ export function RegionToolbar({
   const actionsDisabled = disabled || !regionSelected;
 
   return (
-    <div className={styles.panel}>
-      <h3 className={styles.panelTitle}>Basic edit (изменения в рамках выделенного блока)</h3>
+    <div className={me.panel}>
+      <h3 className={me.panelTitle}>Basic edit (изменения в рамках выделенного блока)</h3>
 
       {!regionSelected ? (
-        <p className={styles.panelHint}>Сначала выберите фрагмент на timeline</p>
+        <p className={me.panelHint}>Сначала выберите фрагмент на timeline</p>
       ) : null}
 
-      <div className={styles.toolbarSection}>
-        <div className={styles.toolbarGrid}>
+      <div className={me.toolbarSection}>
+        <div className={me.toolbarGrid}>
           <RegionActionButton
             disabled={actionsDisabled}
             label="Split"
@@ -122,9 +122,9 @@ export function RegionToolbar({
         </div>
       </div>
 
-      <div className={styles.toolbarSection}>
-        <p className={styles.toolbarSectionTitle}>AI actions</p>
-        <div className={styles.toolbarGrid}>
+      <div className={me.toolbarSection}>
+        <p className={me.toolbarSectionTitle}>AI actions</p>
+        <div className={me.toolbarGrid}>
           <RegionActionButton
             disabled={actionsDisabled}
             label="Replace vocal"
@@ -134,8 +134,8 @@ export function RegionToolbar({
           />
         </div>
       </div>
-      <div className={styles.toolbarSection}>
-        <p className={styles.toolbarSectionTitle}>Заменить дорожку Vocal своим вокалом</p>
+      <div className={me.toolbarSection}>
+        <p className={me.toolbarSectionTitle}>Заменить дорожку Vocal своим вокалом</p>
         <VoiceUploadPanel
           disabled={actionsDisabled}
           variant="embedded"

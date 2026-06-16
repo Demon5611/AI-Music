@@ -4,7 +4,7 @@ import type { SongVersionDto } from "@ai-music/shared";
 import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { DownloadAudioButton } from "@/features/music-editor/download-audio-button";
-import styles from "@/features/music-editor/styles/music-editor.module.css";
+import { me } from "@/features/music-editor/music-editor-classes";
 
 interface RenderButtonProps {
   disabled: boolean;
@@ -30,15 +30,15 @@ export function RenderButton({
   const hasCompletedRender = Boolean(latestRendered?.renderedAudioUrl);
 
   return (
-    <div className={styles.panel}>
-      <h3 className={styles.panelTitle}>Render version</h3>
-      <p className={styles.panelHint}>
+    <div className={me.panel}>
+      <h3 className={me.panelTitle}>Render version</h3>
+      <p className={me.panelHint}>
         Создайте новую аудиоверсию со всеми изменениями. Оригинал не будет перезаписан.
       </p>
 
       <Tooltip content="Создать новую версию, не изменяя оригинал">
         <button
-          className={styles.primaryButton}
+          className={me.primaryButton}
           disabled={disabled || isRendering}
           type="button"
           onClick={onRender}
@@ -48,28 +48,28 @@ export function RenderButton({
       </Tooltip>
 
       {isRendering ? (
-        <p className={styles.renderStatus}>Сборка MP3 на сервере, подождите...</p>
+        <p className={me.renderStatus}>Сборка MP3 на сервере, подождите...</p>
       ) : null}
 
-      {renderError ? <p className={styles.error}>{renderError}</p> : null}
+      {renderError ? <p className={me.error}>{renderError}</p> : null}
 
       {!isRendering && !hasCompletedRender && !renderError ? (
-        <p className={styles.renderStatus}>
+        <p className={me.renderStatus}>
           Готовых версий пока нет. После успешного render здесь появятся плеер и Download MP3.
         </p>
       ) : null}
 
       {!isRendering && latestFailedRender && !hasCompletedRender && !renderError ? (
-        <p className={styles.renderStatus}>
+        <p className={me.renderStatus}>
           Последний render (v{latestFailedRender.versionNumber}) не удался. Проверьте, что на
           сервере установлен ffmpeg.
         </p>
       ) : null}
 
       {latestRendered?.renderedAudioUrl ? (
-        <div className={styles.renderResult}>
-          <p className={styles.renderStatus}>Version {latestRendered.versionNumber} ready</p>
-          <AuthenticatedAudio className={styles.player} src={latestRendered.renderedAudioUrl} />
+        <div className={me.renderResult}>
+          <p className={me.renderStatus}>Version {latestRendered.versionNumber} ready</p>
+          <AuthenticatedAudio className={me.player} src={latestRendered.renderedAudioUrl} />
           <Tooltip content="Скачать готовый MP3">
             <DownloadAudioButton
               audioUrl={latestRendered.renderedAudioUrl}

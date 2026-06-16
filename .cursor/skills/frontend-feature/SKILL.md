@@ -5,14 +5,14 @@ description: Adds or changes Next.js App Router UI in AI Music web app. Use when
 
 # Frontend Feature (Next.js)
 
-App: `apps/web` — Next.js App Router, React 19, CSS modules.
+App: `apps/web` — Next.js App Router, React 19, **Tailwind** for UI styles.
 
 ## Folder layout
 
 ```txt
 src/
   app/                 Thin routes: page.tsx imports feature component
-  features/<name>/     Screen logic, hooks, styles/
+  features/<name>/     Screen logic, hooks, *-classes.ts (Tailwind maps)
   entities/            Domain types re-exports (optional)
   shared/
     providers/         ApiProvider, app-wide context
@@ -46,9 +46,10 @@ Business logic lives in `features/`, not in `app/`.
 
 ## Styling rules
 
-- **No inline styles** — CSS modules (`*.module.css`) or Tailwind classes in markup.
-- Project tokens in `globals.css`: `--muted` = text, `--muted-bg` = shadcn background.
-- Feature styles in `features/<name>/styles/`.
+- **Tailwind only** for UI — feature maps (`music-create-classes.ts`, `music-editor-classes.ts`) or `appShell` from `@/shared/theme/app-theme`.
+- **No inline styles** except dynamic CSS variables for third-party widgets.
+- CSS modules only for `:global()` overrides (e.g. waveform playlist).
+- Project tokens in `globals.css`: `--app-*` switch with `.dark` via `next-themes`.
 
 ## ElevenLabs UI scope
 
