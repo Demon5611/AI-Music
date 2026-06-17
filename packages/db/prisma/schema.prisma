@@ -37,6 +37,8 @@ model VoiceSample {
   sunoValidatePhrase String? @map("suno_validate_phrase")
   voiceCloneStatus String   @default("pending") @map("voice_clone_status")
   voiceCloneError  String?  @map("voice_clone_error")
+  voiceCloneStartedAt DateTime? @map("voice_clone_started_at")
+  sunoValidateRegenCount Int @default(0) @map("suno_validate_regen_count")
   createdAt        DateTime @default(now()) @map("created_at")
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)

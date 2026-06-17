@@ -8,8 +8,8 @@ export function createVoiceSamplesApi(client: ApiClient) {
       client.postForm<VoiceSample>("/api/voice-samples", formData),
     linkKitsModel: (id: string, input: LinkKitsVoiceModelInput) =>
       client.patch<VoiceSample>(`/api/voice-samples/${id}`, input),
-    prepareSunoVoice: (id: string) =>
-      client.post<VoiceSample>(`/api/voice-samples/${id}/suno-voice/prepare`),
+    prepareSunoVoice: (id: string, options?: { restart?: boolean }) =>
+      client.post<VoiceSample>(`/api/voice-samples/${id}/suno-voice/prepare`, options ?? {}),
     getSunoVoiceStatus: (id: string) =>
       client.get<VoiceSample>(`/api/voice-samples/${id}/suno-voice/status`),
     verifySunoVoice: (id: string, formData: FormData) =>

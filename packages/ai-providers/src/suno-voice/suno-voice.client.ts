@@ -32,10 +32,17 @@ export class SunoVoiceClient {
     return this.createTask("/voice/generate", body);
   }
 
+  regenerateValidationPhrase(taskId: string, callbackUrl: string): Promise<string> {
+    return this.createTask("/voice/regenerate", {
+      taskId,
+      calBackUrl: callbackUrl,
+    });
+  }
+
   getValidationPhraseInfo(taskId: string): Promise<SunoVoiceValidateInfo> {
-    return this.fetchTask(
+    return this.fetchTask<Record<string, unknown>>(
       `/voice/validate-info?taskId=${encodeURIComponent(taskId)}`,
-    );
+    ).then((raw) => this.normalizeValidateInfo(raw));
   }
 
   getVoiceRecordInfo(taskId: string): Promise<SunoVoiceRecordInfo> {
@@ -66,6 +73,19 @@ export class SunoVoiceClient {
 
   private async fetchTask<T>(path: string): Promise<T> {
     return this.request<T>(path, { method: "GET" });
+  }
+
+  private normalizeValidateInfo(raw: Record<string, unknown>): SunoVoiceValidateInfo {
+    const phrase = raw.validateInfo ?? raw.validate_info;
+    const errorMessage = raw.errorMessage ?? raw.error_message;
+
+    return {
+      taskId: String(raw.taskId ?? raw.task_id ?? ""),
+      validateInfo: typeof phrase === "string" ? phrase : "",
+      status: String(raw.status ?? ""),
+      errorCode: typeof raw.errorCode === "number" ? raw.errorCode : undefined,
+      errorMessage: typeof errorMessage === "string" ? errorMessage : null,
+    };
   }
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {

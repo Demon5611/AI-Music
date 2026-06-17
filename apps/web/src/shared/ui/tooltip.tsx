@@ -3,13 +3,20 @@
 import type { ReactElement, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useOptionalHintsVisible } from "@/shared/providers/hints-visibility-provider";
-import { tt, type TooltipAlign, type TooltipSide } from "@/shared/ui/tooltip-classes";
+import {
+  tt,
+  type TooltipAlign,
+  type TooltipSide,
+  type TooltipSize,
+} from "@/shared/ui/tooltip-classes";
 
 interface TooltipProps {
   content: string;
   side?: TooltipSide;
   align?: TooltipAlign;
   block?: boolean;
+  wide?: boolean;
+  size?: TooltipSize;
   children: ReactElement | ReactNode;
 }
 
@@ -18,6 +25,8 @@ export function Tooltip({
   side = "top",
   align = "center",
   block = false,
+  wide = false,
+  size = "default",
   children,
 }: TooltipProps) {
   const hintsVisible = useOptionalHintsVisible();
@@ -28,7 +37,7 @@ export function Tooltip({
 
   const rootClass = block ? tt.rootBlock : tt.root;
   const triggerClass = block ? tt.triggerBlock : tt.trigger;
-  const contentClass = tt.placement(side, align);
+  const contentClass = tt.placement(side, align, { wide, size });
 
   const RootTag = block ? "div" : "span";
   const TriggerTag = block ? "div" : "span";
@@ -47,6 +56,8 @@ interface DisabledTooltipButtonProps {
   content: string;
   side?: TooltipSide;
   align?: TooltipAlign;
+  wide?: boolean;
+  size?: TooltipSize;
   children: ReactElement;
 }
 
@@ -54,6 +65,8 @@ export function DisabledTooltipWrap({
   content,
   side = "top",
   align = "center",
+  wide = false,
+  size = "default",
   children,
 }: DisabledTooltipButtonProps) {
   const hintsVisible = useOptionalHintsVisible();
@@ -63,7 +76,7 @@ export function DisabledTooltipWrap({
   }
 
   return (
-    <Tooltip align={align} content={content} side={side}>
+    <Tooltip align={align} content={content} side={side} size={size} wide={wide}>
       <span className={tt.trigger}>{children}</span>
     </Tooltip>
   );

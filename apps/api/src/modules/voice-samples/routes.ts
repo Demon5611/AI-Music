@@ -98,7 +98,7 @@ export async function registerVoiceSampleRoutes(app: FastifyInstance) {
     },
   );
 
-  app.post<{ Params: { id: string } }>(
+  app.post<{ Params: { id: string }; Body: { restart?: boolean } }>(
     "/api/voice-samples/:id/suno-voice/prepare",
     { preHandler: requireAuth },
     async (request, reply) => {
@@ -106,6 +106,7 @@ export async function registerVoiceSampleRoutes(app: FastifyInstance) {
         const sample = await prepareSunoVoiceClone(
           request.userId!,
           request.params.id,
+          { restart: request.body?.restart === true },
         );
         return reply.send(sample);
       } catch (error) {

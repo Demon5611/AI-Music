@@ -8,9 +8,10 @@ import {
 } from "@ai-music/shared";
 import { Mic } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { readAudioDurationSec } from "@/features/voice/read-audio-duration";
 import { VoiceRecordingTipsPanel } from "@/features/voice/voice-recording-tips-panel";
+import { VOICE_RECORDING_TOOLTIP } from "@/features/voice/voice-recording-tips";
 import { voiceUi } from "@/features/voice/voice-classes";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
@@ -18,6 +19,7 @@ import { useApi } from "@/shared/providers/api-provider";
 import { lp } from "@/features/landing/landing-classes";
 import { me as editorStyles } from "@/features/music-editor/music-editor-classes";
 import { LoadingPanel } from "@/shared/ui/elevenlabs";
+import { DisabledTooltipWrap, Tooltip } from "@/shared/ui/tooltip";
 import { appShell } from "@/shared/theme/app-theme";
 
 type VoiceUploadVariant = "page" | "landing";
@@ -99,6 +101,35 @@ function VoiceModeButton({ active, children, disabled, onSelect }: VoiceModeButt
     >
       {children}
     </button>
+  );
+}
+
+function wrapLandingRecordTooltip(
+  button: ReactElement,
+  showTooltip: boolean,
+  disabled: boolean,
+) {
+  if (!showTooltip) {
+    return button;
+  }
+
+  if (disabled) {
+    return (
+      <DisabledTooltipWrap
+        align="start"
+        content={VOICE_RECORDING_TOOLTIP}
+        side="top"
+        size="lg"
+      >
+        {button}
+      </DisabledTooltipWrap>
+    );
+  }
+
+  return (
+    <Tooltip align="start" content={VOICE_RECORDING_TOOLTIP} side="top" size="lg">
+      {button}
+    </Tooltip>
   );
 }
 
@@ -447,22 +478,26 @@ export function VoiceUploadPanel({
             <span className={labelClassName}>Запись с микрофона</span>
             <div className={editorStyles.ownVoiceRecordRow}>
               {!isRecording ? (
-                <button
-                  className={editorStyles.ownVoiceRecordButton}
-                  disabled={voiceInputDisabled}
-                  type="button"
-                  onClick={() => {
-                    if (!confirmed) {
-                      setError("Подтвердите согласие перед записью голоса");
-                      return;
-                    }
+                wrapLandingRecordTooltip(
+                  <button
+                    className={editorStyles.ownVoiceRecordButton}
+                    disabled={voiceInputDisabled}
+                    type="button"
+                    onClick={() => {
+                      if (!confirmed) {
+                        setError("Подтвердите согласие перед записью голоса");
+                        return;
+                      }
 
-                    void startRecording();
-                  }}
-                >
-                  <Mic aria-hidden className={editorStyles.ownVoiceRecordButtonIcon} />
-                  Запись
-                </button>
+                      void startRecording();
+                    }}
+                  >
+                    <Mic aria-hidden className={editorStyles.ownVoiceRecordButtonIcon} />
+                    Запись
+                  </button>,
+                  styles.isLanding,
+                  voiceInputDisabled,
+                )
               ) : (
                 <>
                   <button

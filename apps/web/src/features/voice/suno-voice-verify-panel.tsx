@@ -250,6 +250,34 @@ export function SunoVoiceVerifyPanel() {
   const showRecorder = sample?.voiceCloneStatus === "awaiting_verification";
   const isBusy = isSubmitting || isProcessingStatus(sample?.voiceCloneStatus ?? "pending");
 
+  function handleRetryPrepare() {
+    if (!sampleId) {
+      return;
+    }
+
+    setError(null);
+    pollCountRef.current = 0;
+    setIsBootstrapping(true);
+    stopPolling();
+
+    void api.voiceSamples
+      .prepareSunoVoice(sampleId, { restart: true })
+      .then((next) => {
+        setSample(next);
+
+        if (isVoiceSampleReadyForGeneration(next)) {
+          router.push("/music-create");
+          return;
+        }
+
+        if (isProcessingStatus(next.voiceCloneStatus)) {
+          startPolling();
+        }
+      })
+      .catch((retryError) => setError(resolveErrorMessage(retryError)))
+      .finally(() => setIsBootstrapping(false));
+  }
+
   return (
     <div className={appShell.formPage}>
       <div className={cn(appShell.formPageForm, "max-w-xl")}>
@@ -310,20 +338,12 @@ export function SunoVoiceVerifyPanel() {
           </>
         ) : null}
 
-        {sample?.voiceCloneStatus === "failed" ? (
+        {error || sample?.voiceCloneStatus === "failed" ? (
           <button
             className={appShell.formSubmit}
+            disabled={isBootstrapping}
             type="button"
-            onClick={() => {
-              setError(null);
-              pollCountRef.current = 0;
-              setIsBootstrapping(true);
-              void api.voiceSamples
-                .prepareSunoVoice(sampleId)
-                .then((next) => setSample(next))
-                .catch((retryError) => setError(resolveErrorMessage(retryError)))
-                .finally(() => setIsBootstrapping(false));
-            }}
+            onClick={handleRetryPrepare}
           >
             Повторить
           </button>
