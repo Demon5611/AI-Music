@@ -1,5 +1,4 @@
 import {
-  KITS_RECORDING_DOCS_URL,
   KITS_VOICE_RECORDING_TIPS,
 } from "@/features/voice/voice-recording-tips";
 import { voiceUi } from "@/features/voice/voice-classes";
@@ -7,11 +6,11 @@ import { voiceUi } from "@/features/voice/voice-classes";
 export function VoiceRecordingTipsPanel() {
   return (
     <aside
-      aria-label="Как записать голос для корректной подмены через Kits"
+      aria-label="ККак корректно записать голос"
       className={voiceUi.recordingTips}
     >
       <p className={voiceUi.recordingTipsTitle}>
-        Как записать голос для лучшей подмены
+        Как корректно записать голос
       </p>
       <ul className={voiceUi.recordingTipsList}>
         {KITS_VOICE_RECORDING_TIPS.map((tip) => (
