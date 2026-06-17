@@ -2,7 +2,9 @@
 
 import { CollapsibleLyrics } from "@/features/music-create/collapsible-lyrics";
 import { mt } from "@/features/music-create/music-create-classes";
+import { buildAudioDownloadFilename } from "@/shared/lib/build-audio-download-filename";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
+import { DownloadAudioButton } from "@/shared/ui/download-audio-button";
 import { AudioPreviewPlayer } from "@/shared/ui/elevenlabs";
 
 interface SongTrackResultProps {
@@ -51,13 +53,21 @@ export function SongTrackResult({
             <span className={mt.resultDuration}>{durationLabel}</span>
           ) : null}
         </div>
-        {canDelete && onDelete ? (
-          <DeleteIconButton
-            disabled={isDeleting}
-            label="Удалить трек"
-            onClick={onDelete}
+        <div className={mt.resultActions}>
+          <DownloadAudioButton
+            audioUrl={audioUrl}
+            className={mt.resultDownloadButton}
+            filename={buildAudioDownloadFilename(title)}
+            label="Скачать"
           />
-        ) : null}
+          {canDelete && onDelete ? (
+            <DeleteIconButton
+              disabled={isDeleting}
+              label="Удалить трек"
+              onClick={onDelete}
+            />
+          ) : null}
+        </div>
       </div>
       <AudioPreviewPlayer className={mt.player} src={audioUrl} />
       {trackId && onOpenEditor ? (

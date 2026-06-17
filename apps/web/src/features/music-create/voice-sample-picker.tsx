@@ -22,7 +22,10 @@ interface VoiceSamplePickerProps {
   selectedId: string | null;
   isLoading: boolean;
   loadError: string | null;
+  deleteError: string | null;
+  deletingSampleId: string | null;
   onSelect: (sampleId: string) => void;
+  onDelete: (sampleId: string) => void;
 }
 
 function resolveStatusBadgeClass(sample: VoiceSample): string {
@@ -74,7 +77,7 @@ function VoiceSamplePickerToggle({
       >
         <span className={mt.voicePickerToggleMain}>
           <FolderOpen aria-hidden className={mt.voicePickerToggleIcon} />
-          <span>
+          <span className={mt.voicePickerToggleText}>
             <span className={mt.voicePickerToggleTitle}>Доступные образцы голоса</span>
             <span className={mt.voicePickerToggleMeta}>{meta}</span>
           </span>
@@ -93,7 +96,7 @@ function VoiceSamplePickerToggle({
     >
       <span className={mt.voicePickerToggleMain}>
         <FolderOpen aria-hidden className={mt.voicePickerToggleIcon} />
-        <span>
+        <span className={mt.voicePickerToggleText}>
           <span className={mt.voicePickerToggleTitle}>Доступные образцы голоса</span>
           <span className={mt.voicePickerToggleMeta}>{meta}</span>
         </span>
@@ -105,11 +108,15 @@ function VoiceSamplePickerToggle({
 function VoiceSamplePickerItem({
   sample,
   selected,
+  isDeleting,
   onSelect,
+  onDelete,
 }: {
   sample: VoiceSample;
   selected: boolean;
+  isDeleting: boolean;
   onSelect: (sampleId: string) => void;
+  onDelete: (sampleId: string) => void;
 }) {
   const isReady = isVoiceSampleReadyForGeneration(sample);
   const itemClassName = cn(
@@ -148,10 +155,20 @@ function VoiceSamplePickerItem({
           </div>
         </div>
       </div>
-      <AudioPreviewPlayer
-        className={mt.voicePickerPlayer}
-        src={buildVoiceSampleAudioUrl(sample.id)}
-      />
+      <div className={mt.voicePickerPlayerRow}>
+        <AudioPreviewPlayer
+          className={mt.voicePickerPlayer}
+          src={buildVoiceSampleAudioUrl(sample.id)}
+        />
+        <button
+          className={mt.voicePickerDeleteButton}
+          disabled={isDeleting}
+          type="button"
+          onClick={() => onDelete(sample.id)}
+        >
+          {isDeleting ? "Удаление..." : "Удалить"}
+        </button>
+      </div>
     </article>
   );
 }
@@ -161,7 +178,10 @@ export function VoiceSamplePicker({
   selectedId,
   isLoading,
   loadError,
+  deleteError,
+  deletingSampleId,
   onSelect,
+  onDelete,
 }: VoiceSamplePickerProps) {
   const [open, setOpen] = useState(false);
   const readySamples = samples.filter(isVoiceSampleReadyForGeneration);
@@ -205,11 +225,18 @@ export function VoiceSamplePicker({
 
       {open ? (
         <div className={mt.voicePickerPanel} id="voice-sample-picker-panel">
+          {deleteError ? (
+            <p className={mt.errorInline} role="alert">
+              {deleteError}
+            </p>
+          ) : null}
           {samples.map((sample) => (
             <VoiceSamplePickerItem
               key={sample.id}
+              isDeleting={deletingSampleId === sample.id}
               sample={sample}
               selected={sample.id === selectedId}
+              onDelete={onDelete}
               onSelect={onSelect}
             />
           ))}

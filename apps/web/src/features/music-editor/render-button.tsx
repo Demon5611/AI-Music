@@ -73,6 +73,7 @@ export function RenderButton({
           <Tooltip content="Скачать готовый MP3">
             <DownloadAudioButton
               audioUrl={latestRendered.renderedAudioUrl}
+              className={me.toolButton}
               filename={`${songTitle}-v${latestRendered.versionNumber}.mp3`}
               label="Download MP3"
             />

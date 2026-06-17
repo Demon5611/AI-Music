@@ -17,7 +17,7 @@ import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_STYLE = "electro house vocal";
+const DEFAULT_STYLE = "lo-fi chill, dreamy, soft, warm textures, relaxed";
 const DEFAULT_TITLE = "Summer Friends";
 const POLL_INTERVAL_MS = 12_000;
 
@@ -150,7 +150,9 @@ export function MusicCreatePanel() {
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [statusLoadError, setStatusLoadError] = useState<string | null>(null);
   const [durationSec, setDurationSec] = useState(0);
-  const [lyricsBrief, setLyricsBrief] = useState("");
+  const [lyricsBrief, setLyricsBrief] = useState(
+    () => consumeMusicCreateLyricsBriefDraft() ?? "",
+  );
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState(DEFAULT_STYLE);
   const [title, setTitle] = useState(DEFAULT_TITLE);
@@ -173,14 +175,10 @@ export function MusicCreatePanel() {
     isLoading: isVoiceSamplesLoading,
     loadError: voiceSamplesLoadError,
     setSelectedId: setSelectedVoiceSampleId,
+    removeSample,
+    deletingSampleId,
+    deleteError,
   } = useVoiceSampleSelection(authReady);
-
-  useEffect(() => {
-    const draft = consumeMusicCreateLyricsBriefDraft();
-    if (draft) {
-      setLyricsBrief(draft);
-    }
-  }, []);
 
   useEffect(() => {
     void api.music
@@ -406,10 +404,13 @@ export function MusicCreatePanel() {
         ) : null}
 
         <VoiceSamplePicker
+          deleteError={deleteError}
+          deletingSampleId={deletingSampleId}
           isLoading={isVoiceSamplesLoading}
           loadError={voiceSamplesLoadError}
           samples={voiceSamples}
           selectedId={selectedVoiceSampleId}
+          onDelete={(sampleId) => void removeSample(sampleId)}
           onSelect={setSelectedVoiceSampleId}
         />
 

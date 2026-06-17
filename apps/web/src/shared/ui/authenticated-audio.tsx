@@ -3,6 +3,7 @@
 import { useAuth } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { createDevAuthToken, env } from "@/shared/config/env";
+import { needsAuthenticatedAudioFetch } from "@/shared/lib/needs-authenticated-audio-fetch";
 
 interface AuthenticatedAudioProps {
   src: string;
@@ -10,7 +11,7 @@ interface AuthenticatedAudioProps {
 }
 
 function needsAuthenticatedFetch(src: string): boolean {
-  return src.includes("/api/music/") && src.includes("/audio");
+  return needsAuthenticatedAudioFetch(src);
 }
 
 interface AuthenticatedAudioLoaderProps extends AuthenticatedAudioProps {
@@ -39,7 +40,10 @@ function AuthenticatedAudioLoader({
       }
 
       const blob = await response.blob();
-      objectUrl = URL.createObjectURL(blob);
+      const contentType = response.headers.get("Content-Type")?.split(";")[0]?.trim();
+      const playbackBlob =
+        blob.type || !contentType ? blob : new Blob([await blob.arrayBuffer()], { type: contentType });
+      objectUrl = URL.createObjectURL(playbackBlob);
 
       if (!cancelled) {
         setPlaybackUrl(objectUrl);

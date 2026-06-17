@@ -75,6 +75,8 @@ export const mt = {
   errorInline: "text-sm text-rose-400",
   resultPlayer: `${appShell.surfaceCard} p-4`,
   resultHeader: "mb-2 flex items-start justify-between gap-3",
+  resultActions: "flex shrink-0 items-center gap-1.5",
+  resultDownloadButton: `${appShell.btnSecondaryOutline} px-3 py-1.5 text-xs`,
   resultMeta: "flex flex-wrap items-baseline gap-2",
   resultTitle: "text-sm font-semibold text-[var(--app-text)]",
   resultDuration: `text-xs ${appShell.textMuted}`,
@@ -114,6 +116,7 @@ export const mt = {
     "flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--app-border-default)] bg-[var(--app-hover-overlay)] px-4 py-3 text-left transition-colors hover:bg-[var(--app-surface-elevated)]",
   voicePickerToggleActive: "border-violet-500/40 bg-violet-600/10",
   voicePickerToggleMain: "flex min-w-0 flex-1 items-center gap-3",
+  voicePickerToggleText: "flex min-w-0 flex-col",
   voicePickerToggleIcon: "h-4 w-4 shrink-0 text-violet-400",
   voicePickerToggleTitle: "text-sm font-medium text-[var(--app-text)]",
   voicePickerToggleMeta: `mt-0.5 text-xs ${appShell.textMuted}`,
@@ -136,7 +139,9 @@ export const mt = {
     "rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300",
   voicePickerBadgeError:
     "rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium text-rose-300",
-  voicePickerPlayer: "w-full",
+  voicePickerPlayer: "min-w-0 flex-1",
+  voicePickerPlayerRow: "flex items-center gap-2",
+  voicePickerDeleteButton: `${appShell.btnSecondaryOutline} shrink-0 px-3 py-2 text-xs`,
   voicePickerEmpty: `rounded-xl border border-dashed border-[var(--app-border-default)] px-4 py-6 text-center text-sm ${appShell.textMuted}`,
   voicePickerLink: "text-violet-400 underline-offset-2 hover:underline",
 } as const;

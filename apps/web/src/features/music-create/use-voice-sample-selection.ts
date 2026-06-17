@@ -37,11 +37,46 @@ export function useVoiceSampleSelection(authReady: boolean) {
   const [selectedId, setSelectedIdState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [deletingSampleId, setDeletingSampleId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const setSelectedId = useCallback((sampleId: string | null) => {
     setSelectedIdState(sampleId);
     writeStoredVoiceSampleId(sampleId);
   }, []);
+
+  const removeSample = useCallback(
+    async (sampleId: string) => {
+      const confirmed = window.confirm(
+        "Удалить этот образец голоса? Файл будет удалён без возможности восстановления.",
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setDeletingSampleId(sampleId);
+      setDeleteError(null);
+
+      try {
+        await api.voiceSamples.remove(sampleId);
+
+        const nextSamples = samples.filter((sample) => sample.id !== sampleId);
+        setSamples(nextSamples);
+        setSelectedId(
+          pickDefaultVoiceSampleId(
+            nextSamples,
+            selectedId === sampleId ? null : selectedId,
+          ),
+        );
+      } catch {
+        setDeleteError("Не удалось удалить образец голоса");
+      } finally {
+        setDeletingSampleId(null);
+      }
+    },
+    [api, samples, selectedId, setSelectedId],
+  );
 
   useEffect(() => {
     if (!authReady) {
@@ -102,5 +137,8 @@ export function useVoiceSampleSelection(authReady: boolean) {
     isLoading,
     loadError,
     setSelectedId,
+    removeSample,
+    deletingSampleId,
+    deleteError,
   };
 }

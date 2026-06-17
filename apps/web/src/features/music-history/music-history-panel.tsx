@@ -4,8 +4,10 @@ import type { MusicGenerationRecordDto } from "@ai-music/shared";
 import { useMemo, useState } from "react";
 import { CollapsibleLyrics } from "@/features/music-create/collapsible-lyrics";
 import { mt } from "@/features/music-create/music-create-classes";
+import { buildAudioDownloadFilename } from "@/shared/lib/build-audio-download-filename";
 import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
+import { DownloadAudioButton } from "@/shared/ui/download-audio-button";
 import { cn } from "@/lib/utils";
 
 interface MusicHistoryPanelProps {
@@ -167,11 +169,21 @@ export function MusicHistoryPanel({
                       </span>
                     ) : null}
                   </div>
-                  <DeleteIconButton
-                    disabled={isDeleting}
-                    label="Удалить трек"
-                    onClick={() => void onDeleteTrack(track.id)}
-                  />
+                  <div className={mt.resultActions}>
+                    {track.audioUrl ? (
+                      <DownloadAudioButton
+                        audioUrl={track.audioUrl}
+                        className={mt.resultDownloadButton}
+                        filename={buildAudioDownloadFilename(track.title)}
+                        label="Скачать"
+                      />
+                    ) : null}
+                    <DeleteIconButton
+                      disabled={isDeleting}
+                      label="Удалить трек"
+                      onClick={() => void onDeleteTrack(track.id)}
+                    />
+                  </div>
                 </div>
                 {track.audioUrl ? (
                   <AuthenticatedAudio className={mt.player} src={track.audioUrl} />
