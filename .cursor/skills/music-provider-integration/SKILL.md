@@ -46,6 +46,16 @@ API routes must not parse raw vendor JSON.
 | Poll until done           | Worker or service layer, not React                          |
 | Download audio to storage | API `music-record.service.ts` or worker `upload-result.ts`  |
 | Voice conversion (editor stems)    | Worker / editor via `KitsVoiceTransferProvider` |
+| Suno Voice persona (create flow)   | API `suno-voice.service.ts` — см. [suno-voice-flow.md](references/suno-voice-flow.md) |
+
+## Suno Voice (create pipeline)
+
+Не путать с Kits voice transfer в редакторе. Create-flow — два шага записи:
+
+1. Главная: свободный сэмпл → `VoiceSample`
+2. `/consent`: фраза Suno + верификация → `sunoVoiceId` → генерация на `/music-create`
+
+Подробно: [references/suno-voice-flow.md](references/suno-voice-flow.md)
 
 ## Env (music)
 
@@ -66,4 +76,5 @@ SUNO_VOICE_LANGUAGE=ru
 ## References
 
 - Suno API specifics: [references/sunoapi.md](references/sunoapi.md)
+- **Suno Voice user flow (две записи, consent, persona):** [references/suno-voice-flow.md](references/suno-voice-flow.md)
 - Kits.ai voice API: [references/kits-ai.md](references/kits-ai.md)

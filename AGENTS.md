@@ -28,6 +28,7 @@ Project skills live in `.cursor/skills/`. Read the full `SKILL.md` when the task
 Reference files (read on demand, not upfront):
 
 - `music-provider-integration/references/sunoapi.md`
+- `music-provider-integration/references/suno-voice-flow.md` — две записи, consent, Suno persona
 - `music-provider-integration/references/kits-ai.md`
 - `credits-billing/references/pricing-model.md`
 - `backend-feature/references/project-architecture.md`

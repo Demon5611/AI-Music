@@ -18,14 +18,6 @@ export function VoiceRecordingTipsPanel() {
           <li key={tip}>{tip}</li>
         ))}
       </ul>
-      <a
-        className={voiceUi.recordingTipsLink}
-        href={KITS_RECORDING_DOCS_URL}
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        Подробнее в документации Kits
-      </a>
     </aside>
   );
 }

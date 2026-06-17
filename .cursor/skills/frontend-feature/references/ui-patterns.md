@@ -74,6 +74,19 @@ Not ElevenLabs UI. Styles: Tailwind via `me` from `music-editor-classes.ts`.
 - Style picker: `MUSIC_STYLES` constant.
 - Validate client-side for UX; server re-validates with Zod.
 
+### Voice create flow (две записи)
+
+Продуктовый flow и тексты для UI — в  
+[music-provider-integration/references/suno-voice-flow.md](../../music-provider-integration/references/suno-voice-flow.md).
+
+| Шаг | Компонент | Сообщение пользователю |
+|-----|-----------|------------------------|
+| Главная | `VoiceUploadPanel` | Свободный сэмпл; предупредить, что дальше будет фраза Suno |
+| `/consent` | `SunoVoiceVerifyPanel` | Фраза от Suno, запись **напевом** |
+| `/music-create` | `MusicCreatePanel` | Генерация только после `voiceCloneStatus: ready` |
+
+На главной не обещать «голос готов» до прохождения `/consent`.
+
 ## Error display
 
 Parse API `{ error, code }` responses. Example: `features/kits-test/parse-api-error.ts`.

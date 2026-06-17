@@ -54,3 +54,9 @@ Never expose Suno task JSON to frontend DTOs — use `music-record.mapper.ts`.
 - Assuming single track per generation (always handle 2 variants).
 - Blocking HTTP request until Suno completes (use poll in worker/service).
 - Missing `SUNO_API_KEY` — check `getMusicTestStatus().configured` before prod paths.
+
+## Suno Voice (persona / create flow)
+
+Отдельный pipeline от генерации музыки. Две записи пользователя (сэмпл + фраза Suno), статусы `voiceCloneStatus`, `personaId` только на V5.
+
+Полная инструкция: [suno-voice-flow.md](suno-voice-flow.md)
