@@ -10,6 +10,11 @@ export function toVoiceSampleDto(sample: VoiceSample): VoiceSampleDto {
     status: sample.status as VoiceSampleDto["status"],
     consentConfirmed: sample.consentConfirmed,
     kitsVoiceModelId: sample.kitsVoiceModelId,
+    sunoVoiceId: sample.sunoVoiceId,
+    sunoVoiceTaskId: sample.sunoVoiceTaskId,
+    sunoValidatePhrase: sample.sunoValidatePhrase,
+    voiceCloneStatus: sample.voiceCloneStatus as VoiceSampleDto["voiceCloneStatus"],
+    voiceCloneError: sample.voiceCloneError,
     createdAt: sample.createdAt.toISOString(),
   };
 }

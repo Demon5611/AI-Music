@@ -10,6 +10,14 @@ export type GenerationStatus =
 
 export type VoiceSampleStatus = "pending" | "ready" | "failed";
 
+export type VoiceCloneStatus =
+  | "pending"
+  | "preparing"
+  | "awaiting_verification"
+  | "cloning"
+  | "ready"
+  | "failed";
+
 export type CreditTransactionType = "purchase" | "spend" | "refund";
 
 export interface User {
@@ -28,6 +36,11 @@ export interface VoiceSample {
   status: VoiceSampleStatus;
   consentConfirmed: boolean;
   kitsVoiceModelId: number | null;
+  sunoVoiceId: string | null;
+  sunoVoiceTaskId: string | null;
+  sunoValidatePhrase: string | null;
+  voiceCloneStatus: VoiceCloneStatus;
+  voiceCloneError: string | null;
   createdAt: string;
 }
 

@@ -9,5 +9,9 @@ export function isVoiceSampleReady(sample: VoiceSample): boolean {
 export function isVoiceSampleReadyForGeneration(
   sample: VoiceSample,
 ): boolean {
-  return isVoiceSampleReady(sample) && sample.kitsVoiceModelId != null;
+  return (
+    isVoiceSampleReady(sample) &&
+    sample.voiceCloneStatus === "ready" &&
+    sample.sunoVoiceId != null
+  );
 }

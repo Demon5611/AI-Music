@@ -14,6 +14,8 @@ import {
   syncMusicGenerationRecord,
 } from "./music-record.service.js";
 import { toMusicGenerationRecordDto, toMusicStatusResponse } from "./music-record.mapper.js";
+import { resolveSunoVoicePersonaForUser } from "../voice-samples/resolve-suno-voice-persona.js";
+import { ForbiddenError } from "../../common/errors.js";
 
 const musicService = createMusicService();
 
@@ -27,7 +29,19 @@ export function getMusicTestStatus() {
 }
 
 export async function generateMusicForUser(userId: string, input: GenerateSongInput) {
-  const result = await musicService.generateSong(input);
+  const persona = await resolveSunoVoicePersonaForUser(userId);
+
+  if (!persona) {
+    throw new ForbiddenError(
+      "Голос Suno не готов. Запишите голос на главной и пройдите верификацию на /consent.",
+    );
+  }
+
+  const result = await musicService.generateSong({
+    ...input,
+    personaId: persona.personaId,
+    personaModel: persona.personaModel,
+  });
   const record = await createMusicGenerationRecord(
     buildSongRecordInput(userId, input, result.taskId),
   );

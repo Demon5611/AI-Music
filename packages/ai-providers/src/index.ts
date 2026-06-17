@@ -54,3 +54,20 @@ export {
   KitsVoiceTransferProvider,
   createKitsVoiceTransferProvider,
 } from "./voice-transfer/kits-voice-transfer.provider.js";
+export {
+  createSunoVoiceClients,
+  isSunoVoiceTaskFailed,
+  isSunoVoiceTaskPending,
+  resolveSunoVoiceConfig,
+  SunoFileUploadClient,
+  SunoVoiceClient,
+} from "./suno-voice/create-suno-voice-clients.js";
+export type {
+  SunoFileUploadResult,
+  SunoVoiceConfig,
+  SunoVoiceGenerateRequest,
+  SunoVoiceRecordInfo,
+  SunoVoiceTaskStatus,
+  SunoVoiceValidateInfo,
+  SunoVoiceValidateRequest,
+} from "./suno-voice/suno-voice.types.js";

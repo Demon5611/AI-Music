@@ -26,7 +26,8 @@ Job statuses: `running` → `success` | `error` | `cancelled`.
 | Layer                              | Usage                                            |
 | ---------------------------------- | ------------------------------------------------ |
 | API `modules/kits/routes.ts`       | Proxy for web test + model listing               |
-| `VoiceSample.kitsVoiceModelId`     | Link user sample to Kits model before generation |
+| `VoiceSample.sunoVoiceId`          | Suno Voice persona for create-pipeline generation |
+| `VoiceSample.kitsVoiceModelId`     | Legacy / editor Kits conversion only            |
 | Worker `convert-voice.ts`          | Full pipeline voice conversion                   |
 | Editor `voice-transfer.service.ts` | Replace vocal region in song                     |
 

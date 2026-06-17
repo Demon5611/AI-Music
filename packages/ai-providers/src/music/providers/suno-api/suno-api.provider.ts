@@ -137,6 +137,13 @@ export class SunoApiProvider implements MusicProvider {
     const customMode = this.resolveCustomMode(input);
     const instrumental = input.instrumental ?? false;
     const withDuration = applySunoDurationHints(input, customMode);
+    const personaModel = input.personaId
+      ? (input.personaModel ?? "voice_persona")
+      : undefined;
+    const useVoicePersona = personaModel === "voice_persona";
+    const model = useVoicePersona
+      ? toSunoModelId(this.config.sunoVoiceModel)
+      : toSunoModelId(this.config.sunoModel);
 
     if (customMode) {
       return {
@@ -145,8 +152,11 @@ export class SunoApiProvider implements MusicProvider {
         prompt: instrumental ? undefined : withDuration.prompt,
         style: withDuration.style ?? "Pop",
         title: input.title ?? "Untitled",
-        model: toSunoModelId(this.config.sunoModel),
+        model,
         callBackUrl: this.config.sunoCallbackUrl,
+        personaId: input.personaId,
+        personaModel,
+        vocalGender: input.vocalGender,
       };
     }
 
@@ -154,8 +164,11 @@ export class SunoApiProvider implements MusicProvider {
       customMode: false,
       instrumental,
       prompt: withDuration.prompt,
-      model: toSunoModelId(this.config.sunoModel),
+      model,
       callBackUrl: this.config.sunoCallbackUrl,
+      personaId: input.personaId,
+      personaModel,
+      vocalGender: input.vocalGender,
     };
   }
 

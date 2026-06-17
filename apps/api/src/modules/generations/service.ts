@@ -24,8 +24,8 @@ export async function createGenerationJob(
     throw new ForbiddenError("Voice sample is not ready");
   }
 
-  if (!voiceSample.kitsVoiceModelId) {
-    throw new ForbiddenError("Kits voice model is not linked");
+  if (!voiceSample.sunoVoiceId || voiceSample.voiceCloneStatus !== "ready") {
+    throw new ForbiddenError("Suno voice is not ready");
   }
 
   await spendCredits(userId, GENERATION_CREDIT_COST, "generation_start");

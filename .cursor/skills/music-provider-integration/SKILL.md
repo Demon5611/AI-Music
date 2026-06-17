@@ -45,7 +45,7 @@ API routes must not parse raw vendor JSON.
 | Start generation          | API creates DB record, may call `MusicService.generateSong` |
 | Poll until done           | Worker or service layer, not React                          |
 | Download audio to storage | API `music-record.service.ts` or worker `upload-result.ts`  |
-| Voice conversion          | Worker via `KitsVoiceTransferProvider`                      |
+| Voice conversion (editor stems)    | Worker / editor via `KitsVoiceTransferProvider` |
 
 ## Env (music)
 
@@ -58,7 +58,9 @@ SUNO_CALLBACK_URL=http://localhost:3001/api/music/callback/suno
 SUNO_POLL_INTERVAL_MS=5000
 SUNO_POLL_TIMEOUT_MS=600000
 KITS_API_KEY=
-KITS_API_BASE_URL=https://api.kits.ai
+KITS_API_BASE_URL=https://arpeggi.io/api/kits/v1
+SUNO_FILE_UPLOAD_BASE_URL=https://sunoapiorg.redpandaai.co
+SUNO_VOICE_LANGUAGE=ru
 ```
 
 ## References

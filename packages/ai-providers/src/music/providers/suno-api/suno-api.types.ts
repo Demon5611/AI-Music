@@ -87,6 +87,9 @@ export interface SunoGenerateMusicRequest {
   instrumental: boolean;
   model: SunoModelId;
   callBackUrl: string;
+  personaId?: string;
+  personaModel?: "voice_persona" | "style_persona";
+  vocalGender?: "m" | "f";
 }
 
 export interface SunoUploadCoverRequest extends SunoGenerateMusicRequest {

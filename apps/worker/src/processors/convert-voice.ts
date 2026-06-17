@@ -1,11 +1,7 @@
 import {
-  createKitsClient,
   createMusicService,
   downloadUrl,
-  isKitsJobFailed,
-  isKitsJobRunning,
   pollMusicUntilComplete,
-  pollUntilComplete,
   resolveMusicProviderConfig,
 } from "@ai-music/ai-providers";
 import type { GenerationJob, VoiceSample } from "@ai-music/db";
@@ -16,11 +12,16 @@ function buildTrackTitle(prompt: string): string {
   return trimmed.slice(0, 80) || "Generated Track";
 }
 
-export async function generateBaseSong(
+export async function generateSongWithSunoVoice(
   job: GenerationJob,
   voiceSample: VoiceSample,
 ): Promise<Buffer> {
   const config = resolveMusicProviderConfig();
+  const sunoVoiceId = voiceSample.sunoVoiceId;
+
+  if (!sunoVoiceId) {
+    throw new Error("Suno voice is not ready");
+  }
 
   if (config.providerId === "sunoapi" && config.sunoApiKey.trim()) {
     const music = createMusicService();
@@ -30,6 +31,8 @@ export async function generateBaseSong(
       title: buildTrackTitle(job.prompt),
       customMode: true,
       instrumental: false,
+      personaId: sunoVoiceId,
+      personaModel: "voice_persona",
     });
 
     const completed = await pollMusicUntilComplete(music, started.taskId, {
@@ -51,69 +54,4 @@ export async function generateBaseSong(
   }
 
   throw new Error("SUNO_API_KEY is required for music generation");
-}
-
-export async function convertVoiceWithKits(
-  voiceSample: VoiceSample,
-  songBuffer: Buffer,
-): Promise<Buffer> {
-  const kitsVoiceModelId = voiceSample.kitsVoiceModelId;
-
-  if (!kitsVoiceModelId) {
-    throw new Error("Kits voice model is not linked");
-  }
-
-  const client = createKitsClient();
-  const songBytes = Uint8Array.from(songBuffer);
-
-  const separation = await client.createVocalSeparation({
-    inputFile: songBytes,
-    filename: "song.mp3",
-    mimeType: "audio/mpeg",
-  });
-
-  const completedSeparation = await pollUntilComplete(
-    () => client.getVocalSeparation(separation.id),
-    (result) => !isKitsJobRunning(result.status),
-  );
-
-  if (isKitsJobFailed(completedSeparation.status)) {
-    throw new Error("Kits vocal separation failed");
-  }
-
-  const vocalUrl =
-    completedSeparation.vocalAudioFileUrl ??
-    completedSeparation.lossyVocalAudioFileUrl;
-
-  if (!vocalUrl) {
-    throw new Error("Kits vocal separation returned no vocal track");
-  }
-
-  const vocalBuffer = await downloadUrl(vocalUrl);
-  const conversion = await client.createVoiceConversion({
-    voiceModelId: kitsVoiceModelId,
-    soundFile: Uint8Array.from(vocalBuffer),
-    filename: "vocals.mp3",
-    mimeType: "audio/mpeg",
-  });
-
-  const completedConversion = await pollUntilComplete(
-    () => client.getVoiceConversion(conversion.id),
-    (result) => !isKitsJobRunning(result.status),
-  );
-
-  if (isKitsJobFailed(completedConversion.status)) {
-    throw new Error("Kits voice conversion failed");
-  }
-
-  const outputUrl =
-    completedConversion.recombinedAudioFileUrl ??
-    completedConversion.outputFileUrl ??
-    completedConversion.lossyOutputFileUrl;
-
-  if (!outputUrl) {
-    throw new Error("Kits voice conversion returned no output file");
-  }
-
-  return downloadUrl(outputUrl);
 }

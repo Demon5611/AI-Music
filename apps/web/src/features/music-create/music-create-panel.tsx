@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { consumeMusicCreateLyricsBriefDraft } from "@/shared/lib/music-create-prompt-transfer";
+import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
 import { MusicGenerationLoader } from "@/features/music-create/music-generation-loader";
 import { mt } from "@/features/music-create/music-create-classes";
 import { MusicLyricsFromPrompt } from "@/features/music-create/music-lyrics-from-prompt";
@@ -141,6 +142,7 @@ export function MusicCreatePanel() {
   const queryClient = useQueryClient();
 
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [voiceLinked, setVoiceLinked] = useState<boolean | null>(null);
   const [statusLoadError, setStatusLoadError] = useState<string | null>(null);
   const [durationSec, setDurationSec] = useState(0);
   const [lyricsBrief, setLyricsBrief] = useState("");
@@ -177,6 +179,21 @@ export function MusicCreatePanel() {
         setStatusLoadError(resolveErrorMessage(loadError));
       });
   }, [api]);
+
+  useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
+    void api.voiceSamples
+      .list()
+      .then((samples) => {
+        setVoiceLinked(samples.some(isVoiceSampleReadyForGeneration));
+      })
+      .catch(() => {
+        setVoiceLinked(false);
+      });
+  }, [api, authReady]);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -372,6 +389,19 @@ export function MusicCreatePanel() {
           </div>
         ) : null}
 
+        {voiceLinked === false ? (
+          <div className={mt.alertWarning} role="alert">
+            Голос Suno не привязан. Запишите голос на главной и пройдите верификацию — без этого
+            песня будет с чужим AI-вокалом.
+          </div>
+        ) : null}
+
+        {voiceLinked === true ? (
+          <div className={mt.cardHeaderSubtitle}>
+            Генерация использует ваш Suno Voice (модель V5).
+          </div>
+        ) : null}
+
         <section className={mt.sectionCard}>
           <div className={mt.fieldStack}>
             <label className="block">
@@ -481,7 +511,7 @@ export function MusicCreatePanel() {
 
             <button
               className={mt.submit}
-              disabled={isBusy || configured !== true}
+              disabled={isBusy || configured !== true || voiceLinked !== true}
               type="button"
               onClick={() => void handleGenerate()}
             >

@@ -9,8 +9,8 @@ export interface PreprocessedVoice {
 export async function preprocessVoice(
   voiceSample: VoiceSample,
 ): Promise<PreprocessedVoice> {
-  if (!voiceSample.kitsVoiceModelId) {
-    throw new Error("Kits voice model is not linked");
+  if (!voiceSample.sunoVoiceId || voiceSample.voiceCloneStatus !== "ready") {
+    throw new Error("Suno voice is not ready");
   }
 
   if (voiceSample.status !== "ready" || !voiceSample.consentConfirmed) {

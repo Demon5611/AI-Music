@@ -11,6 +11,8 @@ export interface MusicProviderConfig {
   sunoApiBaseUrl: string;
   sunoApiKey: string;
   sunoModel: string;
+  /** Model for Suno Voice persona (voice_persona requires V5 or V5_5). */
+  sunoVoiceModel: string;
   requestTimeoutMs: number;
   pollIntervalMs: number;
   pollTimeoutMs: number;
@@ -27,6 +29,7 @@ export function resolveMusicProviderConfig(
     sunoApiBaseUrl: env.SUNO_API_BASE_URL ?? "https://api.sunoapi.org",
     sunoApiKey: env.SUNO_API_KEY ?? "",
     sunoModel: env.SUNO_API_MODEL ?? "V4_5ALL",
+    sunoVoiceModel: env.SUNO_VOICE_MODEL ?? "V5",
     requestTimeoutMs: Number(env.SUNO_REQUEST_TIMEOUT_MS ?? 30_000),
     pollIntervalMs: Number(env.SUNO_POLL_INTERVAL_MS ?? 5_000),
     pollTimeoutMs: Number(env.SUNO_POLL_TIMEOUT_MS ?? 600_000),

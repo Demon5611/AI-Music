@@ -7,6 +7,11 @@ import {
   linkKitsVoiceModel,
   listVoiceSamples,
 } from "./service.js";
+import {
+  getSunoVoiceCloneStatus,
+  prepareSunoVoiceClone,
+  submitSunoVoiceVerification,
+} from "./suno-voice.service.js";
 
 export async function registerVoiceSampleRoutes(app: FastifyInstance) {
   app.get(
@@ -86,6 +91,74 @@ export async function registerVoiceSampleRoutes(app: FastifyInstance) {
           request.params.id,
           request.body.kitsVoiceModelId,
         );
+        return reply.send(sample);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/api/voice-samples/:id/suno-voice/prepare",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const sample = await prepareSunoVoiceClone(
+          request.userId!,
+          request.params.id,
+        );
+        return reply.send(sample);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: { id: string } }>(
+    "/api/voice-samples/:id/suno-voice/status",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const sample = await getSunoVoiceCloneStatus(
+          request.userId!,
+          request.params.id,
+        );
+        return reply.send(sample);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/api/voice-samples/:id/suno-voice/verify",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        let fileBuffer: Buffer | null = null;
+        let filename = "verify.mp3";
+        let mimeType = "audio/mpeg";
+
+        for await (const part of request.parts()) {
+          if (part.type === "file" && part.fieldname === "soundFile") {
+            fileBuffer = await part.toBuffer();
+            filename = part.filename || filename;
+            mimeType = part.mimetype || mimeType;
+          }
+        }
+
+        if (!fileBuffer || fileBuffer.byteLength === 0) {
+          return reply.status(400).send({ error: "soundFile is required" });
+        }
+
+        const sample = await submitSunoVoiceVerification({
+          userId: request.userId!,
+          sampleId: request.params.id,
+          filename,
+          mimeType,
+          fileBuffer,
+        });
+
         return reply.send(sample);
       } catch (error) {
         return sendAppError(reply, error);

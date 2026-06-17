@@ -21,6 +21,11 @@ export interface GenerateSongInput {
   durationSec?: number;
   /** Public URL for reference-audio flows (upload-cover). Phase 2+. */
   referenceAudioUrl?: string;
+  /** Suno Voice personaId from custom voice workflow. */
+  personaId?: string;
+  personaModel?: "voice_persona" | "style_persona";
+  /** Hint for Suno when no custom voice persona is used. */
+  vocalGender?: "m" | "f";
 }
 
 export interface ExtendSongInput {
