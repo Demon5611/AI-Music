@@ -23,6 +23,8 @@ interface GenerateBody {
   customMode?: boolean;
   durationSec?: number;
   referenceAudioUrl?: string;
+  vocalGender?: "m" | "f";
+  voiceSampleId?: string;
 }
 
 interface ExtendBody {
@@ -120,15 +122,28 @@ export async function registerMusicRoutes(app: FastifyInstance) {
       }
 
       try {
-        const result = await generateMusicForUser(request.userId!, {
-          prompt,
-          style: request.body.style?.trim(),
-          title: request.body.title?.trim(),
-          instrumental: request.body.instrumental,
-          customMode: request.body.customMode,
-          durationSec: request.body.durationSec,
-          referenceAudioUrl: request.body.referenceAudioUrl?.trim(),
-        });
+        const vocalGender =
+          request.body.vocalGender === "m" || request.body.vocalGender === "f"
+            ? request.body.vocalGender
+            : undefined;
+
+        const voiceSampleId = request.body.voiceSampleId?.trim() || undefined;
+
+        const result = await generateMusicForUser(
+          request.userId!,
+          {
+            prompt,
+            style: request.body.style?.trim(),
+            title: request.body.title?.trim(),
+            instrumental: request.body.instrumental,
+            customMode: request.body.customMode,
+            durationSec: request.body.durationSec,
+            referenceAudioUrl: request.body.referenceAudioUrl?.trim(),
+            vocalGender,
+          },
+          { voiceSampleId },
+          request.log,
+        );
 
         return reply.send(result);
       } catch (error) {

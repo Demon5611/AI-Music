@@ -20,6 +20,8 @@ import {
 } from "./song-editor.service.js";
 import { toEditorStateDto, toRenderJobDto, parseOperations } from "./song-editor.mapper.js";
 import { transferVoiceForRegion } from "./voice-transfer.service.js";
+import { sendKitsError } from "./kits-error.js";
+import { createKitsClient } from "@ai-music/ai-providers";
 
 async function buildEditorResponse(userId: string, songId: string) {
   const song = await refreshEditorProgress(userId, songId);
@@ -306,6 +308,47 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
           .send(buffer);
       } catch (error) {
         return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Querystring: { myModels?: string; page?: string; perPage?: string } }>(
+    "/api/music-editor/kits-voice-models",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const client = createKitsClient();
+        const models = await client.listVoiceModels({
+          myModels: request.query.myModels === "true",
+          instruments: false,
+          page: request.query.page ? Number(request.query.page) : 1,
+          perPage: request.query.perPage ? Number(request.query.perPage) : 20,
+        });
+        return reply.send(models);
+      } catch (error) {
+        request.log.error(error);
+        return sendKitsError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: { id: string } }>(
+    "/api/music-editor/kits-voice-models/:id",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const modelId = Number(request.params.id);
+
+      if (!Number.isFinite(modelId)) {
+        return reply.status(400).send({ error: "Invalid voice model id" });
+      }
+
+      try {
+        const client = createKitsClient();
+        const model = await client.getVoiceModel(modelId);
+        return reply.send(model);
+      } catch (error) {
+        request.log.error(error);
+        return sendKitsError(reply, error);
       }
     },
   );

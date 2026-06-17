@@ -4,7 +4,7 @@ import { sendAppError } from "../../common/errors.js";
 import {
   createVoiceSample,
   deleteVoiceSample,
-  linkKitsVoiceModel,
+  getVoiceSampleAudio,
   listVoiceSamples,
 } from "./service.js";
 import {
@@ -81,17 +81,20 @@ export async function registerVoiceSampleRoutes(app: FastifyInstance) {
     },
   );
 
-  app.patch<{ Params: { id: string }; Body: { kitsVoiceModelId: number } }>(
-    "/api/voice-samples/:id",
+  app.get<{ Params: { id: string } }>(
+    "/api/voice-samples/:id/audio",
     { preHandler: requireAuth },
     async (request, reply) => {
       try {
-        const sample = await linkKitsVoiceModel(
+        const { buffer, contentType } = await getVoiceSampleAudio(
           request.userId!,
           request.params.id,
-          request.body.kitsVoiceModelId,
         );
-        return reply.send(sample);
+
+        return reply
+          .header("Content-Type", contentType)
+          .header("Cache-Control", "private, max-age=3600")
+          .send(buffer);
       } catch (error) {
         return sendAppError(reply, error);
       }
@@ -139,12 +142,21 @@ export async function registerVoiceSampleRoutes(app: FastifyInstance) {
         let fileBuffer: Buffer | null = null;
         let filename = "verify.mp3";
         let mimeType = "audio/mpeg";
+        let durationSec: number | undefined;
 
         for await (const part of request.parts()) {
           if (part.type === "file" && part.fieldname === "soundFile") {
             fileBuffer = await part.toBuffer();
             filename = part.filename || filename;
             mimeType = part.mimetype || mimeType;
+          }
+
+          if (part.type === "field" && part.fieldname === "durationSec") {
+            const parsed = Number(part.value);
+
+            if (Number.isFinite(parsed) && parsed > 0) {
+              durationSec = parsed;
+            }
           }
         }
 
@@ -158,6 +170,7 @@ export async function registerVoiceSampleRoutes(app: FastifyInstance) {
           filename,
           mimeType,
           fileBuffer,
+          durationSec,
         });
 
         return reply.send(sample);

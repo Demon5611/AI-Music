@@ -1,0 +1,220 @@
+"use client";
+
+import type { VoiceSample } from "@ai-music/shared";
+import { FolderOpen } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import {
+  isVoiceSampleReadyForGeneration,
+} from "@/entities/voice-sample";
+import {
+  buildVoiceSampleAudioUrl,
+  formatVoiceSampleDuration,
+  resolveVoiceSampleStatusLabel,
+  resolveVoiceSampleTitle,
+} from "@/entities/voice-sample/voice-sample-display";
+import { mt } from "@/features/music-create/music-create-classes";
+import { AudioPreviewPlayer } from "@/shared/ui/elevenlabs";
+import { cn } from "@/lib/utils";
+
+interface VoiceSamplePickerProps {
+  samples: VoiceSample[];
+  selectedId: string | null;
+  isLoading: boolean;
+  loadError: string | null;
+  onSelect: (sampleId: string) => void;
+}
+
+function resolveStatusBadgeClass(sample: VoiceSample): string {
+  if (isVoiceSampleReadyForGeneration(sample)) {
+    return mt.voicePickerBadgeReady;
+  }
+
+  if (sample.voiceCloneStatus === "failed") {
+    return mt.voicePickerBadgeError;
+  }
+
+  if (
+    sample.voiceCloneStatus === "awaiting_verification" ||
+    sample.voiceCloneStatus === "preparing" ||
+    sample.voiceCloneStatus === "cloning"
+  ) {
+    return mt.voicePickerBadgeWarning;
+  }
+
+  return mt.voicePickerBadgePending;
+}
+
+function VoiceSamplePickerToggle({
+  open,
+  readyCount,
+  totalCount,
+  selectedTitle,
+  onToggle,
+}: {
+  open: boolean;
+  readyCount: number;
+  totalCount: number;
+  selectedTitle: string | null;
+  onToggle: () => void;
+}) {
+  const toggleClassName = cn(mt.voicePickerToggle, open && mt.voicePickerToggleActive);
+  const meta = selectedTitle
+    ? `${selectedTitle} · ${readyCount} из ${totalCount} готовы`
+    : `${readyCount} из ${totalCount} готовы к генерации`;
+
+  if (open) {
+    return (
+      <button
+        aria-controls="voice-sample-picker-panel"
+        aria-expanded="true"
+        className={toggleClassName}
+        type="button"
+        onClick={onToggle}
+      >
+        <span className={mt.voicePickerToggleMain}>
+          <FolderOpen aria-hidden className={mt.voicePickerToggleIcon} />
+          <span>
+            <span className={mt.voicePickerToggleTitle}>Доступные образцы голоса</span>
+            <span className={mt.voicePickerToggleMeta}>{meta}</span>
+          </span>
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      aria-controls="voice-sample-picker-panel"
+      aria-expanded="false"
+      className={toggleClassName}
+      type="button"
+      onClick={onToggle}
+    >
+      <span className={mt.voicePickerToggleMain}>
+        <FolderOpen aria-hidden className={mt.voicePickerToggleIcon} />
+        <span>
+          <span className={mt.voicePickerToggleTitle}>Доступные образцы голоса</span>
+          <span className={mt.voicePickerToggleMeta}>{meta}</span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function VoiceSamplePickerItem({
+  sample,
+  selected,
+  onSelect,
+}: {
+  sample: VoiceSample;
+  selected: boolean;
+  onSelect: (sampleId: string) => void;
+}) {
+  const isReady = isVoiceSampleReadyForGeneration(sample);
+  const itemClassName = cn(
+    mt.voicePickerItem,
+    selected && mt.voicePickerItemSelected,
+    !isReady && mt.voicePickerItemDisabled,
+  );
+
+  return (
+    <article className={itemClassName}>
+      <div className={mt.voicePickerItemHeader}>
+        {isReady ? (
+          <input
+            aria-label={`Выбрать ${resolveVoiceSampleTitle(sample)}`}
+            checked={selected}
+            className={mt.voicePickerItemRadio}
+            name="voiceSample"
+            type="radio"
+            onChange={() => onSelect(sample.id)}
+          />
+        ) : (
+          <span aria-hidden className={mt.voicePickerItemRadio} />
+        )}
+        <div className={mt.voicePickerItemBody}>
+          <h3 className={mt.voicePickerItemTitle}>{resolveVoiceSampleTitle(sample)}</h3>
+          <div className={mt.voicePickerItemMeta}>
+            <span className={resolveStatusBadgeClass(sample)}>
+              {resolveVoiceSampleStatusLabel(sample)}
+            </span>
+            <span>{formatVoiceSampleDuration(sample.durationSec)}</span>
+            {!isReady && sample.voiceCloneStatus === "awaiting_verification" ? (
+              <Link className={mt.voicePickerLink} href={`/consent?id=${sample.id}`}>
+                Пройти верификацию
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <AudioPreviewPlayer
+        className={mt.voicePickerPlayer}
+        src={buildVoiceSampleAudioUrl(sample.id)}
+      />
+    </article>
+  );
+}
+
+export function VoiceSamplePicker({
+  samples,
+  selectedId,
+  isLoading,
+  loadError,
+  onSelect,
+}: VoiceSamplePickerProps) {
+  const [open, setOpen] = useState(false);
+  const readySamples = samples.filter(isVoiceSampleReadyForGeneration);
+  const selectedSample = samples.find((sample) => sample.id === selectedId) ?? null;
+
+  if (isLoading) {
+    return (
+      <div className={mt.voicePickerEmpty}>Загрузка образцов голоса...</div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className={mt.voicePickerEmpty} role="alert">
+        {loadError}
+      </div>
+    );
+  }
+
+  if (samples.length === 0) {
+    return (
+      <div className={mt.voicePickerEmpty}>
+        Образцов пока нет.{" "}
+        <Link className={mt.voicePickerLink} href="/">
+          Запишите голос на главной
+        </Link>
+        .
+      </div>
+    );
+  }
+
+  return (
+    <section className={mt.voicePickerSection}>
+      <VoiceSamplePickerToggle
+        open={open}
+        readyCount={readySamples.length}
+        selectedTitle={selectedSample ? resolveVoiceSampleTitle(selectedSample) : null}
+        totalCount={samples.length}
+        onToggle={() => setOpen((value) => !value)}
+      />
+
+      {open ? (
+        <div className={mt.voicePickerPanel} id="voice-sample-picker-panel">
+          {samples.map((sample) => (
+            <VoiceSamplePickerItem
+              key={sample.id}
+              sample={sample}
+              selected={sample.id === selectedId}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}

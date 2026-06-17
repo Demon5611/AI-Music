@@ -109,4 +109,34 @@ export const mt = {
   error: "text-sm text-rose-400",
   icon: "h-4 w-4",
   iconSmall: "h-3 w-3",
+  voicePickerSection: "flex flex-col gap-2",
+  voicePickerToggle:
+    "flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--app-border-default)] bg-[var(--app-hover-overlay)] px-4 py-3 text-left transition-colors hover:bg-[var(--app-surface-elevated)]",
+  voicePickerToggleActive: "border-violet-500/40 bg-violet-600/10",
+  voicePickerToggleMain: "flex min-w-0 flex-1 items-center gap-3",
+  voicePickerToggleIcon: "h-4 w-4 shrink-0 text-violet-400",
+  voicePickerToggleTitle: "text-sm font-medium text-[var(--app-text)]",
+  voicePickerToggleMeta: `mt-0.5 text-xs ${appShell.textMuted}`,
+  voicePickerPanel:
+    "flex flex-col gap-2 rounded-xl border border-[var(--app-border-subtle)] bg-[var(--app-surface-elevated)] p-2",
+  voicePickerItem:
+    "flex flex-col gap-3 rounded-lg border border-transparent px-3 py-3 transition-colors",
+  voicePickerItemSelected: "border-violet-500/40 bg-violet-600/10",
+  voicePickerItemDisabled: "opacity-70",
+  voicePickerItemHeader: "flex items-start gap-3",
+  voicePickerItemRadio: "mt-1 h-4 w-4 shrink-0 accent-violet-500",
+  voicePickerItemBody: "min-w-0 flex-1",
+  voicePickerItemTitle: "text-sm font-medium text-[var(--app-text)]",
+  voicePickerItemMeta: `mt-1 flex flex-wrap items-center gap-2 text-xs ${appShell.textMuted}`,
+  voicePickerBadgeReady:
+    "rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-400",
+  voicePickerBadgePending:
+    "rounded-full bg-[var(--app-hover-overlay)] px-2 py-0.5 text-[11px] font-medium text-[var(--app-text-muted)]",
+  voicePickerBadgeWarning:
+    "rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300",
+  voicePickerBadgeError:
+    "rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium text-rose-300",
+  voicePickerPlayer: "w-full",
+  voicePickerEmpty: `rounded-xl border border-dashed border-[var(--app-border-default)] px-4 py-6 text-center text-sm ${appShell.textMuted}`,
+  voicePickerLink: "text-violet-400 underline-offset-2 hover:underline",
 } as const;

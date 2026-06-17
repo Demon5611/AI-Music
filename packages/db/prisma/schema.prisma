@@ -31,7 +31,6 @@ model VoiceSample {
   durationSec      Int      @map("duration_sec")
   status           String   @default("pending")
   consentConfirmed Boolean  @default(false) @map("consent_confirmed")
-  kitsVoiceModelId Int?     @map("kits_voice_model_id")
   sunoVoiceId      String?  @map("suno_voice_id")
   sunoVoiceTaskId  String?  @map("suno_voice_task_id")
   sunoValidatePhrase String? @map("suno_validate_phrase")

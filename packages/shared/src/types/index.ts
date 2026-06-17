@@ -35,7 +35,6 @@ export interface VoiceSample {
   durationSec: number;
   status: VoiceSampleStatus;
   consentConfirmed: boolean;
-  kitsVoiceModelId: number | null;
   sunoVoiceId: string | null;
   sunoVoiceTaskId: string | null;
   sunoValidatePhrase: string | null;

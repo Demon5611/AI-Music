@@ -14,7 +14,11 @@ import {
   syncMusicGenerationRecord,
 } from "./music-record.service.js";
 import { toMusicGenerationRecordDto, toMusicStatusResponse } from "./music-record.mapper.js";
-import { resolveSunoVoicePersonaForUser } from "../voice-samples/resolve-suno-voice-persona.js";
+import {
+  buildPersonaSongInput,
+  resolveMusicPersonaForUser,
+  type MusicGenerateLogger,
+} from "./music-persona.js";
 import { ForbiddenError } from "../../common/errors.js";
 
 const musicService = createMusicService();
@@ -28,8 +32,13 @@ export function getMusicTestStatus() {
   };
 }
 
-export async function generateMusicForUser(userId: string, input: GenerateSongInput) {
-  const persona = await resolveSunoVoicePersonaForUser(userId);
+export async function generateMusicForUser(
+  userId: string,
+  input: GenerateSongInput,
+  options: { voiceSampleId?: string } = {},
+  log?: MusicGenerateLogger,
+) {
+  const persona = await resolveMusicPersonaForUser(userId, options.voiceSampleId, log);
 
   if (!persona) {
     throw new ForbiddenError(
@@ -37,11 +46,23 @@ export async function generateMusicForUser(userId: string, input: GenerateSongIn
     );
   }
 
-  const result = await musicService.generateSong({
-    ...input,
-    personaId: persona.personaId,
-    personaModel: persona.personaModel,
-  });
+  const songInput = buildPersonaSongInput(input, persona);
+
+  log?.info(
+    {
+      userId,
+      voiceSampleId: persona.voiceSampleId,
+      personaId: persona.personaId,
+      personaModel: persona.personaModel,
+      vocalGender: songInput.vocalGender ?? null,
+      customMode: songInput.customMode ?? null,
+      style: songInput.style ?? null,
+      title: songInput.title ?? null,
+    },
+    "Submitting Suno music generation with persona",
+  );
+
+  const result = await musicService.generateSong(songInput);
   const record = await createMusicGenerationRecord(
     buildSongRecordInput(userId, input, result.taskId),
   );

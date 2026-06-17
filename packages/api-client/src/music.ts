@@ -15,6 +15,8 @@ export interface GenerateSongBody {
   customMode?: boolean;
   durationSec?: number;
   referenceAudioUrl?: string;
+  vocalGender?: "m" | "f";
+  voiceSampleId?: string;
 }
 
 export interface GenerateLyricsBody {

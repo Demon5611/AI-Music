@@ -89,7 +89,7 @@ Not ElevenLabs UI. Styles: Tailwind via `me` from `music-editor-classes.ts`.
 
 ## Error display
 
-Parse API `{ error, code }` responses. Example: `features/kits-test/parse-api-error.ts`.
+Parse API `{ error, code }` responses from backend modules (e.g. music editor Kits errors).
 
 Show user-safe message; log details only in dev if needed.
 

@@ -2,9 +2,36 @@ import type {
   ApplyOperationBody,
   EditorStateDto,
   InitEditorResponse,
+  KitsVoiceModel,
+  KitsVoiceModelsResponse,
   RenderSongResponse,
 } from "@ai-music/shared";
 import type { ApiClient } from "./client.js";
+
+export interface ListKitsVoiceModelsParams {
+  myModels?: boolean;
+  page?: number;
+  perPage?: number;
+}
+
+function buildVoiceModelsQuery(params: ListKitsVoiceModelsParams): string {
+  const search = new URLSearchParams();
+
+  if (params.myModels) {
+    search.set("myModels", "true");
+  }
+
+  if (params.page) {
+    search.set("page", String(params.page));
+  }
+
+  if (params.perPage) {
+    search.set("perPage", String(params.perPage));
+  }
+
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
 
 export function createMusicEditorApi(client: ApiClient) {
   return {
@@ -35,5 +62,11 @@ export function createMusicEditorApi(client: ApiClient) {
       }>(`/api/music/${songId}/render/${jobId}`),
     voiceTransfer: (songId: string, body: { regionId: string; voiceModelId: number }) =>
       client.post<EditorStateDto>(`/api/music/${songId}/voice-transfer`, body),
+    listKitsVoiceModels: (params: ListKitsVoiceModelsParams = {}) =>
+      client.get<KitsVoiceModelsResponse>(
+        `/api/music-editor/kits-voice-models${buildVoiceModelsQuery(params)}`,
+      ),
+    getKitsVoiceModel: (id: number) =>
+      client.get<KitsVoiceModel>(`/api/music-editor/kits-voice-models/${id}`),
   };
 }

@@ -76,7 +76,7 @@ export function VoiceTransferDialog({
 
       try {
         if (isSearchActive) {
-          const firstPage = await fetchVoiceModelsPage(api.kits.listVoiceModels, 1);
+          const firstPage = await fetchVoiceModelsPage(api.musicEditor.listKitsVoiceModels, 1);
 
           if (cancelled) {
             return;
@@ -91,7 +91,7 @@ export function VoiceTransferDialog({
                 return Promise.resolve(firstPage);
               }
 
-              return fetchVoiceModelsPage(api.kits.listVoiceModels, pageNumber);
+              return fetchVoiceModelsPage(api.musicEditor.listKitsVoiceModels, pageNumber);
             }),
           );
 
@@ -105,7 +105,7 @@ export function VoiceTransferDialog({
           return;
         }
 
-        const response = await fetchVoiceModelsPage(api.kits.listVoiceModels, page);
+        const response = await fetchVoiceModelsPage(api.musicEditor.listKitsVoiceModels, page);
 
         if (cancelled) {
           return;

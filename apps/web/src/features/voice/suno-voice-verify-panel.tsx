@@ -2,14 +2,16 @@
 
 import { ApiError } from "@ai-music/api-client";
 import type { VoiceSample } from "@ai-music/shared";
+import { MIN_VOICE_VERIFY_DURATION_SEC } from "@ai-music/shared";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
+import { SunoVoiceVerifyTipsPanel } from "@/features/voice/voice-recording-tips-panel";
 import { voiceUi } from "@/features/voice/voice-classes";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
-import { LoadingPanel } from "@/shared/ui/elevenlabs";
+import { VoiceCloneWaitingPanel } from "@/features/voice/voice-clone-waiting-panel";
 import { appShell } from "@/shared/theme/app-theme";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +33,19 @@ function resolveErrorMessage(error: unknown): string {
   return "Не удалось настроить голос Suno";
 }
 
+function isVoiceMismatchMessage(message: string | null | undefined): boolean {
+  if (!message) {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+
+  return (
+    normalized.includes("не совпал") ||
+    normalized.includes("voices sound different")
+  );
+}
+
 function resolveStatusLabel(sample: VoiceSample | null): string {
   if (!sample) {
     return "Подготовка...";
@@ -40,7 +55,7 @@ function resolveStatusLabel(sample: VoiceSample | null): string {
     case "preparing":
       return "Анализируем ваш голос и готовим фразу для верификации...";
     case "awaiting_verification":
-      return "Запишите фразу ниже — лучше напевом, не просто речью";
+      return "Запишите фразу ниже тем же голосом и манерой, что при записи на главной";
     case "cloning":
       return "Создаём ваш голос в Suno...";
     case "ready":
@@ -90,16 +105,19 @@ export function SunoVoiceVerifyPanel() {
 
     pollCountRef.current += 1;
 
+    const next = await api.voiceSamples.getSunoVoiceStatus(sampleId);
+    setSample(next);
+
     if (pollCountRef.current > MAX_STATUS_POLLS) {
       stopPolling();
-      setError(
-        "Suno Voice не ответил вовремя (около 6 мин). Обновите страницу или нажмите «Повторить».",
-      );
+      const timeoutMessage =
+        next.voiceCloneStatus === "cloning"
+          ? "Suno не завершил создание голоса за 6 минут. Нажмите «Повторить верификацию» или обновите страницу."
+          : "Suno не выдал фразу для записи за 6 минут. Нажмите «Повторить верификацию» или обновите страницу.";
+      setError(timeoutMessage);
       return null;
     }
 
-    const next = await api.voiceSamples.getSunoVoiceStatus(sampleId);
-    setSample(next);
     return next;
   }, [api, sampleId, stopPolling]);
 
@@ -179,16 +197,16 @@ export function SunoVoiceVerifyPanel() {
 
     if (sample.voiceCloneStatus === "failed") {
       stopPolling();
-      setError(sample.voiceCloneError ?? "Не удалось создать голос Suno");
+      return;
+    }
+
+    if (sample.voiceCloneStatus === "awaiting_verification") {
+      stopPolling();
       return;
     }
 
     if (isProcessingStatus(sample.voiceCloneStatus) && !pollTimerRef.current) {
       startPolling();
-    }
-
-    if (sample.voiceCloneStatus === "awaiting_verification") {
-      stopPolling();
     }
   }, [router, sample, startPolling, stopPolling]);
 
@@ -209,8 +227,16 @@ export function SunoVoiceVerifyPanel() {
         return;
       }
 
+      if (recording.durationSec < MIN_VOICE_VERIFY_DURATION_SEC) {
+        setError(
+          `Запись слишком короткая — минимум ${MIN_VOICE_VERIFY_DURATION_SEC} сек. Произнесите фразу целиком.`,
+        );
+        return;
+      }
+
       const formData = new FormData();
       formData.append("soundFile", recording.file);
+      formData.append("durationSec", String(recording.durationSec));
 
       const verified = await api.voiceSamples.verifySunoVoice(sampleId, formData);
       setSample(verified);
@@ -222,6 +248,13 @@ export function SunoVoiceVerifyPanel() {
 
       if (verified.voiceCloneStatus === "cloning") {
         startPolling();
+        return;
+      }
+
+      if (verified.voiceCloneStatus === "awaiting_verification") {
+        setError(
+          "Запись отправлена, но Suno не начал создание голоса. Обновите страницу или нажмите «Повторить».",
+        );
       }
     } catch (submitError) {
       setError(resolveErrorMessage(submitError));
@@ -233,8 +266,10 @@ export function SunoVoiceVerifyPanel() {
   if (!authReady || isBootstrapping) {
     return (
       <div className={appShell.formPage}>
-        <p className={appShell.formPageDescription}>Подготовка Suno Voice...</p>
-        <LoadingPanel lines={2} />
+        <div className={cn(appShell.formPageForm, "max-w-xl")}>
+          <h1 className={appShell.formPageTitle}>Создание вашего голоса</h1>
+          <VoiceCloneWaitingPanel active label="Подготовка Suno Voice..." />
+        </div>
       </div>
     );
   }
@@ -247,8 +282,22 @@ export function SunoVoiceVerifyPanel() {
     );
   }
 
-  const showRecorder = sample?.voiceCloneStatus === "awaiting_verification";
+  const showRecorder =
+    sample?.voiceCloneStatus === "awaiting_verification" && !isSubmitting;
   const isBusy = isSubmitting || isProcessingStatus(sample?.voiceCloneStatus ?? "pending");
+  const displayError =
+    error ??
+    (sample?.voiceCloneStatus === "failed"
+      ? sample.voiceCloneError ?? "Не удалось создать голос Suno"
+      : null);
+  const showFailedActions = Boolean(displayError);
+  const showVoiceMismatchHint = isVoiceMismatchMessage(displayError);
+  const showWaitingPanel =
+    isSubmitting ||
+    (isProcessingStatus(sample?.voiceCloneStatus ?? "pending") && !isBootstrapping);
+  const waitingLabel = isSubmitting
+    ? "Отправляем запись верификации в Suno..."
+    : resolveStatusLabel(sample);
 
   function handleRetryPrepare() {
     if (!sampleId) {
@@ -282,18 +331,26 @@ export function SunoVoiceVerifyPanel() {
     <div className={appShell.formPage}>
       <div className={cn(appShell.formPageForm, "max-w-xl")}>
         <h1 className={appShell.formPageTitle}>Создание вашего голоса</h1>
-        <p className={appShell.formPageDescription}>{resolveStatusLabel(sample)}</p>
+        {showWaitingPanel ? null : (
+          <p className={appShell.formPageDescription}>{resolveStatusLabel(sample)}</p>
+        )}
 
-        {sample?.sunoValidatePhrase ? (
+        {showWaitingPanel ? (
+          <VoiceCloneWaitingPanel active label={waitingLabel} />
+        ) : null}
+
+        {sample?.sunoValidatePhrase && !showWaitingPanel ? (
           <div className={voiceUi.consentContent}>
             <span className={voiceUi.consentTitle}>Фраза для записи</span>
             <span className={voiceUi.consentPhrase}>{sample.sunoValidatePhrase}</span>
           </div>
         ) : null}
 
-        {error ? (
+        {showRecorder ? <SunoVoiceVerifyTipsPanel /> : null}
+
+        {displayError ? (
           <p className={appShell.formError} role="alert">
-            {error}
+            {displayError}
           </p>
         ) : null}
 
@@ -331,22 +388,36 @@ export function SunoVoiceVerifyPanel() {
           </div>
         ) : null}
 
-        {sample?.voiceCloneStatus === "cloning" ? (
+        {showFailedActions ? (
           <>
-            <p className={appShell.formPageDescription}>Создаём голос Suno...</p>
-            <LoadingPanel lines={2} />
+            {showVoiceMismatchHint ? (
+              <p className={appShell.formPageDescription}>
+                Если на главной вы читали текст, а здесь напевали (или наоборот), Suno
+                отклонит запись. Запишите новый образец на главной напевом и
+                повторите верификацию тем же голосом.
+              </p>
+            ) : null}
+            <div className={voiceUi.formActions}>
+              <button
+                className={appShell.formSubmit}
+                disabled={isBootstrapping}
+                type="button"
+                onClick={handleRetryPrepare}
+              >
+                Повторить верификацию
+              </button>
+              {showVoiceMismatchHint ? (
+                <button
+                  className={appShell.btnSecondaryOutline}
+                  disabled={isBootstrapping}
+                  type="button"
+                  onClick={() => router.push("/")}
+                >
+                  Записать образец заново
+                </button>
+              ) : null}
+            </div>
           </>
-        ) : null}
-
-        {error || sample?.voiceCloneStatus === "failed" ? (
-          <button
-            className={appShell.formSubmit}
-            disabled={isBootstrapping}
-            type="button"
-            onClick={handleRetryPrepare}
-          >
-            Повторить
-          </button>
         ) : null}
       </div>
     </div>

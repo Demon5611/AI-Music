@@ -45,10 +45,10 @@ export class SunoVoiceClient {
     ).then((raw) => this.normalizeValidateInfo(raw));
   }
 
-  getVoiceRecordInfo(taskId: string): Promise<SunoVoiceRecordInfo> {
-    return this.fetchTask(
+  async getVoiceRecordInfo(taskId: string): Promise<SunoVoiceRecordInfo> {
+    return this.fetchTask<Record<string, unknown>>(
       `/voice/record-info?taskId=${encodeURIComponent(taskId)}`,
-    );
+    ).then((raw) => this.normalizeRecordInfo(raw));
   }
 
   checkVoiceAvailability(taskId: string): Promise<boolean> {
@@ -82,6 +82,20 @@ export class SunoVoiceClient {
     return {
       taskId: String(raw.taskId ?? raw.task_id ?? ""),
       validateInfo: typeof phrase === "string" ? phrase : "",
+      status: String(raw.status ?? ""),
+      errorCode: typeof raw.errorCode === "number" ? raw.errorCode : undefined,
+      errorMessage: typeof errorMessage === "string" ? errorMessage : null,
+    };
+  }
+
+  private normalizeRecordInfo(raw: Record<string, unknown>): SunoVoiceRecordInfo {
+    const voiceIdRaw = raw.voiceId ?? raw.voice_id;
+    const errorMessage = raw.errorMessage ?? raw.error_message;
+    const voiceId = typeof voiceIdRaw === "string" ? voiceIdRaw.trim() : "";
+
+    return {
+      taskId: String(raw.taskId ?? raw.task_id ?? ""),
+      voiceId,
       status: String(raw.status ?? ""),
       errorCode: typeof raw.errorCode === "number" ? raw.errorCode : undefined,
       errorMessage: typeof errorMessage === "string" ? errorMessage : null,

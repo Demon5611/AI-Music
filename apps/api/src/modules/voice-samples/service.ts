@@ -1,9 +1,5 @@
 import { prisma } from "@ai-music/db";
-import {
-  linkKitsVoiceModelSchema,
-  uploadVoiceSampleFieldsSchema,
-} from "@ai-music/shared";
-import { createKitsClient, KitsApiError } from "@ai-music/ai-providers";
+import { uploadVoiceSampleFieldsSchema } from "@ai-music/shared";
 import { ForbiddenError, NotFoundError } from "../../common/errors.js";
 import {
   buildVoiceSampleKey,
@@ -11,15 +7,7 @@ import {
   resolveVoiceSampleExtension,
 } from "../storage/storage.service.js";
 import { toVoiceSampleDto } from "./mapper.js";
-
-const ALLOWED_MIME_TYPES = new Set([
-  "audio/mpeg",
-  "audio/mp3",
-  "audio/wav",
-  "audio/x-wav",
-  "audio/webm",
-  "audio/flac",
-]);
+import { normalizeVoiceSampleMime, resolveVoiceSampleContentType } from "./resolve-voice-sample-mime.js";
 
 export interface CreateVoiceSampleInput {
   userId: string;
@@ -49,9 +37,7 @@ export async function createVoiceSample(input: CreateVoiceSampleInput) {
     throw new ForbiddenError("Voice consent is required");
   }
 
-  if (!ALLOWED_MIME_TYPES.has(input.mimeType)) {
-    throw new ForbiddenError("Unsupported audio format");
-  }
+  const mimeType = normalizeVoiceSampleMime(input.filename, input.mimeType);
 
   const sample = await prisma.voiceSample.create({
     data: {
@@ -63,12 +49,12 @@ export async function createVoiceSample(input: CreateVoiceSampleInput) {
     },
   });
 
-  const extension = resolveVoiceSampleExtension(input.filename, input.mimeType);
+  const extension = resolveVoiceSampleExtension(input.filename, mimeType);
   const storageKey = buildVoiceSampleKey(input.userId, sample.id, extension);
   const storage = getStorageService();
 
   try {
-    await storage.put(storageKey, input.fileBuffer, input.mimeType);
+    await storage.put(storageKey, input.fileBuffer, mimeType);
 
     const updated = await prisma.voiceSample.update({
       where: { id: sample.id },
@@ -95,17 +81,7 @@ export async function deleteVoiceSample(userId: string, sampleId: string) {
   await prisma.voiceSample.delete({ where: { id: sample.id } });
 }
 
-export async function linkKitsVoiceModel(
-  userId: string,
-  sampleId: string,
-  kitsVoiceModelId: number,
-) {
-  const parsed = linkKitsVoiceModelSchema.safeParse({ kitsVoiceModelId });
-
-  if (!parsed.success) {
-    throw new ForbiddenError("Invalid Kits voice model id");
-  }
-
+export async function getVoiceSampleAudio(userId: string, sampleId: string) {
   const sample = await prisma.voiceSample.findFirst({
     where: { id: sampleId, userId },
   });
@@ -114,47 +90,14 @@ export async function linkKitsVoiceModel(
     throw new NotFoundError("Voice sample not found");
   }
 
-  if (!sample.consentConfirmed || sample.status !== "ready") {
-    throw new ForbiddenError("Voice sample is not ready");
+  if (sample.r2Key === "pending") {
+    throw new NotFoundError("Voice sample audio is not stored yet");
   }
 
-  try {
-    const kits = createKitsClient();
-    await kits.getVoiceModel(parsed.data.kitsVoiceModelId);
-  } catch (error) {
-    if (error instanceof KitsApiError) {
-      if (error.status === 404) {
-        throw new NotFoundError(
-          `Модель Kits ${parsed.data.kitsVoiceModelId} не найдена. Создайте голос в app.kits.ai и укажите его ID.`,
-        );
-      }
+  const buffer = await getStorageService().get(sample.r2Key);
 
-      if (error.isFreeTierForbidden()) {
-        throw new ForbiddenError(error.userMessage);
-      }
-
-      if (error.status === 403) {
-        throw new NotFoundError(
-          `Модель Kits ${parsed.data.kitsVoiceModelId} недоступна для вашего API key. Создайте голос в app.kits.ai и выберите его ID из списка.`,
-        );
-      }
-
-      throw new ForbiddenError(error.userMessage);
-    }
-
-    if (error instanceof Error && error.message.includes("KITS_API")) {
-      throw new ForbiddenError(
-        "Kits API не настроен: проверьте KITS_API_KEY и KITS_API_BASE_URL в .env и перезапустите API.",
-      );
-    }
-
-    throw new NotFoundError("Kits voice model not found");
-  }
-
-  const updated = await prisma.voiceSample.update({
-    where: { id: sample.id },
-    data: { kitsVoiceModelId: parsed.data.kitsVoiceModelId },
-  });
-
-  return toVoiceSampleDto(updated);
+  return {
+    buffer,
+    contentType: resolveVoiceSampleContentType(sample.r2Key),
+  };
 }

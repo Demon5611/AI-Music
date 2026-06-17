@@ -13,7 +13,6 @@ import { registerTrackRoutes } from "./modules/tracks/routes.js";
 import { registerCreditsRoutes } from "./modules/credits/routes.js";
 import { registerBillingRoutes } from "./modules/billing/routes.js";
 import { registerStorageRoutes } from "./modules/storage/routes.js";
-import { registerKitsRoutes } from "./modules/kits/routes.js";
 import { registerMusicRoutes } from "./modules/music/routes.js";
 import { registerMusicEditorRoutes } from "./modules/music-editor/routes.js";
 import { closeGenerationQueue } from "./modules/queue/generation-queue.js";
@@ -46,7 +45,6 @@ export async function buildApp() {
   await registerStorageRoutes(app);
   await registerMusicRoutes(app);
   await registerMusicEditorRoutes(app);
-  await registerKitsRoutes(app);
 
   app.setErrorHandler((error, _request, reply) => {
     if (isAppError(error)) {

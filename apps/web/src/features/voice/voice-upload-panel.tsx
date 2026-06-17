@@ -8,10 +8,13 @@ import {
 } from "@ai-music/shared";
 import { Mic } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { readAudioDurationSec } from "@/features/voice/read-audio-duration";
+import {
+  VoiceRecordingScriptPanel,
+  VoiceRecordingScriptToggle,
+} from "@/features/voice/voice-recording-script-control";
 import { VoiceRecordingTipsPanel } from "@/features/voice/voice-recording-tips-panel";
-import { VOICE_RECORDING_TOOLTIP } from "@/features/voice/voice-recording-tips";
 import { voiceUi } from "@/features/voice/voice-classes";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
@@ -19,7 +22,6 @@ import { useApi } from "@/shared/providers/api-provider";
 import { lp } from "@/features/landing/landing-classes";
 import { me as editorStyles } from "@/features/music-editor/music-editor-classes";
 import { LoadingPanel } from "@/shared/ui/elevenlabs";
-import { DisabledTooltipWrap, Tooltip } from "@/shared/ui/tooltip";
 import { appShell } from "@/shared/theme/app-theme";
 
 type VoiceUploadVariant = "page" | "landing";
@@ -104,35 +106,6 @@ function VoiceModeButton({ active, children, disabled, onSelect }: VoiceModeButt
   );
 }
 
-function wrapLandingRecordTooltip(
-  button: ReactElement,
-  showTooltip: boolean,
-  disabled: boolean,
-) {
-  if (!showTooltip) {
-    return button;
-  }
-
-  if (disabled) {
-    return (
-      <DisabledTooltipWrap
-        align="start"
-        content={VOICE_RECORDING_TOOLTIP}
-        side="top"
-        size="lg"
-      >
-        {button}
-      </DisabledTooltipWrap>
-    );
-  }
-
-  return (
-    <Tooltip align="start" content={VOICE_RECORDING_TOOLTIP} side="top" size="lg">
-      {button}
-    </Tooltip>
-  );
-}
-
 interface VoiceUploadPanelProps {
   disabled?: boolean;
   onSuccess?: (sampleId: string) => void;
@@ -158,6 +131,7 @@ export function VoiceUploadPanel({
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isScriptPanelOpen, setIsScriptPanelOpen] = useState(false);
   const {
     cancelRecording,
     elapsedSec,
@@ -394,7 +368,7 @@ export function VoiceUploadPanel({
           <h1 className={appShell.formPageTitle}>Запись голоса</h1>
           <p className={appShell.formPageDescription}>
             Выберите один способ: запись с микрофона или загрузка файла ({durationHint}). Затем
-            привяжите модель из Kits.
+            пройдите верификацию голоса Suno.
           </p>
         </>
       ) : (
@@ -476,9 +450,9 @@ export function VoiceUploadPanel({
         {inputMode === "record" ? (
           <div className={fieldClassName}>
             <span className={labelClassName}>Запись с микрофона</span>
-            <div className={editorStyles.ownVoiceRecordRow}>
-              {!isRecording ? (
-                wrapLandingRecordTooltip(
+            <div className={voiceUi.recordScriptWrap}>
+              <div className={editorStyles.ownVoiceRecordRow}>
+                {!isRecording ? (
                   <button
                     className={editorStyles.ownVoiceRecordButton}
                     disabled={voiceInputDisabled}
@@ -494,33 +468,37 @@ export function VoiceUploadPanel({
                   >
                     <Mic aria-hidden className={editorStyles.ownVoiceRecordButtonIcon} />
                     Запись
-                  </button>,
-                  styles.isLanding,
-                  voiceInputDisabled,
-                )
-              ) : (
-                <>
-                  <button
-                    className={editorStyles.toolButtonDestructive}
-                    disabled={disabled || isSubmitting}
-                    type="button"
-                    onClick={() => void handleStopRecording()}
-                  >
-                    Стоп
                   </button>
-                  <button
-                    className={editorStyles.toolButton}
-                    disabled={disabled || isSubmitting}
-                    type="button"
-                    onClick={cancelRecording}
-                  >
-                    Отмена
-                  </button>
-                  <span className={editorStyles.ownVoiceRecordingLabel}>
-                    Идёт запись {formatRecordingTime(elapsedSec)}
-                  </span>
-                </>
-              )}
+                ) : (
+                  <>
+                    <button
+                      className={editorStyles.toolButtonDestructive}
+                      disabled={disabled || isSubmitting}
+                      type="button"
+                      onClick={() => void handleStopRecording()}
+                    >
+                      Стоп
+                    </button>
+                    <button
+                      className={editorStyles.toolButton}
+                      disabled={disabled || isSubmitting}
+                      type="button"
+                      onClick={cancelRecording}
+                    >
+                      Отмена
+                    </button>
+                    <span className={editorStyles.ownVoiceRecordingLabel}>
+                      Идёт запись {formatRecordingTime(elapsedSec)}
+                    </span>
+                  </>
+                )}
+                <VoiceRecordingScriptToggle
+                  disabled={disabled || isSubmitting}
+                  open={isScriptPanelOpen}
+                  onToggle={() => setIsScriptPanelOpen((value) => !value)}
+                />
+              </div>
+              <VoiceRecordingScriptPanel open={isScriptPanelOpen} />
             </div>
           </div>
         ) : (

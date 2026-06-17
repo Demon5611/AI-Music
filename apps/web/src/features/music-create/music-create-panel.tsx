@@ -6,12 +6,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { consumeMusicCreateLyricsBriefDraft } from "@/shared/lib/music-create-prompt-transfer";
-import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
 import { MusicGenerationLoader } from "@/features/music-create/music-generation-loader";
 import { mt } from "@/features/music-create/music-create-classes";
 import { MusicLyricsFromPrompt } from "@/features/music-create/music-lyrics-from-prompt";
 import { MusicStyleChips } from "@/features/music-create/music-style-chips-panel";
 import { SongTrackResult } from "@/features/music-create/song-track-result";
+import { useVoiceSampleSelection } from "@/features/music-create/use-voice-sample-selection";
+import { VoiceSamplePicker } from "@/features/music-create/voice-sample-picker";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,11 @@ const DURATION_OPTIONS = [
   { value: 60, label: "~1 мин" },
   { value: 120, label: "~2 мин" },
 ] as const;
+
+const VOCAL_GENDER_OPTIONS = [
+  { value: "m" as const, label: "Мужской" },
+  { value: "f" as const, label: "Женский" },
+];
 
 function resolveErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.body && typeof error.body === "object") {
@@ -142,13 +148,13 @@ export function MusicCreatePanel() {
   const queryClient = useQueryClient();
 
   const [configured, setConfigured] = useState<boolean | null>(null);
-  const [voiceLinked, setVoiceLinked] = useState<boolean | null>(null);
   const [statusLoadError, setStatusLoadError] = useState<string | null>(null);
   const [durationSec, setDurationSec] = useState(0);
   const [lyricsBrief, setLyricsBrief] = useState("");
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState(DEFAULT_STYLE);
   const [title, setTitle] = useState(DEFAULT_TITLE);
+  const [vocalGender, setVocalGender] = useState<"m" | "f">("m");
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<MusicStatusResponseDto | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -159,6 +165,15 @@ export function MusicCreatePanel() {
   const [isPolling, setIsPolling] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
+  const {
+    samples: voiceSamples,
+    selectedId: selectedVoiceSampleId,
+    hasReadyVoice,
+    canGenerateWithVoice,
+    isLoading: isVoiceSamplesLoading,
+    loadError: voiceSamplesLoadError,
+    setSelectedId: setSelectedVoiceSampleId,
+  } = useVoiceSampleSelection(authReady);
 
   useEffect(() => {
     const draft = consumeMusicCreateLyricsBriefDraft();
@@ -179,21 +194,6 @@ export function MusicCreatePanel() {
         setStatusLoadError(resolveErrorMessage(loadError));
       });
   }, [api]);
-
-  useEffect(() => {
-    if (!authReady) {
-      return;
-    }
-
-    void api.voiceSamples
-      .list()
-      .then((samples) => {
-        setVoiceLinked(samples.some(isVoiceSampleReadyForGeneration));
-      })
-      .catch(() => {
-        setVoiceLinked(false);
-      });
-  }, [api, authReady]);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -266,6 +266,8 @@ export function MusicCreatePanel() {
         customMode: true,
         instrumental: false,
         durationSec: durationSec > 0 ? durationSec : undefined,
+        vocalGender,
+        voiceSampleId: selectedVoiceSampleId ?? undefined,
       });
 
       setTaskId(body.taskId);
@@ -389,18 +391,27 @@ export function MusicCreatePanel() {
           </div>
         ) : null}
 
-        {voiceLinked === false ? (
+        {!isVoiceSamplesLoading && !hasReadyVoice ? (
           <div className={mt.alertWarning} role="alert">
-            Голос Suno не привязан. Запишите голос на главной и пройдите верификацию — без этого
-            песня будет с чужим AI-вокалом.
+            Нет готовых образцов Suno Voice. Запишите голос на главной и пройдите верификацию —
+            без этого песня будет с чужим AI-вокалом.
           </div>
         ) : null}
 
-        {voiceLinked === true ? (
-          <div className={mt.cardHeaderSubtitle}>
-            Генерация использует ваш Suno Voice (модель V5).
-          </div>
+        {hasReadyVoice ? (
+          <p className={mt.cardHeaderSubtitle}>
+            Генерация использует выбранный Suno Voice (модель V5). Укажите пол вокала — без этого
+            Suno может выбрать голос по стилю трека.
+          </p>
         ) : null}
+
+        <VoiceSamplePicker
+          isLoading={isVoiceSamplesLoading}
+          loadError={voiceSamplesLoadError}
+          samples={voiceSamples}
+          selectedId={selectedVoiceSampleId}
+          onSelect={setSelectedVoiceSampleId}
+        />
 
         <section className={mt.sectionCard}>
           <div className={mt.fieldStack}>
@@ -430,7 +441,7 @@ export function MusicCreatePanel() {
                   aria-labelledby="music-style-label"
                   className={cn(mt.textarea, mt.textareaStyle)}
                   maxLength={STYLE_MAX_LENGTH}
-                  placeholder="pop, hyperpop, soft female vocals, 120 BPM"
+                  placeholder="pop, hyperpop, upbeat, 120 BPM"
                   value={style}
                   onChange={(event) => setStyle(event.target.value)}
                 />
@@ -477,6 +488,38 @@ export function MusicCreatePanel() {
               ) : null}
             </label>
 
+            {canGenerateWithVoice ? (
+              <div>
+                <span className={mt.fieldLabel} id="vocal-gender-label">
+                  Пол вокала
+                </span>
+                <div
+                  aria-labelledby="vocal-gender-label"
+                  className={mt.chipRow}
+                  role="radiogroup"
+                >
+                  {VOCAL_GENDER_OPTIONS.map((option) => (
+                    <label
+                      key={option.value}
+                      className={
+                        vocalGender === option.value ? mt.chipSelected : mt.chip
+                      }
+                    >
+                      <input
+                        checked={vocalGender === option.value}
+                        className={mt.chipInput}
+                        name="vocalGender"
+                        type="radio"
+                        value={option.value}
+                        onChange={() => setVocalGender(option.value)}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <label className="block">
               <span className={mt.fieldLabel}>
                 Длительность (AI не всегда точно соблюдает заданную длительность)
@@ -511,7 +554,7 @@ export function MusicCreatePanel() {
 
             <button
               className={mt.submit}
-              disabled={isBusy || configured !== true || voiceLinked !== true}
+              disabled={isBusy || configured !== true || !canGenerateWithVoice}
               type="button"
               onClick={() => void handleGenerate()}
             >

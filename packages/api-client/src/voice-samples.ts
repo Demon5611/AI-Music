@@ -1,4 +1,4 @@
-import type { LinkKitsVoiceModelInput, VoiceSample } from "@ai-music/shared";
+import type { VoiceSample } from "@ai-music/shared";
 import type { ApiClient } from "./client.js";
 
 export function createVoiceSamplesApi(client: ApiClient) {
@@ -6,8 +6,6 @@ export function createVoiceSamplesApi(client: ApiClient) {
     list: () => client.get<VoiceSample[]>("/api/voice-samples"),
     create: (formData: FormData) =>
       client.postForm<VoiceSample>("/api/voice-samples", formData),
-    linkKitsModel: (id: string, input: LinkKitsVoiceModelInput) =>
-      client.patch<VoiceSample>(`/api/voice-samples/${id}`, input),
     prepareSunoVoice: (id: string, options?: { restart?: boolean }) =>
       client.post<VoiceSample>(`/api/voice-samples/${id}/suno-voice/prepare`, options ?? {}),
     getSunoVoiceStatus: (id: string) =>
@@ -19,5 +17,6 @@ export function createVoiceSamplesApi(client: ApiClient) {
       ),
     remove: (id: string) =>
       client.delete<void>(`/api/voice-samples/${id}`),
+    getAudioUrl: (id: string) => `/api/voice-samples/${id}/audio`,
   };
 }

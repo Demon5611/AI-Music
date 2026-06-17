@@ -26,4 +26,7 @@ export const MIN_VOICE_SAMPLE_DURATION_SEC = 10;
 
 export const MAX_VOICE_SAMPLE_DURATION_SEC = 120;
 
+/** Минимальная длина записи фразы Suno на /consent. */
+export const MIN_VOICE_VERIFY_DURATION_SEC = 5;
+
 export const GENERATION_QUEUE_NAME = "generation";

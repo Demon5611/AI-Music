@@ -9,7 +9,6 @@ export function toVoiceSampleDto(sample: VoiceSample): VoiceSampleDto {
     durationSec: sample.durationSec,
     status: sample.status as VoiceSampleDto["status"],
     consentConfirmed: sample.consentConfirmed,
-    kitsVoiceModelId: sample.kitsVoiceModelId,
     sunoVoiceId: sample.sunoVoiceId,
     sunoVoiceTaskId: sample.sunoVoiceTaskId,
     sunoValidatePhrase: sample.sunoValidatePhrase,

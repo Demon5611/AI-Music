@@ -34,10 +34,6 @@ export const uploadVoiceSampleFieldsSchema = voiceConsentSchema.extend({
     .max(MAX_VOICE_SAMPLE_DURATION_SEC),
 });
 
-export const linkKitsVoiceModelSchema = z.object({
-  kitsVoiceModelId: z.number().int().positive(),
-});
-
 export const createCheckoutSessionSchema = z.object({
   packageId: z.enum(["starter", "creator", "pro"]),
 });
@@ -45,7 +41,6 @@ export const createCheckoutSessionSchema = z.object({
 export type CreateGenerationInput = z.infer<typeof createGenerationSchema>;
 export type VoiceConsentInput = z.infer<typeof voiceConsentSchema>;
 export type UploadVoiceSampleFields = z.infer<typeof uploadVoiceSampleFieldsSchema>;
-export type LinkKitsVoiceModelInput = z.infer<typeof linkKitsVoiceModelSchema>;
 export type CreateCheckoutSessionInput = z.infer<typeof createCheckoutSessionSchema>;
 
 export {
