@@ -7,9 +7,14 @@ import {
 } from "@waveform-playlist/browser";
 import type { ClipTrack } from "@waveform-playlist/core";
 import type { EditorTrackId } from "@ai-music/shared";
+import { isTimelineRangeSelection } from "@ai-music/shared";
 import { useEffect, useRef, type RefObject } from "react";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
-import { parseTimelineClipId, resolveTimelineSelectionMatch } from "@/features/music-editor/utils/waveform-playlist-utils";
+import {
+  parseTimelineClipId,
+  resolvePlaylistTrackForEditorTrack,
+  resolveTimelineSelectionMatch,
+} from "@/features/music-editor/utils/waveform-playlist-utils";
 
 interface PlaylistRegionBridgeProps {
   selectedRegionId: string | null;
@@ -82,10 +87,15 @@ export function PlaylistRegionBridge({
     (state) => state.selectTrackFromTimeline,
   );
   const skipSelectionSyncRef = useRef(false);
+  const tracksRef = useRef(tracks);
 
   useEffect(() => {
     controlsRef.current = controls;
   }, [controls]);
+
+  useEffect(() => {
+    tracksRef.current = tracks;
+  }, [tracks]);
 
   useEffect(() => {
     onSelectRegionRef.current = onSelectRegion;
@@ -133,6 +143,17 @@ export function PlaylistRegionBridge({
     if (regionChanged) {
       onSelectRegionRef.current(match.regionId);
       selectTrackFromTimeline(match.trackId);
+      return;
+    }
+
+    const isCollapsedSelection = !isTimelineRangeSelection(selectionStart, selectionEnd);
+
+    if (
+      isCollapsedSelection &&
+      editorState.trackSelectionSource === "timeline" &&
+      editorState.selectedTrackId &&
+      match.trackId !== editorState.selectedTrackId
+    ) {
       return;
     }
 
@@ -185,6 +206,15 @@ export function PlaylistRegionBridge({
 
       if (!parsed) {
         return;
+      }
+
+      const playlistTrack = resolvePlaylistTrackForEditorTrack(
+        tracksRef.current,
+        parsed.trackId,
+      );
+
+      if (playlistTrack) {
+        controlsRef.current.setSelectedTrackId(playlistTrack.id);
       }
 
       skipSelectionSyncRef.current = true;

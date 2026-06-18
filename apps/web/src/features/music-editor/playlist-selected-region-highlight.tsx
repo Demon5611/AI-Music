@@ -3,6 +3,7 @@
 import type { EditorTrackId } from "@ai-music/shared";
 import { useEffect, type RefObject } from "react";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
+import { parseTimelineClipId } from "@/features/music-editor/utils/waveform-playlist-utils";
 
 interface PlaylistSelectedRegionHighlightProps {
   selectedRegionId: string | null;
@@ -18,20 +19,68 @@ function clearSelectedRegionMarkers(container: HTMLElement): void {
     });
 }
 
+function resolveHighlightTrackIds(
+  linkedTracks: boolean,
+  selectedTrackId: EditorTrackId | null,
+): EditorTrackId[] | null {
+  if (linkedTracks) {
+    return ["vocal", "instrumental"];
+  }
+
+  if (selectedTrackId) {
+    return [selectedTrackId];
+  }
+
+  return null;
+}
+
 function markSelectedRegionClips(
   container: HTMLElement,
   selectedRegionId: string,
-  trackIds: EditorTrackId[],
+  trackIds: EditorTrackId[] | null,
 ): void {
-  for (const trackId of trackIds) {
-    const clipId = `${trackId}-${selectedRegionId}`;
-    const clipElement = container.querySelector(`[data-clip-id="${clipId}"]`);
-    const clipContainer = clipElement?.closest("[data-clip-container]");
+  container.querySelectorAll("[data-clip-id]").forEach((element) => {
+    if (!(element instanceof HTMLElement)) {
+      return;
+    }
+
+    const clipId = element.getAttribute("data-clip-id");
+
+    if (!clipId) {
+      return;
+    }
+
+    const parsed = parseTimelineClipId(clipId);
+
+    if (!parsed || parsed.regionId !== selectedRegionId) {
+      return;
+    }
+
+    if (trackIds && !trackIds.includes(parsed.trackId)) {
+      return;
+    }
+
+    const clipContainer = element.closest("[data-clip-container]");
 
     if (clipContainer instanceof HTMLElement) {
       clipContainer.setAttribute("data-editor-region-selected", "true");
     }
+  });
+}
+
+function applySelectedRegionHighlight(
+  container: HTMLElement,
+  selectedRegionId: string | null,
+): void {
+  clearSelectedRegionMarkers(container);
+
+  if (!selectedRegionId) {
+    return;
   }
+
+  const { linkedTracks, selectedTrackId } = useAudioEditorStore.getState();
+  const trackIds = resolveHighlightTrackIds(linkedTracks, selectedTrackId);
+  markSelectedRegionClips(container, selectedRegionId, trackIds);
 }
 
 export function PlaylistSelectedRegionHighlight({
@@ -49,19 +98,36 @@ export function PlaylistSelectedRegionHighlight({
       return;
     }
 
-    clearSelectedRegionMarkers(container);
+    let rafId: number | null = null;
 
-    if (!selectedRegionId) {
-      return;
-    }
+    const scheduleHighlight = () => {
+      if (rafId !== null) {
+        return;
+      }
 
-    const trackIds: EditorTrackId[] = linkedTracks
-      ? ["vocal", "instrumental"]
-      : selectedTrackId
-        ? [selectedTrackId]
-        : [];
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        applySelectedRegionHighlight(container, selectedRegionId);
+      });
+    };
 
-    markSelectedRegionClips(container, selectedRegionId, trackIds);
+    scheduleHighlight();
+
+    const observer = new MutationObserver(scheduleHighlight);
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      observer.disconnect();
+
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+
+      clearSelectedRegionMarkers(container);
+    };
   }, [
     containerRef,
     linkedTracks,
