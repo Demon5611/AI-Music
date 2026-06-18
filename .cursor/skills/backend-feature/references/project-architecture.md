@@ -15,14 +15,14 @@ src/
     load-env.ts
   modules/
     auth/              Clerk/dev auth, sync user + demo credits
-    credits/           Ledger spend/refund/balance
+    credits/           Thin wrapper over @ai-music/db credits-ledger
     billing/           Stripe (stub)
     generations/       User generation jobs + queue enqueue
     music/             Music test/history, Suno-backed records
     music-editor/      Songs, regions, render, voice transfer
     voice-samples/     Upload, consent, Suno voice clone
     queue/             BullMQ generation queue
-    storage/           StorageService + key builders
+    storage/           StorageService (keys re-export from @ai-music/shared)
     tracks/            Published tracks
     users/             Profile endpoints
 ```
@@ -41,7 +41,7 @@ src/
     convert-voice.ts      Suno + Kits
     upload-result.ts      Track + storage
   common/
-    local-storage.ts      Worker-side file write (mirror API keys)
+    local-storage.ts      Worker-side file I/O (keys from @ai-music/shared)
 ```
 
 ## Request lifecycle
@@ -86,6 +86,14 @@ Current: `LocalStorageService`. Keys from `@ai-music/shared` (`storage/keys.ts`)
 - `music-generations/{userId}/{generationId}/{trackId}.mp3`
 - `tracks/{userId}/{trackId}.mp3` (worker generation upload)
 - `songs/{userId}/{songId}/stems|renders|replacements/...`
+
+## Credits ledger
+
+Implementation: `packages/db/src/credits-ledger.ts` — `spendCredits`, `refundCredits`, `getCreditsBalance`.
+
+- API: `apps/api/src/modules/credits/service.ts` wraps ledger + maps errors to `InsufficientCreditsError`.
+- Worker: `refundCredits` from `@ai-music/db` on processor failure.
+- Balance = `SUM(amount)` append-only; no mutable balance column on `User`.
 
 ## Queue
 

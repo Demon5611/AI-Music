@@ -9,6 +9,8 @@ Stack: Next.js (`apps/web`), Fastify API (`apps/api`), BullMQ worker (`apps/work
 Always follow:
 
 - [.cursor/rules/project-rules.md](.cursor/rules/project-rules.md) — coding standards, security, file limits
+- [.cursor/rules/frontend-architecture.mdc](.cursor/rules/frontend-architecture.mdc) — features, style tokens, polling, entities
+- [.cursor/rules/backend-shared-packages.mdc](.cursor/rules/backend-shared-packages.mdc) — storage keys, credits ledger, Kits scope
 - [.cursor/rules/elevenlabs-ui-integration.mdc](.cursor/rules/elevenlabs-ui-integration.mdc) — ElevenLabs UI scope (preview/status only, not timeline)
 
 ## Skills index
@@ -38,14 +40,15 @@ Reference files (read on demand, not upfront):
 
 ```txt
 packages/ai-providers/   MusicProvider, Kits, voice transfer
-packages/shared/         Zod schemas, constants (credit costs)
-packages/db/             Prisma schema + client
+packages/shared/         Zod schemas, constants, storage/keys.ts
+packages/db/             Prisma + credits-ledger (spend/refund/balance)
 packages/api-client/     Typed HTTP client for web
+apps/web/src/features/   Screen logic (hooks/, components/, *-classes.ts)
 apps/api/src/modules/    Feature modules (routes + service)
 apps/worker/             Long-running generation pipeline
 ```
 
-Key patterns: provider abstraction, BullMQ queue, credits ledger, StorageService, thin routes.
+Key patterns: provider abstraction, BullMQ queue, credits ledger in `@ai-music/db`, storage keys in `@ai-music/shared`, `usePollingQuery` / `parseApiError` on web, thin routes.
 
 ## Commands
 

@@ -15,7 +15,11 @@ balance(userId) = SUM(credit_transactions.amount) WHERE user_id = userId
 
 Types: `purchase`, `spend`, `refund`. Amount: positive = credit, negative = debit.
 
-Implementation: `apps/api/src/modules/credits/service.ts`.
+Implementation:
+
+- **Ledger logic:** `packages/db/src/credits-ledger.ts` (`spendCredits`, `refundCredits`, `getCreditsBalance`)
+- **API layer:** `apps/api/src/modules/credits/service.ts` — thin wrapper, maps `InsufficientCreditsLedgerError` → `InsufficientCreditsError`
+- **Worker refunds:** import `refundCredits` from `@ai-music/db`, not inline Prisma writes
 
 ## Constants
 

@@ -1,0 +1,90 @@
+---
+description: Frontend feature structure, shared UI, style tokens, polling, entities — обязательные соглашения apps/web
+alwaysApply: true
+---
+
+# Frontend Architecture (apps/web)
+
+FSD-lite: тонкие роуты в `app/`, логика в `features/`, переиспользуемое в `shared/`.
+
+## Слои
+
+```txt
+app/              page.tsx — только импорт entry из features/
+features/<name>/  экранная логика (panel, hooks, components, *-classes.ts)
+entities/         domain-хелперы (типы из @ai-music/shared + UI-утилиты)
+shared/
+  providers/      useApi(), theme
+  hooks/          use-polling-query, use-auth-ready
+  lib/            parse-api-error, build-audio-download-filename
+  theme/          appShell, mp, mtk
+  ui/             collapsible-lyrics, elevenlabs wrappers
+components/ui/    shadcn / ElevenLabs примитивы (не бизнес-логика)
+```
+
+## Структура feature по сложности
+
+| Сложность | Папки | State | Server data | Эталон |
+|-----------|-------|-------|-------------|--------|
+| Простая | плоские файлы | `useState` | `useQuery` | `profile`, `generation` |
+| Средняя | `hooks/`, `components/` | `useState` | `usePollingQuery` | `music-create` |
+| Сложная | `hooks/`, `store/`, `utils/`, `styles/` | Zustand | custom poll при привязке к store | `music-editor` |
+
+Entry-компонент (`*-panel.tsx`) — только композиция и layout (~150–200 строк).
+
+## Стилевые токены (Tailwind maps)
+
+| Map | Файл | Назначение |
+|-----|------|------------|
+| `appShell` | `shared/theme/app-theme.ts` | базовые кнопки, формы, страницы |
+| `mp` | `shared/theme/music-page-classes.ts` | page chrome create/history |
+| `mtk` | `shared/theme/music-track-classes.ts` | track card, lyrics, history list |
+| `mc` | `features/music-create/music-create-classes.ts` | форма music-create |
+| `me` | `features/music-editor/music-editor-classes.ts` | timeline/editor |
+| `lp` | `features/landing/landing-classes.ts` | landing |
+| `pf` | `features/profile/profile-classes.ts` | profile |
+| `voiceUi` | `features/voice/voice-classes.ts` | voice UI, включая `voiceUi.upload.*` |
+
+### Запрещено
+
+- Импорт `*-classes.ts` **из другой feature** (`music-history` → `music-create-classes` и т.п.).
+- Переиспользуемые блоки → `shared/ui/` или `shared/theme/`.
+- Inline styles (кроме dynamic CSS vars для third-party widgets).
+- Legacy alias `mt` — использовать `mc`.
+
+## Shared UI и утилиты (использовать, не дублировать)
+
+- Ошибки API: `parseApiError(error, fallback, options?)` из `@/shared/lib/parse-api-error`.
+- Lyrics collapse: `CollapsibleLyrics` из `@/shared/ui/collapsible-lyrics`.
+- Polling server state: `usePollingQuery` из `@/shared/hooks/use-polling-query`.
+- `setInterval` polling — только если зависит от client store (например `use-editor-polling` + Zustand).
+
+## entities/
+
+Подключать слайсы с реальным использованием:
+
+- `entities/voice-sample` — готовность голоса к генерации
+- `entities/track` — `formatTrackTitleValue`
+- `entities/generation-job` — `isGenerationTerminal`
+
+Не создавать пустые re-export без потребителей.
+
+## Data fetching
+
+- `useApi()` → `@ai-music/api-client`
+- Типы из `@ai-music/shared`
+- Не вызывать Suno/Kits напрямую из браузера
+- Баланс кредитов — только для отображения; списание на сервере
+
+## Чеклист новой feature
+
+```
+- [ ] app/<route>/page.tsx импортирует один entry из features/
+- [ ] Нет cross-feature imports стилей
+- [ ] parseApiError для всех API-ошибок
+- [ ] usePollingQuery для polling до terminal status (если нужен poll)
+- [ ] Loading/empty через LoadingPanel / Skeleton
+- [ ] Файл entry < 500 строк; функции < 50 строк
+```
+
+Подробнее: `.cursor/skills/frontend-feature/references/ui-patterns.md`

@@ -1,0 +1,53 @@
+---
+description: Storage keys, credits ledger, Kits scope — общие пакеты и границы API/worker
+alwaysApply: true
+---
+
+# Backend Shared Packages
+
+## Storage keys — единый источник
+
+Все `build*Key` — в `packages/shared/src/storage/keys.ts`, экспорт `@ai-music/shared`.
+
+| Key builder | Путь | Кто пишет |
+|-------------|------|-----------|
+| `buildVoiceSampleKey` | `voice-samples/{userId}/{id}.{ext}` | API |
+| `buildMusicTrackAudioKey` | `music-generations/{userId}/{genId}/{trackId}.mp3` | API (music history) |
+| `buildTrackAudioKey` | `tracks/{userId}/{trackId}.mp3` | Worker (generation pipeline) |
+| `buildSongStemKey` | `songs/{userId}/{songId}/stems/{type}.mp3` | API (editor) |
+| `buildSongRenderKey` | `songs/{userId}/{songId}/renders/v{n}.mp3` | API (editor) |
+
+- API: `storage/storage.service.ts` re-export из `@ai-music/shared` + `StorageService`.
+- Worker: `common/local-storage.ts` — I/O; keys из `@ai-music/shared`.
+- **Не дублировать** key builders в api/worker локально.
+
+Пути `music-generations/` и `tracks/` — разные домены (история vs pipeline). Не унифицировать без явного решения.
+
+## Credits ledger — единая реализация
+
+Реализация: `packages/db/src/credits-ledger.ts` (`spendCredits`, `refundCredits`, `getCreditsBalance`).
+
+- API: `apps/api/src/modules/credits/service.ts` — thin wrapper, маппинг `InsufficientCreditsLedgerError` → `InsufficientCreditsError`.
+- Worker: импорт `refundCredits` из `@ai-music/db`, не inline `prisma.creditTransaction.create`.
+- Баланс = `SUM(amount)` append-only ledger, не колонка в `User`.
+
+## Kits — границы
+
+- `packages/ai-providers/src/kits/` — HTTP client для editor voice transfer / separation.
+- **Нет** `apps/api/src/modules/kits/` proxy-модуля.
+- Editor вызывает Kits через `music-editor` routes + `ai-providers`.
+
+## API module pattern
+
+```txt
+modules/<name>/
+  routes.ts       thin HTTP + Zod + requireAuth
+  service.ts      Prisma, providers, queue, storage
+  mapper.ts       DTO (optional)
+```
+
+Сложные домены — несколько service-файлов (`music-editor/`), не один god-service.
+
+Repository layer — только при 2+ модулях с тяжёлыми Prisma-запросами (сейчас YAGNI, кроме `edit-operation.repository.ts`).
+
+Подробнее: `.cursor/skills/backend-feature/references/project-architecture.md`

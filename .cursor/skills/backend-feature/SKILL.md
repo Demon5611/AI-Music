@@ -7,6 +7,8 @@ description: Adds or changes Fastify API modules in AI Music monorepo. Use when 
 
 Stack: **Fastify** (not NestJS), ESM, `apps/api` + `apps/worker`.
 
+**Обязательные правила:** [.cursor/rules/backend-shared-packages.mdc](../../rules/backend-shared-packages.mdc)
+
 ## Module structure
 
 Each feature lives in `apps/api/src/modules/<name>/`:
@@ -46,7 +48,8 @@ Rules:
 
 - Import `prisma` from `@ai-music/db`.
 - AI calls via `@ai-music/ai-providers`, not raw fetch to Suno/Kits.
-- File I/O via `getStorageService()` + key builders from `storage/storage.service.ts`.
+- File I/O via `getStorageService()` + key builders from `@ai-music/shared` (`storage/keys.ts`).
+- Credits: `spendCredits` / `refundCredits` from `@ai-music/db` (API `credits/service.ts` — thin wrapper).
 - Long jobs: create DB record → `enqueueGenerationJob()` → worker processes.
 
 ## Worker processors
@@ -57,17 +60,17 @@ Pattern from `generate-song.ts`:
 
 1. Load job, skip if terminal state.
 2. Update status through pipeline stages.
-3. On error: set `failed`, refund credits with reason.
+3. On error: set `failed`, `refundCredits` from `@ai-music/db`.
 
 Queue: BullMQ, name `GENERATION_QUEUE_NAME` from shared constants.
 
 ## Shared packages
 
-| Package                  | Use                               |
-| ------------------------ | --------------------------------- |
-| `@ai-music/shared`       | Schemas, constants, payload types |
-| `@ai-music/db`           | Prisma client                     |
-| `@ai-music/ai-providers` | Music/Kits providers              |
+| Package                  | Use                                                    |
+| ------------------------ | ------------------------------------------------------ |
+| `@ai-music/shared`       | Schemas, constants, `storage/keys.ts`                  |
+| `@ai-music/db`           | Prisma client, `credits-ledger`                        |
+| `@ai-music/ai-providers` | Music/Kits providers                                   |
 
 ## New feature checklist
 
@@ -76,12 +79,14 @@ Queue: BullMQ, name `GENERATION_QUEUE_NAME` from shared constants.
 - [ ] routes.ts + service.ts under modules/<name>/
 - [ ] register*Routes in main.ts
 - [ ] AppError for expected failures
-- [ ] Credits spend/refund if billable
+- [ ] Credits spend/refund via @ai-music/db credits-ledger if billable
 - [ ] Queue worker if > few seconds
-- [ ] Storage keys via build*Key helpers
+- [ ] Storage keys via build*Key from @ai-music/shared (no local duplicates)
+- [ ] No modules/kits proxy — Kits via ai-providers + music-editor routes
 - [ ] No secrets in logs or responses
 ```
 
 ## References
 
 - Full architecture map: [references/project-architecture.md](references/project-architecture.md)
+- Shared packages rules: [backend-shared-packages.mdc](../../rules/backend-shared-packages.mdc)

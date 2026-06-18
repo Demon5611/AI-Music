@@ -1,5 +1,7 @@
 # Frontend UI patterns
 
+**Cursor rules (always apply):** [.cursor/rules/frontend-architecture.mdc](../../../rules/frontend-architecture.mdc)
+
 ## Styling (required)
 
 - **Always use Tailwind** for UI styles. Map shared tokens via `appShell` (`@/shared/theme/app-theme`), shared maps (`mp`, `mtk`), or feature maps (`lp`, `mc`, `me`, `voiceUi`).

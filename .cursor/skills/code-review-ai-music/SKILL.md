@@ -5,7 +5,11 @@ description: Reviews AI Music code for correctness, security, architecture, and 
 
 # Code Review — AI Music
 
-Apply [.cursor/rules/project-rules.md](../../rules/project-rules.md) and architecture skills on every review.
+Apply on every review:
+
+- [.cursor/rules/project-rules.md](../../rules/project-rules.md)
+- [.cursor/rules/frontend-architecture.mdc](../../rules/frontend-architecture.mdc)
+- [.cursor/rules/backend-shared-packages.mdc](../../rules/backend-shared-packages.mdc)
 
 ## Review order
 
@@ -31,7 +35,8 @@ Apply [.cursor/rules/project-rules.md](../../rules/project-rules.md) and archite
 - [ ] Long operations in worker/queue, not blocking HTTP
 - [ ] DTO mappers separate vendor/DB shape from API response
 - [ ] Zod schemas shared via `@ai-music/shared` when client uses same shape
-- [ ] Storage via `StorageService`, keys via `build*Key`
+- [ ] Storage via `StorageService`, keys from `@ai-music/shared` (`storage/keys.ts`)
+- [ ] Credits via `packages/db/src/credits-ledger.ts`, not duplicated Prisma in worker
 - [ ] ElevenLabs UI only for status/preview, not timeline/editor
 
 ## Credits checklist
@@ -43,8 +48,12 @@ Apply [.cursor/rules/project-rules.md](../../rules/project-rules.md) and archite
 ## Frontend checklist
 
 - [ ] No inline `style={{}}`
+- [ ] No cross-feature imports of `*-classes.ts`
+- [ ] `parseApiError` for API errors (no local duplicates)
+- [ ] `usePollingQuery` for server polling (not raw `setInterval`, unless editor store-bound)
 - [ ] API via `useApi()` / `@ai-music/api-client`
-- [ ] CSS modules or Tailwind; `--muted` vs `--muted-bg` respected
+- [ ] Tailwind maps (`appShell`, `mp`, `mtk`, feature maps); `--muted` vs `--muted-bg` respected
+- [ ] Entry panel < 500 lines; reusable UI in `shared/ui/`
 - [ ] Loading and error states for async actions
 
 ## Feedback format
