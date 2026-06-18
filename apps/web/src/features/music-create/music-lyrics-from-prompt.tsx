@@ -1,11 +1,13 @@
 "use client";
 
-import { ApiError } from "@ai-music/api-client";
+import { parseApiError } from "@/shared/lib/parse-api-error";
 import type { MusicLyricsStatusResponseDto } from "@ai-music/shared";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { AiProcessingStatus } from "@/shared/ui/elevenlabs/ai-processing-status";
 import { useApi } from "@/shared/providers/api-provider";
-import { mt } from "./music-create-classes";
+import { mc } from "@/features/music-create/music-create-classes";
+import { CharCounter } from "@/features/music-create/components/music-create-icons";
 import { cn } from "@/lib/utils";
 
 const LYRICS_BRIEF_MAX_LENGTH = 200;
@@ -19,29 +21,8 @@ interface MusicLyricsFromPromptProps {
   onApply: (text: string, suggestedTitle?: string) => void;
 }
 
-function resolveErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.body && typeof error.body === "object") {
-    const body = error.body as { error?: string };
-    if (body.error) {
-      return body.error;
-    }
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Не удалось сгенерировать текст";
-}
-
-function CharCounter({ current, max }: { current: number; max: number }) {
-  const isNearLimit = current / max > 0.9;
-
-  return (
-    <span className={isNearLimit ? mt.charCounterLimit : mt.charCounter}>
-      {current}/{max}
-    </span>
-  );
+function isLyricsStatusTerminal(data: MusicLyricsStatusResponseDto | undefined): boolean {
+  return !data || data.status === "completed" || data.status === "failed";
 }
 
 export function MusicLyricsFromPrompt({
@@ -54,25 +35,9 @@ export function MusicLyricsFromPrompt({
   const api = useApi();
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isPolling, setIsPolling] = useState(false);
+  const [lyricsTaskId, setLyricsTaskId] = useState<string | null>(null);
   const [variants, setVariants] = useState<Array<{ title: string; text: string }>>([]);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const stopPolling = useCallback(() => {
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-    setIsPolling(false);
-  }, []);
-
-  useEffect(
-    () => () => {
-      stopPolling();
-    },
-    [stopPolling],
-  );
 
   const applyVariant = useCallback(
     (items: Array<{ title: string; text: string }>, index: number) => {
@@ -87,60 +52,42 @@ export function MusicLyricsFromPrompt({
     [onApply],
   );
 
-  const handleCompleted = useCallback(
-    (body: MusicLyricsStatusResponseDto) => {
-      const items = body.lyrics ?? [];
+  const lyricsStatusQuery = usePollingQuery({
+    queryKey: ["music-lyrics-status", lyricsTaskId],
+    queryFn: () => api.music.lyricsStatus(lyricsTaskId!),
+    enabled: Boolean(lyricsTaskId),
+    isTerminal: isLyricsStatusTerminal,
+    intervalMs: LYRICS_POLL_INTERVAL_MS,
+  });
 
-      if (items.length === 0) {
-        setError("AI не вернул текст песни");
-        return;
-      }
+  useEffect(() => {
+    if (lyricsStatusQuery.error) {
+      setError(parseApiError(lyricsStatusQuery.error, "Не удалось сгенерировать текст"));
+      setLyricsTaskId(null);
+      return;
+    }
 
-      setVariants(items);
-      applyVariant(items, 0);
-    },
-    [applyVariant],
-  );
+    const body = lyricsStatusQuery.data;
+    if (!body || body.status === "pending" || body.status === "processing") {
+      return;
+    }
 
-  const pollStatus = useCallback(
-    async (taskId: string) => {
-      const body = await api.music.lyricsStatus(taskId);
+    setLyricsTaskId(null);
 
-      if (body.status === "completed") {
-        stopPolling();
-        handleCompleted(body);
-        return;
-      }
+    if (body.status === "failed") {
+      setError(body.errorMessage ?? "Генерация текста не удалась");
+      return;
+    }
 
-      if (body.status === "failed") {
-        stopPolling();
-        setError(body.errorMessage ?? "Генерация текста не удалась");
-      }
-    },
-    [api, handleCompleted, stopPolling],
-  );
+    const items = body.lyrics ?? [];
+    if (items.length === 0) {
+      setError("AI не вернул текст песни");
+      return;
+    }
 
-  const startPolling = useCallback(
-    (taskId: string) => {
-      stopPolling();
-      setIsPolling(true);
-      setError(null);
-      setVariants([]);
-
-      void pollStatus(taskId).catch((pollError) => {
-        setError(resolveErrorMessage(pollError));
-        stopPolling();
-      });
-
-      pollTimerRef.current = setInterval(() => {
-        void pollStatus(taskId).catch((pollError) => {
-          setError(resolveErrorMessage(pollError));
-          stopPolling();
-        });
-      }, LYRICS_POLL_INTERVAL_MS);
-    },
-    [pollStatus, stopPolling],
-  );
+    setVariants(items);
+    applyVariant(items, 0);
+  }, [lyricsStatusQuery.data, lyricsStatusQuery.error, applyVariant]);
 
   async function handleGenerate() {
     const prompt = lyricsBrief.trim();
@@ -156,45 +103,46 @@ export function MusicLyricsFromPrompt({
 
     try {
       const body = await api.music.generateLyrics({ prompt });
-      startPolling(body.taskId);
+      setLyricsTaskId(body.taskId);
     } catch (generateError) {
-      setError(resolveErrorMessage(generateError));
+      setError(parseApiError(generateError, "Не удалось сгенерировать текст"));
     } finally {
       setIsGenerating(false);
     }
   }
 
+  const isPolling = Boolean(lyricsTaskId);
   const isBusy = isGenerating || isPolling;
   const fieldDisabled = isBusy || disabled;
   const canGenerate = configured && !fieldDisabled && lyricsBrief.trim().length > 0;
 
   return (
-    <div className={mt.lyricsBlock}>
+    <div className={mc.lyricsBlock}>
       <label className="block">
-        <span className={mt.lyricsPromptLabel}>
+        <span className={mc.lyricsPromptLabel}>
           Введите примерное описание текста и AI на базе промта создаст текст песни
         </span>
         <div className="relative mt-2">
           <textarea
-            className={cn(mt.textarea, "h-20", fieldDisabled && !isBusy && mt.fieldDisabled)}
+            className={cn(mc.textarea, "h-20", fieldDisabled && !isBusy && mc.fieldDisabled)}
             disabled={fieldDisabled}
             maxLength={LYRICS_BRIEF_MAX_LENGTH}
             placeholder="Например: грустная баллада о расставании, первое лицо, русский язык"
             value={lyricsBrief}
             onChange={(event) => onLyricsBriefChange(event.target.value)}
           />
-          <div className={mt.counterPos}>
+          <div className={mc.counterPos}>
             <CharCounter current={lyricsBrief.length} max={LYRICS_BRIEF_MAX_LENGTH} />
           </div>
         </div>
       </label>
 
       {disabled && !isBusy ? (
-        <p className={mt.meta}>Очистите текст песни ниже, чтобы описать идею для AI.</p>
+        <p className={mc.meta}>Очистите текст песни ниже, чтобы описать идею для AI.</p>
       ) : null}
 
       <button
-        className={cn(mt.secondaryButton, "mt-3")}
+        className={cn(mc.secondaryButton, "mt-3")}
         disabled={!canGenerate}
         type="button"
         onClick={() => void handleGenerate()}
@@ -209,14 +157,14 @@ export function MusicLyricsFromPrompt({
       ) : null}
 
       {variants.length > 1 ? (
-        <div className={cn(mt.lyricsVariants, "mt-3")}>
-          <span className={mt.meta}>Выберите вариант:</span>
-          <div className={mt.lyricsVariantList}>
+        <div className={cn(mc.lyricsVariants, "mt-3")}>
+          <span className={mc.meta}>Выберите вариант:</span>
+          <div className={mc.lyricsVariantList}>
             {variants.map((variant, index) => (
               <button
                 key={`${variant.title}-${index}`}
                 className={
-                  index === selectedVariantIndex ? mt.lyricsVariantActive : mt.lyricsVariant
+                  index === selectedVariantIndex ? mc.lyricsVariantActive : mc.lyricsVariant
                 }
                 type="button"
                 onClick={() => applyVariant(variants, index)}
@@ -228,7 +176,7 @@ export function MusicLyricsFromPrompt({
         </div>
       ) : null}
 
-      {error ? <p className={cn(mt.errorInline, "mt-2")}>{error}</p> : null}
+      {error ? <p className={cn(mc.errorInline, "mt-2")}>{error}</p> : null}
     </div>
   );
 }

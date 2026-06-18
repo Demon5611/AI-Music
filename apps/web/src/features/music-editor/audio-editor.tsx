@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiError } from "@ai-music/api-client";
+import { parseApiError } from "@/shared/lib/parse-api-error";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { useClientMounted } from "@/shared/hooks/use-client-mounted";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
@@ -155,21 +155,6 @@ function PlaybackUrlBridge({
   return null;
 }
 
-function resolveErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.body && typeof error.body === "object") {
-    const body = error.body as { error?: string };
-    if (body.error) {
-      return body.error;
-    }
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Editor error";
-}
-
 export function AudioEditor({ songId }: AudioEditorProps) {
   return (
     <HintsVisibilityProvider>
@@ -232,7 +217,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
       const state = await api.musicEditor.getEditorState(songId);
       hydrate(state);
     } catch (renderError) {
-      const message = resolveErrorMessage(renderError);
+      const message = parseApiError(renderError, "Editor error");
       setRenderError(message);
       setError(message);
     } finally {

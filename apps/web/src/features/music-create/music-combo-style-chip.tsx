@@ -12,7 +12,7 @@ import {
   findComboStylePreset,
   type MusicComboStylePreset,
 } from "./music-combo-style-presets";
-import { mt } from "./music-create-classes";
+import { mc } from "@/features/music-create/music-create-classes";
 import { cn } from "@/lib/utils";
 
 interface MusicComboStyleChipProps {
@@ -33,7 +33,7 @@ export function MusicComboStyleChip({ value, maxLength, onChange }: MusicComboSt
     setOpen(false);
   }
 
-  const chipClassName = open || activePreset ? mt.chipSelected : mt.chip;
+  const chipClassName = open || activePreset ? mc.chipSelected : mc.chip;
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -52,8 +52,8 @@ export function MusicComboStyleChip({ value, maxLength, onChange }: MusicComboSt
             key={preset.label}
             className={
               activePreset?.label === preset.label
-                ? mt.comboPanelItemActive
-                : mt.comboPanelItem
+                ? mc.comboPanelItemActive
+                : mc.comboPanelItem
             }
             onClick={() => handleSelect(preset)}
           >

@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiError } from "@ai-music/api-client";
+import { parseApiError } from "@/shared/lib/parse-api-error";
 import type { VoiceSample } from "@ai-music/shared";
 import { MIN_VOICE_VERIFY_DURATION_SEC } from "@ai-music/shared";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,6 +10,7 @@ import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { SunoVoiceVerifyTipsPanel } from "@/features/voice/voice-recording-tips-panel";
 import { voiceUi } from "@/features/voice/voice-classes";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
+import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { useApi } from "@/shared/providers/api-provider";
 import { VoiceCloneWaitingPanel } from "@/features/voice/voice-clone-waiting-panel";
 import { appShell } from "@/shared/theme/app-theme";
@@ -18,19 +19,11 @@ import { cn } from "@/lib/utils";
 const STATUS_POLL_MS = 3_000;
 const MAX_STATUS_POLLS = 120;
 
-function resolveErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.body && typeof error.body === "object") {
-    const body = error.body as { error?: string };
-    if (body.error) {
-      return body.error;
-    }
+class SunoVoicePollTimeoutError extends Error {
+  constructor(public readonly cloneStatus: VoiceSample["voiceCloneStatus"]) {
+    super("Suno voice poll timeout");
+    this.name = "SunoVoicePollTimeoutError";
   }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Не удалось настроить голос Suno";
 }
 
 function isVoiceMismatchMessage(message: string | null | undefined): boolean {
@@ -81,7 +74,7 @@ export function SunoVoiceVerifyPanel() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [pollEnabled, setPollEnabled] = useState(false);
   const pollCountRef = useRef(0);
   const {
     elapsedSec,
@@ -92,51 +85,64 @@ export function SunoVoiceVerifyPanel() {
   } = useVoiceRecorder();
 
   const stopPolling = useCallback(() => {
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
+    setPollEnabled(false);
   }, []);
 
-  const refreshStatus = useCallback(async () => {
-    if (!sampleId) {
-      return null;
-    }
+  const startPolling = useCallback(() => {
+    pollCountRef.current = 0;
+    setPollEnabled(true);
+  }, []);
 
-    pollCountRef.current += 1;
+  const statusQuery = usePollingQuery({
+    queryKey: ["suno-voice-status", sampleId],
+    queryFn: async () => {
+      if (!sampleId) {
+        throw new Error("Не указан образец голоса");
+      }
 
-    const next = await api.voiceSamples.getSunoVoiceStatus(sampleId);
-    setSample(next);
+      pollCountRef.current += 1;
+      const next = await api.voiceSamples.getSunoVoiceStatus(sampleId);
 
-    if (pollCountRef.current > MAX_STATUS_POLLS) {
-      stopPolling();
+      if (pollCountRef.current > MAX_STATUS_POLLS) {
+        throw new SunoVoicePollTimeoutError(next.voiceCloneStatus);
+      }
+
+      return next;
+    },
+    enabled: authReady && Boolean(sampleId) && pollEnabled,
+    isTerminal: (data) => Boolean(data && !isProcessingStatus(data.voiceCloneStatus)),
+    intervalMs: STATUS_POLL_MS,
+  });
+
+  useEffect(() => {
+    if (statusQuery.error instanceof SunoVoicePollTimeoutError) {
       const timeoutMessage =
-        next.voiceCloneStatus === "cloning"
+        statusQuery.error.cloneStatus === "cloning"
           ? "Suno не завершил создание голоса за 6 минут. Нажмите «Повторить верификацию» или обновите страницу."
           : "Suno не выдал фразу для записи за 6 минут. Нажмите «Повторить верификацию» или обновите страницу.";
       setError(timeoutMessage);
-      return null;
+      stopPolling();
+      return;
     }
 
-    return next;
-  }, [api, sampleId, stopPolling]);
-
-  const startPolling = useCallback(() => {
-    stopPolling();
-    pollCountRef.current = 0;
-    pollTimerRef.current = setInterval(() => {
-      void refreshStatus().catch((pollError) => {
-        setError(resolveErrorMessage(pollError));
-        stopPolling();
-      });
-    }, STATUS_POLL_MS);
-  }, [refreshStatus, stopPolling]);
+    if (statusQuery.error) {
+      setError(parseApiError(statusQuery.error, "Не удалось настроить голос Suno"));
+      stopPolling();
+    }
+  }, [statusQuery.error, stopPolling]);
 
   useEffect(() => {
-    return () => {
+    const next = statusQuery.data;
+    if (!next) {
+      return;
+    }
+
+    setSample(next);
+
+    if (!isProcessingStatus(next.voiceCloneStatus)) {
       stopPolling();
-    };
-  }, [stopPolling]);
+    }
+  }, [statusQuery.data, stopPolling]);
 
   useEffect(() => {
     if (!authReady || !sampleId) {
@@ -168,7 +174,7 @@ export function SunoVoiceVerifyPanel() {
         }
       } catch (bootstrapError) {
         if (!cancelled) {
-          setError(resolveErrorMessage(bootstrapError));
+          setError(parseApiError(bootstrapError, "Не удалось настроить голос Suno"));
         }
       } finally {
         if (!cancelled) {
@@ -205,10 +211,10 @@ export function SunoVoiceVerifyPanel() {
       return;
     }
 
-    if (isProcessingStatus(sample.voiceCloneStatus) && !pollTimerRef.current) {
+    if (isProcessingStatus(sample.voiceCloneStatus) && !pollEnabled) {
       startPolling();
     }
-  }, [router, sample, startPolling, stopPolling]);
+  }, [pollEnabled, router, sample, startPolling, stopPolling]);
 
   async function handleVerifySubmit() {
     if (!sampleId) {
@@ -257,7 +263,7 @@ export function SunoVoiceVerifyPanel() {
         );
       }
     } catch (submitError) {
-      setError(resolveErrorMessage(submitError));
+      setError(parseApiError(submitError, "Не удалось настроить голос Suno"));
     } finally {
       setIsSubmitting(false);
     }
@@ -323,7 +329,7 @@ export function SunoVoiceVerifyPanel() {
           startPolling();
         }
       })
-      .catch((retryError) => setError(resolveErrorMessage(retryError)))
+      .catch((retryError) => setError(parseApiError(retryError, "Не удалось настроить голос Suno")))
       .finally(() => setIsBootstrapping(false));
   }
 

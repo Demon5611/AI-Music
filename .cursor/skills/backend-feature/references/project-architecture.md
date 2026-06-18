@@ -20,8 +20,7 @@ src/
     generations/       User generation jobs + queue enqueue
     music/             Music test/history, Suno-backed records
     music-editor/      Songs, regions, render, voice transfer
-    voice-samples/     Upload, consent, Kits model link
-    kits/              Kits API proxy
+    voice-samples/     Upload, consent, Suno voice clone
     queue/             BullMQ generation queue
     storage/           StorageService + key builders
     tracks/            Published tracks
@@ -81,10 +80,11 @@ interface StorageService {
 }
 ```
 
-Current: `LocalStorageService`. Keys:
+Current: `LocalStorageService`. Keys from `@ai-music/shared` (`storage/keys.ts`):
 
 - `voice-samples/{userId}/{sampleId}.{ext}`
 - `music-generations/{userId}/{generationId}/{trackId}.mp3`
+- `tracks/{userId}/{trackId}.mp3` (worker generation upload)
 - `songs/{userId}/{songId}/stems|renders|replacements/...`
 
 ## Queue
@@ -92,3 +92,8 @@ Current: `LocalStorageService`. Keys:
 Redis URL: `REDIS_URL`. Payload: `GenerationJobPayload` from shared.
 
 API enqueues after DB job + credit spend. Worker is idempotent for completed/failed jobs.
+
+## Kits integration
+
+Kits HTTP client lives in `packages/ai-providers/src/kits/` (voice transfer, stem separation in editor).
+There is no `apps/api/src/modules/kits/` proxy — editor calls Kits via `music-editor` routes and worker/API use `ai-providers` directly.

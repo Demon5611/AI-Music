@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiError } from "@ai-music/api-client";
+import { parseApiError } from "@/shared/lib/parse-api-error";
 import {
   MAX_VOICE_SAMPLE_DURATION_SEC,
   MIN_VOICE_SAMPLE_DURATION_SEC,
@@ -20,11 +20,12 @@ import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { lp } from "@/features/landing/landing-classes";
-import { me as editorStyles } from "@/features/music-editor/music-editor-classes";
 import { LoadingPanel } from "@/shared/ui/elevenlabs";
 import { appShell } from "@/shared/theme/app-theme";
 
 type VoiceUploadVariant = "page" | "landing";
+
+const upload = voiceUi.upload;
 
 function resolveVoiceUploadStyles(variant: VoiceUploadVariant) {
   const isLanding = variant === "landing";
@@ -32,30 +33,15 @@ function resolveVoiceUploadStyles(variant: VoiceUploadVariant) {
   return {
     isLanding,
     isPage: variant === "page",
-    form: isLanding ? editorStyles.ownVoiceForm : appShell.formPageForm,
-    field: isLanding ? editorStyles.ownVoiceField : appShell.formField,
-    label: isLanding ? editorStyles.fieldLabel : appShell.formLabel,
-    submit: isLanding ? lp.voiceSubmit : appShell.formSubmit,
-    hint: isLanding ? lp.voiceHint : appShell.formPageDescription,
-    error: isLanding ? editorStyles.error : appShell.formError,
-    consentRow: isLanding ? editorStyles.ownVoiceConsentRow : appShell.formConsentRow,
-    consentNotice: isLanding ? editorStyles.ownVoiceConsentNotice : appShell.formConsentNotice,
+    form: isLanding ? upload.form : appShell.formPageForm,
+    field: isLanding ? upload.field : appShell.formField,
+    label: isLanding ? upload.fieldLabel : appShell.formLabel,
+    submit: isLanding ? upload.submit : appShell.formSubmit,
+    hint: isLanding ? upload.hint : appShell.formPageDescription,
+    error: isLanding ? upload.error : appShell.formError,
+    consentRow: isLanding ? upload.consentRow : appShell.formConsentRow,
+    consentNotice: isLanding ? upload.consentNotice : appShell.formConsentNotice,
   };
-}
-
-function resolveErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.body && typeof error.body === "object") {
-    const body = error.body as { error?: string };
-    if (body.error) {
-      return body.error;
-    }
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Не удалось загрузить образец голоса";
 }
 
 function formatRecordingTime(seconds: number): string {
@@ -75,9 +61,7 @@ interface VoiceModeButtonProps {
 }
 
 function VoiceModeButton({ active, children, disabled, onSelect }: VoiceModeButtonProps) {
-  const className = active
-    ? editorStyles.ownVoiceModeButtonActive
-    : editorStyles.ownVoiceModeButton;
+  const className = active ? upload.modeButtonActive : upload.modeButton;
 
   if (active) {
     return (
@@ -333,7 +317,7 @@ export function VoiceUploadPanel({
         router.push(`/consent?id=${sample.id}`);
       }
     } catch (submitError) {
-      setError(resolveErrorMessage(submitError));
+      setError(parseApiError(submitError, "Не удалось загрузить образец голоса"));
     } finally {
       setIsSubmitting(false);
     }
@@ -356,7 +340,7 @@ export function VoiceUploadPanel({
   const formClassName = styles.form;
   const fieldClassName = styles.field;
   const labelClassName = styles.label;
-  const inputClassName = editorStyles.ownVoiceFileInput;
+  const inputClassName = upload.fileInput;
   const submitClassName = styles.submit;
   const hintClassName = styles.hint;
   const errorClassName = styles.error;
@@ -403,7 +387,7 @@ export function VoiceUploadPanel({
         </div>
 
         <div
-          className={editorStyles.ownVoiceModeSwitch}
+          className={upload.modeSwitch}
           role="group"
           aria-label="Способ ввода голоса"
         >
@@ -426,18 +410,18 @@ export function VoiceUploadPanel({
         <VoiceRecordingTipsPanel />
 
         {replaceWarningMessage ? (
-          <div className={editorStyles.ownVoiceReplaceWarning}>
-            <p className={editorStyles.ownVoiceReplaceWarningText}>{replaceWarningMessage}</p>
-            <div className={editorStyles.ownVoiceReplaceWarningActions}>
+          <div className={upload.replaceWarning}>
+            <p className={upload.replaceWarningText}>{replaceWarningMessage}</p>
+            <div className={upload.replaceWarningActions}>
               <button
-                className={editorStyles.toolButton}
+                className={upload.toolButton}
                 type="button"
                 onClick={cancelInputModeSwitch}
               >
                 Отмена
               </button>
               <button
-                className={editorStyles.primaryButton}
+                className={upload.primaryButton}
                 type="button"
                 onClick={confirmInputModeSwitch}
               >
@@ -451,10 +435,10 @@ export function VoiceUploadPanel({
           <div className={fieldClassName}>
             <span className={labelClassName}>Запись с микрофона</span>
             <div className={voiceUi.recordScriptWrap}>
-              <div className={editorStyles.ownVoiceRecordRow}>
+              <div className={upload.recordRow}>
                 {!isRecording ? (
                   <button
-                    className={editorStyles.ownVoiceRecordButton}
+                    className={upload.recordButton}
                     disabled={voiceInputDisabled}
                     type="button"
                     onClick={() => {
@@ -466,13 +450,13 @@ export function VoiceUploadPanel({
                       void startRecording();
                     }}
                   >
-                    <Mic aria-hidden className={editorStyles.ownVoiceRecordButtonIcon} />
+                    <Mic aria-hidden className={upload.recordButtonIcon} />
                     Запись
                   </button>
                 ) : (
                   <>
                     <button
-                      className={editorStyles.toolButtonDestructive}
+                      className={upload.toolButtonDestructive}
                       disabled={disabled || isSubmitting}
                       type="button"
                       onClick={() => void handleStopRecording()}
@@ -480,14 +464,14 @@ export function VoiceUploadPanel({
                       Стоп
                     </button>
                     <button
-                      className={editorStyles.toolButton}
+                      className={upload.toolButton}
                       disabled={disabled || isSubmitting}
                       type="button"
                       onClick={cancelRecording}
                     >
                       Отмена
                     </button>
-                    <span className={editorStyles.ownVoiceRecordingLabel}>
+                    <span className={upload.recordingLabel}>
                       Идёт запись {formatRecordingTime(elapsedSec)}
                     </span>
                   </>
@@ -518,11 +502,11 @@ export function VoiceUploadPanel({
         )}
 
         {file && previewUrl ? (
-          <div className={editorStyles.ownVoicePreview}>
-            <div className={editorStyles.ownVoicePreviewHeader}>
+          <div className={upload.preview}>
+            <div className={upload.previewHeader}>
               <span className={labelClassName}>Предпросмотр · {previewSourceLabel}</span>
               <button
-                className={editorStyles.toolButton}
+                className={upload.toolButton}
                 disabled={disabled || isSubmitting || isRecording}
                 type="button"
                 onClick={resetVoiceInput}
@@ -536,7 +520,7 @@ export function VoiceUploadPanel({
               {previewDurationLabel ? ` · ${previewDurationLabel}` : null}
             </p>
             <audio
-              className={editorStyles.ownVoicePreviewPlayer}
+              className={upload.previewPlayer}
               controls
               preload="metadata"
               src={previewUrl}

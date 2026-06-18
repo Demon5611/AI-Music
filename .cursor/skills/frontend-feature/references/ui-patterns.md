@@ -2,7 +2,7 @@
 
 ## Styling (required)
 
-- **Always use Tailwind** for UI styles. Map shared tokens via `appShell` (`@/shared/theme/app-theme`) or feature maps (`lp`, `mt`, `me`).
+- **Always use Tailwind** for UI styles. Map shared tokens via `appShell` (`@/shared/theme/app-theme`), shared maps (`mp`, `mtk`), or feature maps (`lp`, `mc`, `me`, `voiceUi`).
 - **No inline styles** except dynamic CSS variables required by third-party widgets (e.g. `--track-progress` on timeline).
 - **CSS modules** only for `:global()` overrides of external libraries (`music-editor-playlist.module.css` for `@waveform-playlist`).
 - Theme: `next-themes` toggles `.dark` on `<html>`; colors use `var(--app-*)` from `globals.css`.
@@ -26,9 +26,16 @@ Do not overwrite `--muted` with shadcn background values.
 ```txt
 features/music-create/
   music-create-panel.tsx
-  music-create-classes.ts
+  music-create-classes.ts       # mc — form UI
+  hooks/
+  components/
   song-track-result.tsx
-  collapsible-lyrics.tsx
+
+shared/
+  theme/music-page-classes.ts   # mp — page chrome (create, history)
+  theme/music-track-classes.ts  # mtk — track cards, lyrics, history list
+  ui/collapsible-lyrics.tsx
+  lib/parse-api-error.ts
 ```
 
 Shared Tailwind tokens: `import { appShell } from "@/shared/theme/app-theme"`.
@@ -87,7 +94,25 @@ Not ElevenLabs UI. Styles: Tailwind via `me` from `music-editor-classes.ts`.
 
 На главной не обещать «голос готов» до прохождения `/consent`.
 
+## Feature structure decision tree
+
+| Complexity | Folder layout | Client state | Server data | Reference |
+|------------|---------------|--------------|-------------|-----------|
+| Simple (one screen, CRUD) | flat files | `useState` | `useQuery`, no polling | `profile`, `generation` |
+| Medium (form + side effects) | `use-*.ts` in root or `hooks/` | `useState` + refs | `useQuery` or `usePollingQuery` | `music-create` |
+| Complex (realtime editor) | `hooks/`, `store/`, `utils/`, `styles/` | **Zustand** | custom `useEffect` polling when tied to store | `music-editor` |
+
+Rules:
+
+- **React Query** — server state; use `refetchInterval` or `usePollingQuery` until terminal status.
+- **Zustand** — editor UI state only (`audio-editor-store`).
+- **setInterval polling** — only when refresh depends on client store (e.g. `use-editor-polling` + `songStatus`).
+- **No cross-feature style imports** — use `shared/theme/*`, `shared/ui/*`, or `entities/*`.
+- **API errors** — `parseApiError(error, fallback)` from `@/shared/lib/parse-api-error`.
+
 ## Error display
+
+Use `parseApiError` from `@/shared/lib/parse-api-error` for all API error messages.
 
 Parse API `{ error, code }` responses from backend modules (e.g. music editor Kits errors).
 

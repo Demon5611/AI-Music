@@ -1,5 +1,8 @@
 import { mkdir, readFile, rmdir, unlink, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
+import { buildTrackAudioKey } from "@ai-music/shared";
+
+export { buildTrackAudioKey };
 
 function isPathInsideBase(baseDir: string, targetDir: string): boolean {
   const base = resolve(baseDir);
@@ -57,12 +60,4 @@ export async function deleteStorageObject(key: string): Promise<void> {
   } catch {
     // File may already be removed.
   }
-}
-
-export function buildTrackAudioKey(
-  userId: string,
-  trackId: string,
-  extension = "mp3",
-): string {
-  return `tracks/${userId}/${trackId}.${extension}`;
 }

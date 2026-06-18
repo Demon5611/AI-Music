@@ -508,17 +508,15 @@ apps/web/src/
     share/[slug]/
     profile/
     pricing/
-    music-test/              # dev: Suno / MusicProvider
-    kits-test/               # dev: Kits voice conversion
+    music-create/            # generate song, history, player
 
   features/                  # UI + hooks по экранам
     landing/                 # реализовано
-    create/                  # create-track-panel
-    voice/                   # upload + Kits model link
+    music-create/            # generate song, style chips, voice picker
+    voice/                   # upload + Suno voice clone
     generation/              # generation-status-panel
     profile/                 # credits placeholder UI
-    music-test/              # generate song, history, player
-    kits-test/               # voice conversion test
+    music-editor/            # timeline editor
     audio-player/            # placeholder (пусто)
     billing/                 # placeholder (пусто)
     credits/                 # placeholder (пусто)
@@ -568,7 +566,6 @@ apps/api/
         music-record.service.ts  # history, persist audio, delete
         music-record.mapper.ts
         handle-music-error.ts
-      kits/                    # voice conversion test routes
       credits/                 # balance, service
       billing/                 # Stripe checkout + webhook (stub)
       storage/                 # local/R2 abstraction, file routes
@@ -723,7 +720,7 @@ packages/config/
 - `app/*/page.tsx` — только композиция; логика в `features/*`.
 - Стили — CSS modules в `features/*/styles/` или `shared/ui/*.module.css`; без inline styles.
 - Fetch к API — только через `@ai-music/api-client` (контекст `useApi()`), не прямой fetch из компонентов.
-- Dev-страницы `music-test`, `kits-test` — для отладки провайдеров; в prod MVP заменяются экранами `create` / `generation` / `track`.
+- Dev-страница `/music-test` — redirect на `/music-create` (legacy URL).
 
 ### 11.7 Целевая структура features (когда MVP дозреет)
 
@@ -981,7 +978,7 @@ Kits — отдельный модуль `packages/ai-providers/src/kits/`, не
 
 `apps/api/src/modules/music/` — REST §10 Music, persistence в `music_generations` / `music_generation_tracks`, локальное/R2 хранение mp3.
 
-Тестовый UI: `apps/web/src/features/music-test/` (`/music-test`).
+UI генерации: `apps/web/src/features/music-create/` (`/music-create`).
 
 ### 19.4 Правила для нового кода
 
@@ -1336,8 +1333,8 @@ ai-music/
 │   │       │   ├── create/, voice/, consent/
 │   │       │   ├── generation/[id]/, track/[id]/, share/[slug]/
 │   │       │   ├── profile/, pricing/
-│   │       │   ├── music-test/, kits-test/   # dev
-│   │       ├── features/          # landing, create, voice, music-test, …
+│   │       │   ├── music-create/   # /music-create (+ /music-test redirect)
+│   │       ├── features/          # landing, music-create, voice, music-editor, …
 │   │       ├── entities/
 │   │       └── shared/
 │   │           ├── ui/

@@ -1,7 +1,7 @@
 "use client";
 
-import { CollapsibleLyrics } from "@/features/music-create/collapsible-lyrics";
-import { mt } from "@/features/music-create/music-create-classes";
+import { CollapsibleLyrics } from "@/shared/ui/collapsible-lyrics";
+import { mtk } from "@/shared/theme/music-track-classes";
 import { buildAudioDownloadFilename } from "@/shared/lib/build-audio-download-filename";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
 import { DownloadAudioButton } from "@/shared/ui/download-audio-button";
@@ -45,18 +45,18 @@ export function SongTrackResult({
   const durationLabel = formatDuration(durationSec);
 
   return (
-    <div className={mt.resultPlayer}>
-      <div className={mt.resultHeader}>
-        <div className={mt.resultMeta}>
-          <p className={mt.resultTitle}>{title}</p>
+    <div className={mtk.resultPlayer}>
+      <div className={mtk.resultHeader}>
+        <div className={mtk.resultMeta}>
+          <p className={mtk.resultTitle}>{title}</p>
           {durationLabel ? (
-            <span className={mt.resultDuration}>{durationLabel}</span>
+            <span className={mtk.resultDuration}>{durationLabel}</span>
           ) : null}
         </div>
-        <div className={mt.resultActions}>
+        <div className={mtk.resultActions}>
           <DownloadAudioButton
             audioUrl={audioUrl}
-            className={mt.resultDownloadButton}
+            className={mtk.resultDownloadButton}
             filename={buildAudioDownloadFilename(title)}
             label="Скачать"
           />
@@ -69,10 +69,10 @@ export function SongTrackResult({
           ) : null}
         </div>
       </div>
-      <AudioPreviewPlayer className={mt.player} src={audioUrl} />
+      <AudioPreviewPlayer className={mtk.player} src={audioUrl} />
       {trackId && onOpenEditor ? (
         <button
-          className={mt.editorLink}
+          className={mtk.editorLink}
           disabled={isOpeningEditor}
           type="button"
           onClick={() => onOpenEditor(trackId)}

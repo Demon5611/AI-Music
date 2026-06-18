@@ -1,4 +1,4 @@
-import { prisma } from "@ai-music/db";
+import { prisma, refundCredits } from "@ai-music/db";
 import type { GenerationJobPayload, GenerationStatus } from "@ai-music/shared";
 import { generateSongWithSunoVoice } from "./convert-voice.js";
 import { preprocessVoice } from "./preprocess-voice.js";
@@ -14,21 +14,6 @@ async function updateJobStatus(
     data: {
       status,
       errorMessage: errorMessage ?? null,
-    },
-  });
-}
-
-async function refundGenerationCredits(
-  userId: string,
-  amount: number,
-  jobId: string,
-) {
-  await prisma.creditTransaction.create({
-    data: {
-      userId,
-      type: "refund",
-      amount,
-      reason: `generation_failed:${jobId}`,
     },
   });
 }
@@ -61,10 +46,10 @@ export async function processGenerationJob(
       error instanceof Error ? error.message : "Generation failed";
 
     await updateJobStatus(payload.jobId, "failed", message);
-    await refundGenerationCredits(
+    await refundCredits(
       payload.userId,
       job.creditsCost,
-      payload.jobId,
+      `generation_failed:${payload.jobId}`,
     );
   }
 }

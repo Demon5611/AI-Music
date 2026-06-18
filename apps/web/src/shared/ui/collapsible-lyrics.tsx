@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { mt } from "./music-create-classes";
+import { mtk } from "@/shared/theme/music-track-classes";
 
 const COLLAPSE_THRESHOLD = 30;
 
@@ -14,18 +14,18 @@ export function CollapsibleLyrics({ text }: CollapsibleLyricsProps) {
   const canCollapse = text.length > COLLAPSE_THRESHOLD;
 
   if (!canCollapse) {
-    return <pre className={mt.lyrics}>{text}</pre>;
+    return <pre className={mtk.lyrics}>{text}</pre>;
   }
 
   return (
-    <div className={mt.lyricsBlockInner}>
-      <div className={mt.lyricsHeader}>
-        <span className={mt.lyricsLabel}>Текст песни</span>
+    <div className={mtk.lyricsBlockInner}>
+      <div className={mtk.lyricsHeader}>
+        <span className={mtk.lyricsLabel}>Текст песни</span>
         {isExpanded ? (
           <button
             aria-expanded="true"
             aria-label="Скрыть текст"
-            className={mt.toggleLyricsButton}
+            className={mtk.toggleLyricsButton}
             type="button"
             onClick={() => setIsExpanded(false)}
           >
@@ -35,7 +35,7 @@ export function CollapsibleLyrics({ text }: CollapsibleLyricsProps) {
           <button
             aria-expanded="false"
             aria-label="Показать текст"
-            className={mt.toggleLyricsButton}
+            className={mtk.toggleLyricsButton}
             type="button"
             onClick={() => setIsExpanded(true)}
           >
@@ -43,7 +43,7 @@ export function CollapsibleLyrics({ text }: CollapsibleLyricsProps) {
           </button>
         )}
       </div>
-      {isExpanded ? <pre className={mt.lyrics}>{text}</pre> : null}
+      {isExpanded ? <pre className={mtk.lyrics}>{text}</pre> : null}
     </div>
   );
 }
@@ -52,7 +52,7 @@ function ToggleLyricsIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg
       aria-hidden="true"
-      className={mt.toggleLyricsIcon}
+      className={mtk.toggleLyricsIcon}
       fill="none"
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"

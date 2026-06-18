@@ -13,7 +13,7 @@ import {
   resolveVoiceSampleStatusLabel,
   resolveVoiceSampleTitle,
 } from "@/entities/voice-sample/voice-sample-display";
-import { mt } from "@/features/music-create/music-create-classes";
+import { mc } from "@/features/music-create/music-create-classes";
 import { AudioPreviewPlayer } from "@/shared/ui/elevenlabs";
 import { cn } from "@/lib/utils";
 
@@ -30,11 +30,11 @@ interface VoiceSamplePickerProps {
 
 function resolveStatusBadgeClass(sample: VoiceSample): string {
   if (isVoiceSampleReadyForGeneration(sample)) {
-    return mt.voicePickerBadgeReady;
+    return mc.voicePickerBadgeReady;
   }
 
   if (sample.voiceCloneStatus === "failed") {
-    return mt.voicePickerBadgeError;
+    return mc.voicePickerBadgeError;
   }
 
   if (
@@ -42,10 +42,10 @@ function resolveStatusBadgeClass(sample: VoiceSample): string {
     sample.voiceCloneStatus === "preparing" ||
     sample.voiceCloneStatus === "cloning"
   ) {
-    return mt.voicePickerBadgeWarning;
+    return mc.voicePickerBadgeWarning;
   }
 
-  return mt.voicePickerBadgePending;
+  return mc.voicePickerBadgePending;
 }
 
 function VoiceSamplePickerToggle({
@@ -61,7 +61,7 @@ function VoiceSamplePickerToggle({
   selectedTitle: string | null;
   onToggle: () => void;
 }) {
-  const toggleClassName = cn(mt.voicePickerToggle, open && mt.voicePickerToggleActive);
+  const toggleClassName = cn(mc.voicePickerToggle, open && mc.voicePickerToggleActive);
   const meta = selectedTitle
     ? `${selectedTitle} · ${readyCount} из ${totalCount} готовы`
     : `${readyCount} из ${totalCount} готовы к генерации`;
@@ -75,11 +75,11 @@ function VoiceSamplePickerToggle({
         type="button"
         onClick={onToggle}
       >
-        <span className={mt.voicePickerToggleMain}>
-          <FolderOpen aria-hidden className={mt.voicePickerToggleIcon} />
-          <span className={mt.voicePickerToggleText}>
-            <span className={mt.voicePickerToggleTitle}>Доступные образцы голоса</span>
-            <span className={mt.voicePickerToggleMeta}>{meta}</span>
+        <span className={mc.voicePickerToggleMain}>
+          <FolderOpen aria-hidden className={mc.voicePickerToggleIcon} />
+          <span className={mc.voicePickerToggleText}>
+            <span className={mc.voicePickerToggleTitle}>Доступные образцы голоса</span>
+            <span className={mc.voicePickerToggleMeta}>{meta}</span>
           </span>
         </span>
       </button>
@@ -94,11 +94,11 @@ function VoiceSamplePickerToggle({
       type="button"
       onClick={onToggle}
     >
-      <span className={mt.voicePickerToggleMain}>
-        <FolderOpen aria-hidden className={mt.voicePickerToggleIcon} />
-        <span className={mt.voicePickerToggleText}>
-          <span className={mt.voicePickerToggleTitle}>Доступные образцы голоса</span>
-          <span className={mt.voicePickerToggleMeta}>{meta}</span>
+      <span className={mc.voicePickerToggleMain}>
+        <FolderOpen aria-hidden className={mc.voicePickerToggleIcon} />
+        <span className={mc.voicePickerToggleText}>
+          <span className={mc.voicePickerToggleTitle}>Доступные образцы голоса</span>
+          <span className={mc.voicePickerToggleMeta}>{meta}</span>
         </span>
       </span>
     </button>
@@ -120,48 +120,48 @@ function VoiceSamplePickerItem({
 }) {
   const isReady = isVoiceSampleReadyForGeneration(sample);
   const itemClassName = cn(
-    mt.voicePickerItem,
-    selected && mt.voicePickerItemSelected,
-    !isReady && mt.voicePickerItemDisabled,
+    mc.voicePickerItem,
+    selected && mc.voicePickerItemSelected,
+    !isReady && mc.voicePickerItemDisabled,
   );
 
   return (
     <article className={itemClassName}>
-      <div className={mt.voicePickerItemHeader}>
+      <div className={mc.voicePickerItemHeader}>
         {isReady ? (
           <input
             aria-label={`Выбрать ${resolveVoiceSampleTitle(sample)}`}
             checked={selected}
-            className={mt.voicePickerItemRadio}
+            className={mc.voicePickerItemRadio}
             name="voiceSample"
             type="radio"
             onChange={() => onSelect(sample.id)}
           />
         ) : (
-          <span aria-hidden className={mt.voicePickerItemRadio} />
+          <span aria-hidden className={mc.voicePickerItemRadio} />
         )}
-        <div className={mt.voicePickerItemBody}>
-          <h3 className={mt.voicePickerItemTitle}>{resolveVoiceSampleTitle(sample)}</h3>
-          <div className={mt.voicePickerItemMeta}>
+        <div className={mc.voicePickerItemBody}>
+          <h3 className={mc.voicePickerItemTitle}>{resolveVoiceSampleTitle(sample)}</h3>
+          <div className={mc.voicePickerItemMeta}>
             <span className={resolveStatusBadgeClass(sample)}>
               {resolveVoiceSampleStatusLabel(sample)}
             </span>
             <span>{formatVoiceSampleDuration(sample.durationSec)}</span>
             {!isReady && sample.voiceCloneStatus === "awaiting_verification" ? (
-              <Link className={mt.voicePickerLink} href={`/consent?id=${sample.id}`}>
+              <Link className={mc.voicePickerLink} href={`/consent?id=${sample.id}`}>
                 Пройти верификацию
               </Link>
             ) : null}
           </div>
         </div>
       </div>
-      <div className={mt.voicePickerPlayerRow}>
+      <div className={mc.voicePickerPlayerRow}>
         <AudioPreviewPlayer
-          className={mt.voicePickerPlayer}
+          className={mc.voicePickerPlayer}
           src={buildVoiceSampleAudioUrl(sample.id)}
         />
         <button
-          className={mt.voicePickerDeleteButton}
+          className={mc.voicePickerDeleteButton}
           disabled={isDeleting}
           type="button"
           onClick={() => onDelete(sample.id)}
@@ -189,13 +189,13 @@ export function VoiceSamplePicker({
 
   if (isLoading) {
     return (
-      <div className={mt.voicePickerEmpty}>Загрузка образцов голоса...</div>
+      <div className={mc.voicePickerEmpty}>Загрузка образцов голоса...</div>
     );
   }
 
   if (loadError) {
     return (
-      <div className={mt.voicePickerEmpty} role="alert">
+      <div className={mc.voicePickerEmpty} role="alert">
         {loadError}
       </div>
     );
@@ -203,9 +203,9 @@ export function VoiceSamplePicker({
 
   if (samples.length === 0) {
     return (
-      <div className={mt.voicePickerEmpty}>
+      <div className={mc.voicePickerEmpty}>
         Образцов пока нет.{" "}
-        <Link className={mt.voicePickerLink} href="/">
+        <Link className={mc.voicePickerLink} href="/">
           Запишите голос на главной
         </Link>
         .
@@ -214,7 +214,7 @@ export function VoiceSamplePicker({
   }
 
   return (
-    <section className={mt.voicePickerSection}>
+    <section className={mc.voicePickerSection}>
       <VoiceSamplePickerToggle
         open={open}
         readyCount={readySamples.length}
@@ -224,9 +224,9 @@ export function VoiceSamplePicker({
       />
 
       {open ? (
-        <div className={mt.voicePickerPanel} id="voice-sample-picker-panel">
+        <div className={mc.voicePickerPanel} id="voice-sample-picker-panel">
           {deleteError ? (
-            <p className={mt.errorInline} role="alert">
+            <p className={mc.errorInline} role="alert">
               {deleteError}
             </p>
           ) : null}

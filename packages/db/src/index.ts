@@ -1,15 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
-
+export { prisma } from "./prisma.js";
 export { PrismaClient, Prisma } from "@prisma/client";
 export type {
   CreditTransaction,
@@ -26,3 +15,9 @@ export type {
   User,
   VoiceSample,
 } from "@prisma/client";
+export {
+  getCreditsBalance,
+  InsufficientCreditsLedgerError,
+  refundCredits,
+  spendCredits,
+} from "./credits-ledger.js";

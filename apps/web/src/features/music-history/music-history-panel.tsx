@@ -2,12 +2,13 @@
 
 import type { MusicGenerationRecordDto } from "@ai-music/shared";
 import { useMemo, useState } from "react";
-import { CollapsibleLyrics } from "@/features/music-create/collapsible-lyrics";
-import { mt } from "@/features/music-create/music-create-classes";
+import { CollapsibleLyrics } from "@/shared/ui/collapsible-lyrics";
+import { mtk } from "@/shared/theme/music-track-classes";
 import { buildAudioDownloadFilename } from "@/shared/lib/build-audio-download-filename";
 import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
 import { DownloadAudioButton } from "@/shared/ui/download-audio-button";
+import { formatTrackTitleValue } from "@/entities/track";
 import { cn } from "@/lib/utils";
 
 interface MusicHistoryPanelProps {
@@ -86,28 +87,28 @@ export function MusicHistoryPanel({
   }
 
   if (isLoading) {
-    return <p className={mt.meta}>Загрузка истории...</p>;
+    return <p className={mtk.meta}>Загрузка истории...</p>;
   }
 
   if (items.length === 0) {
     return (
-      <p className={mt.meta}>
+      <p className={mtk.meta}>
         История пуста. Создайте трек на странице Music Create — результаты сохранятся здесь.
       </p>
     );
   }
 
   return (
-    <div className={mt.historyList}>
-      <div className={cn(mt.historyToolbar, "grid-cols-[1fr_auto]")}>
-        <label className={cn(mt.historyCheckboxLabel, "min-w-0 gap-2")}>
+    <div className={mtk.historyList}>
+      <div className={cn(mtk.historyToolbar, "grid-cols-[1fr_auto]")}>
+        <label className={cn(mtk.historyCheckboxLabel, "min-w-0 gap-2")}>
           <input
             checked={allSelected}
-            className={mt.historyCheckbox}
+            className={mtk.historyCheckbox}
             type="checkbox"
             onChange={toggleAll}
           />
-          <span className={mt.historyToolbarTitle}>
+          <span className={mtk.historyToolbarTitle}>
             {hasSelection ? `Выбрано: ${selectedIds.length}` : "Выбрать все"}
           </span>
         </label>
@@ -119,24 +120,27 @@ export function MusicHistoryPanel({
       </div>
 
       {items.map((item) => {
-        const itemTitle = item.title ?? item.prompt.slice(0, 60);
+        const itemTitle =
+          formatTrackTitleValue(item.title ?? "") ||
+          item.prompt.slice(0, 60) ||
+          "Untitled track";
         const itemTitleId = `history-item-title-${item.id}`;
 
         return (
-          <article className={mt.historyItem} key={item.id}>
-            <div className={mt.historyHeader}>
-              <label className={mt.historyCheckboxLabel}>
+          <article className={mtk.historyItem} key={item.id}>
+            <div className={mtk.historyHeader}>
+              <label className={mtk.historyCheckboxLabel}>
                 <input
                   aria-labelledby={itemTitleId}
                   checked={selectedSet.has(item.id)}
-                  className={mt.historyCheckbox}
+                  className={mtk.historyCheckbox}
                   type="checkbox"
                   onChange={() => toggleItem(item.id)}
                 />
               </label>
-              <div className={mt.historyHeaderMain}>
-                <div className={mt.historyTitleRow}>
-                  <h3 className={mt.historyTitle} id={itemTitleId}>
+              <div className={mtk.historyHeaderMain}>
+                <div className={mtk.historyTitleRow}>
+                  <h3 className={mtk.historyTitle} id={itemTitleId}>
                     {itemTitle}
                   </h3>
                   <DeleteIconButton
@@ -145,11 +149,11 @@ export function MusicHistoryPanel({
                     onClick={() => void handleDeleteOne(item.id)}
                   />
                 </div>
-                <div className={mt.historyTitleMeta}>
-                  <span className={mt.historyBadge}>
+                <div className={mtk.historyTitleMeta}>
+                  <span className={mtk.historyBadge}>
                     {STATUS_LABELS[item.status] ?? item.status}
                   </span>
-                  <p className={mt.historyMeta}>
+                  <p className={mtk.historyMeta}>
                     {item.type === "song" ? "Трек" : "Текст для трека"} ·{" "}
                     {formatDate(item.createdAt)}
                     {item.rawStatus ? ` · ${item.rawStatus}` : ""}
@@ -159,21 +163,23 @@ export function MusicHistoryPanel({
             </div>
 
             {item.tracks.map((track) => (
-              <div className={mt.historyTrack} key={track.id}>
-                <div className={mt.historyTrackHeader}>
-                  <div className={mt.historyTrackMeta}>
-                    <p className={mt.historyTrackTitle}>{track.title}</p>
+              <div className={mtk.historyTrack} key={track.id}>
+                <div className={mtk.historyTrackHeader}>
+                  <div className={mtk.historyTrackMeta}>
+                    <p className={mtk.historyTrackTitle}>
+                      {formatTrackTitleValue(track.title)}
+                    </p>
                     {formatDuration(track.durationSec) ? (
-                      <span className={mt.resultDuration}>
+                      <span className={mtk.resultDuration}>
                         {formatDuration(track.durationSec)}
                       </span>
                     ) : null}
                   </div>
-                  <div className={mt.resultActions}>
+                  <div className={mtk.resultActions}>
                     {track.audioUrl ? (
                       <DownloadAudioButton
                         audioUrl={track.audioUrl}
-                        className={mt.resultDownloadButton}
+                        className={mtk.resultDownloadButton}
                         filename={buildAudioDownloadFilename(track.title)}
                         label="Скачать"
                       />
@@ -186,11 +192,11 @@ export function MusicHistoryPanel({
                   </div>
                 </div>
                 {track.audioUrl ? (
-                  <AuthenticatedAudio className={mt.player} src={track.audioUrl} />
+                  <AuthenticatedAudio className={mtk.player} src={track.audioUrl} />
                 ) : null}
                 {item.type === "song" && track.audioUrl && onOpenEditor ? (
                   <button
-                    className={mt.editorLink}
+                    className={mtk.editorLink}
                     disabled={openingEditorTrackId === track.id}
                     type="button"
                     onClick={() => onOpenEditor(track.id)}
@@ -214,7 +220,7 @@ export function MusicHistoryPanel({
             ))}
 
             {item.errorMessage ? (
-              <p className={mt.error}>{item.errorMessage}</p>
+              <p className={mtk.error}>{item.errorMessage}</p>
             ) : null}
           </article>
         );

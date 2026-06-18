@@ -51,7 +51,7 @@ function formatOperationLabel(
     case "REPLACE_VOCAL":
       return `Replace vocal — ${regionLabel}`;
     default:
-      return `${operation.type} — ${regionLabel}`;
+      return `Operation — ${regionLabel}`;
   }
 }
 

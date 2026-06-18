@@ -132,6 +132,4 @@ export const appShell = {
     "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--app-hover-overlay)] text-[var(--app-text)]",
   themeToggleIcon: "h-3.5 w-3.5",
   themeTogglePlaceholder: "inline-block h-8 w-[5.75rem]",
-  kitsTestPlayer: "w-full",
-  kitsTestResult: "flex flex-col gap-1",
 } as const;

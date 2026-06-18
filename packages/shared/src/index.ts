@@ -3,3 +3,4 @@ export * from "./schemas/index.js";
 export * from "./constants/index.js";
 export * from "./utils/region-selection.js";
 export * from "./utils/region-fade.js";
+export * from "./storage/keys.js";

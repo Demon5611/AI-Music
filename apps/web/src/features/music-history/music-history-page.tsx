@@ -1,39 +1,20 @@
 "use client";
 
-import { ApiError } from "@ai-music/api-client";
+import { parseApiError } from "@/shared/lib/parse-api-error";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MusicHistoryPanel } from "@/features/music-history/music-history-panel";
-import { mt } from "@/features/music-create/music-create-classes";
+import { mp } from "@/shared/theme/music-page-classes";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
-
-function resolveErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.body && typeof error.body === "object") {
-    const body = error.body as { error?: string };
-    if (body.error) {
-      return body.error;
-    }
-  }
-
-  if (error instanceof ApiError && error.status === 401) {
-    return "Unauthorized";
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Не удалось загрузить историю";
-}
 
 function IconClock() {
   return (
     <svg
       aria-hidden="true"
-      className={mt.icon}
+      className={mp.icon}
       fill="none"
       stroke="currentColor"
       strokeWidth={1.5}
@@ -77,7 +58,7 @@ export function MusicHistoryPage() {
       await api.music.deleteHistory(ids);
       await refreshHistory();
     } catch (deleteError) {
-      setError(resolveErrorMessage(deleteError));
+      setError(parseApiError(deleteError, "Не удалось загрузить историю", { includeUnauthorized: true }));
     } finally {
       setIsDeletingHistory(false);
     }
@@ -91,7 +72,7 @@ export function MusicHistoryPage() {
       await api.music.deleteTrack(trackId);
       await refreshHistory();
     } catch (deleteError) {
-      setError(resolveErrorMessage(deleteError));
+      setError(parseApiError(deleteError, "Не удалось загрузить историю", { includeUnauthorized: true }));
     } finally {
       setIsDeletingTrack(false);
     }
@@ -105,7 +86,7 @@ export function MusicHistoryPage() {
       const result = await api.musicEditor.initEditor(trackId);
       router.push(`/music-editor/${result.songId}`);
     } catch (editorError) {
-      setError(resolveErrorMessage(editorError));
+      setError(parseApiError(editorError, "Не удалось загрузить историю", { includeUnauthorized: true }));
     } finally {
       setOpeningEditorTrackId(null);
     }
@@ -113,9 +94,9 @@ export function MusicHistoryPage() {
 
   if (!authReady) {
     return (
-      <div className={mt.authLoading}>
-        <div className={mt.authLoadingInner}>
-          <span aria-hidden="true" className={mt.spinner} />
+      <div className={mp.authLoading}>
+        <div className={mp.authLoadingInner}>
+          <span aria-hidden="true" className={mp.spinner} />
           Загрузка сессии...
         </div>
       </div>
@@ -123,33 +104,35 @@ export function MusicHistoryPage() {
   }
 
   return (
-    <div className={mt.page}>
-      <header className={mt.pageHeader}>
-        <div className={mt.pageHeaderBrand}>
-          <div className={mt.pageHeaderLogo}>
+    <div className={mp.page}>
+      <header className={mp.pageHeader}>
+        <div className={mp.pageHeaderBrand}>
+          <div className={mp.pageHeaderLogo}>
             <IconClock />
           </div>
-          <span className={mt.pageHeaderTitle}>История генераций</span>
+          <span className={mp.pageHeaderTitle}>История генераций</span>
         </div>
-        <Link className={mt.pageHeaderMeta} href="/music-create">
+        <Link className={mp.pageHeaderMeta} href="/music-create">
           Music Create
         </Link>
       </header>
 
-      <main className={mt.pageMain}>
+      <main className={mp.pageMain}>
         {historyQuery.error ? (
-          <div className={mt.alertError} role="alert">
-            {resolveErrorMessage(historyQuery.error)}
+          <div className={mp.alertError} role="alert">
+            {parseApiError(historyQuery.error, "Не удалось загрузить историю", {
+              includeUnauthorized: true,
+            })}
           </div>
         ) : null}
 
         {error ? (
-          <div className={mt.alertError} role="alert">
+          <div className={mp.alertError} role="alert">
             {error}
           </div>
         ) : null}
 
-        <section className={mt.sectionCard}>
+        <section className={mp.sectionCard}>
           <MusicHistoryPanel
             isDeleting={isDeletingHistory || isDeletingTrack}
             isLoading={historyQuery.isLoading}

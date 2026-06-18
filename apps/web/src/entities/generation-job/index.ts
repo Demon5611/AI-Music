@@ -9,3 +9,7 @@ export function isGenerationComplete(status: GenerationStatus): boolean {
 export function isGenerationFailed(status: GenerationStatus): boolean {
   return status === "failed";
 }
+
+export function isGenerationTerminal(status: GenerationStatus): boolean {
+  return isGenerationComplete(status) || isGenerationFailed(status);
+}

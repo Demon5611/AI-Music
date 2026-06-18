@@ -10,7 +10,7 @@ import {
   toggleStyleChip,
 } from "./music-style-chips";
 import { MusicComboStyleChip } from "./music-combo-style-chip";
-import { mt } from "./music-create-classes";
+import { mc } from "@/features/music-create/music-create-classes";
 import { cn } from "@/lib/utils";
 
 interface MusicStyleChipsProps {
@@ -29,11 +29,11 @@ interface StyleChipOptionProps {
 
 function StyleChipOption({ chip, selected, disabled, onToggle }: StyleChipOptionProps) {
   return (
-    <label className={cn(selected ? mt.chipSelected : mt.chip, disabled && mt.chipDisabled)}>
+    <label className={cn(selected ? mc.chipSelected : mc.chip, disabled && mc.chipDisabled)}>
       <input
         aria-label={`Стиль: ${chip}`}
         checked={selected}
-        className={mt.chipInput}
+        className={mc.chipInput}
         disabled={disabled}
         type="checkbox"
         onChange={onToggle}
@@ -54,13 +54,13 @@ export function MusicStyleChips({
   return (
     <div className="mt-2">
       {showLabel ? (
-        <span className={mt.fieldLabel} id="music-style-label">
+        <span className={mc.fieldLabel} id="music-style-label">
           Стиль музыки
         </span>
       ) : null}
       <div
         aria-labelledby={showLabel ? "music-style-label" : undefined}
-        className={cn(mt.chipRow, "mt-2")}
+        className={cn(mc.chipRow, "mt-2")}
         role="group"
       >
         <MusicComboStyleChip maxLength={maxLength} value={value} onChange={onChange} />
@@ -86,7 +86,7 @@ export function MusicStyleChips({
           );
         })}
       </div>
-      <p className={cn(mt.styleHint, "mt-2")}>
+      <p className={cn(mc.styleHint, "mt-2")}>
         Выберите {RECOMMENDED_STYLE_CHIPS_MIN}–{MAX_SELECTED_STYLE_CHIPS} тегов — Suno лучше
         понимает короткие стили через запятую, чем длинные описания. Выбрано: {selectedCount}/
         {MAX_SELECTED_STYLE_CHIPS}.

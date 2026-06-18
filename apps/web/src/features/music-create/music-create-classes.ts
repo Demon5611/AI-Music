@@ -1,25 +1,7 @@
 import { appShell } from "@/shared/theme/app-theme";
 
-/** Shared Tailwind classes for Music Create. */
-export const mt = {
-  page: appShell.page,
-  pageHeader: appShell.pageHeader,
-  pageHeaderBrand: "flex items-center gap-2",
-  pageHeaderLogo: appShell.pageHeaderLogo,
-  pageHeaderTitle: "text-sm font-semibold tracking-tight",
-  pageHeaderMeta: `text-xs ${appShell.textMuted}`,
-  pageMain: "mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-8",
-  authLoading: `flex flex-1 items-center justify-center ${appShell.bgPage} py-24`,
-  authLoadingInner: `flex items-center gap-3 text-sm ${appShell.textMuted}`,
-  spinner: appShell.spinner,
-  submitSpinner:
-    "h-4 w-4 animate-spin rounded-full border-2 border-[var(--app-border-default)] border-t-[var(--app-text)]",
-  alertError:
-    "rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300",
-  alertWarning:
-    "rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-300",
-  inlineCode: "rounded bg-[var(--app-hover-overlay)] px-1 font-mono",
-  sectionCard: appShell.sectionCard,
+/** Shared Tailwind classes for Music Create form UI. */
+export const mc = {
   cardHeader: "mb-5 flex items-center justify-between gap-4",
   cardHeaderTitle: "text-base font-semibold",
   cardHeaderSubtitle: `mt-0.5 text-xs ${appShell.textMuted}`,
@@ -42,6 +24,8 @@ export const mt = {
     `pointer-events-none absolute inset-y-0 right-3 flex items-center ${appShell.textMuted}`,
   meta: `mt-1.5 text-xs ${appShell.textMuted}`,
   submit: `${appShell.btnPrimary} w-full`,
+  submitSpinner:
+    "h-4 w-4 animate-spin rounded-full border-2 border-[var(--app-border-default)] border-t-[var(--app-text)]",
   loaderWrap: appShell.loaderWrap,
   tracksList: "mt-4 flex flex-col gap-3",
   taskMeta: "mt-3 font-mono text-xs text-neutral-600",
@@ -73,44 +57,6 @@ export const mt = {
   lyricsVariantActive:
     "rounded-full border border-violet-500 bg-violet-600/15 px-3 py-1.5 text-xs text-violet-500 dark:text-violet-400",
   errorInline: "text-sm text-rose-400",
-  resultPlayer: `${appShell.surfaceCard} p-4`,
-  resultHeader: "mb-2 flex items-start justify-between gap-3",
-  resultActions: "flex shrink-0 items-center gap-1.5",
-  resultDownloadButton: `${appShell.btnSecondaryOutline} px-3 py-1.5 text-xs`,
-  resultMeta: "flex flex-wrap items-baseline gap-2",
-  resultTitle: "text-sm font-semibold text-[var(--app-text)]",
-  resultDuration: `text-xs ${appShell.textMuted}`,
-  editorLink:
-    "mt-3 rounded-lg bg-violet-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60",
-  player: "w-full",
-  lyrics: `overflow-x-auto whitespace-pre-wrap text-xs leading-relaxed ${appShell.textMuted}`,
-  lyricsBlockInner: "flex flex-col gap-1.5",
-  lyricsHeader: "flex items-center justify-between gap-3",
-  lyricsLabel: `text-xs ${appShell.textMuted}`,
-  toggleLyricsButton:
-    "inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--app-border-default)] bg-[var(--app-hover-overlay)] text-[var(--app-text-muted)] hover:text-[var(--app-text)]",
-  toggleLyricsIcon: "h-4 w-4",
-  historyList: "flex flex-col gap-3",
-  historyToolbar: "grid grid-cols-[auto_1fr_auto] items-center gap-3 pb-1",
-  historyToolbarTitle: `text-xs ${appShell.textMuted}`,
-  historyCheckboxLabel: "inline-flex items-center",
-  historyCheckbox: appShell.accentCheckbox,
-  historyItem: `flex flex-col gap-2 ${appShell.surfaceCard} p-3`,
-  historyHeader: "flex items-start gap-3",
-  historyHeaderMain: "flex min-w-0 flex-1 flex-col gap-1.5",
-  historyTitleRow: "flex items-start justify-between gap-3",
-  historyTitle: "flex-1 text-sm font-semibold text-[var(--app-text)]",
-  historyTitleMeta: "flex flex-wrap items-center gap-2",
-  historyBadge:
-    "shrink-0 rounded-full bg-[var(--app-hover-overlay)] px-2 py-0.5 text-xs text-[var(--app-text)]",
-  historyMeta: `text-xs ${appShell.textMuted}`,
-  historyTrack: "flex flex-col gap-1.5 border-t border-[var(--app-border-subtle)] pt-2",
-  historyTrackHeader: "flex items-start justify-between gap-3",
-  historyTrackMeta: "flex flex-wrap items-baseline gap-2",
-  historyTrackTitle: "text-xs text-[var(--app-text)]",
-  error: "text-sm text-rose-400",
-  icon: "h-4 w-4",
-  iconSmall: "h-3 w-3",
   voicePickerSection: "flex flex-col gap-2",
   voicePickerToggle:
     "flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--app-border-default)] bg-[var(--app-hover-overlay)] px-4 py-3 text-left transition-colors hover:bg-[var(--app-surface-elevated)]",

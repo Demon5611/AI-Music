@@ -1,26 +1,11 @@
 "use client";
 
-import { ApiError } from "@ai-music/api-client";
+import { parseApiError } from "@/shared/lib/parse-api-error";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { pf } from "@/features/profile/profile-classes";
 import { useApi } from "@/shared/providers/api-provider";
 import { env } from "@/shared/config/env";
-
-function resolveErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.body && typeof error.body === "object") {
-    const body = error.body as { error?: string };
-    if (body.error) {
-      return body.error;
-    }
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Не удалось загрузить профиль";
-}
 
 export function ProfilePanel() {
   const api = useApi();
@@ -45,7 +30,7 @@ export function ProfilePanel() {
   if (error) {
     return (
       <div className={pf.errorBox}>
-        <p className={pf.error}>{resolveErrorMessage(error)}</p>
+        <p className={pf.error}>{parseApiError(error, "Не удалось загрузить профиль")}</p>
         {!env.isClerkEnabled ? (
           <p className={pf.hint}>
             Убедитесь, что API запущен (`pnpm dev:api`) и Docker с Postgres поднят (`pnpm

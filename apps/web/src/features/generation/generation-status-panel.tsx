@@ -1,10 +1,10 @@
 "use client";
 
-import { ApiError } from "@ai-music/api-client";
-import type { GenerationJob } from "@ai-music/shared";
-import { useQuery } from "@tanstack/react-query";
+import { parseApiError } from "@/shared/lib/parse-api-error";
+import { isGenerationTerminal } from "@/entities/generation-job";
 import Link from "next/link";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
+import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { useApi } from "@/shared/providers/api-provider";
 import { appShell } from "@/shared/theme/app-theme";
 import {
@@ -15,26 +15,6 @@ import {
   resolveGenerationProgress,
 } from "@/shared/ui/elevenlabs";
 
-const TERMINAL_STATUSES = new Set<GenerationJob["status"]>([
-  "completed",
-  "failed",
-]);
-
-function resolveErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.body && typeof error.body === "object") {
-    const body = error.body as { error?: string };
-    if (body.error) {
-      return body.error;
-    }
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Не удалось загрузить статус генерации";
-}
-
 interface GenerationStatusPanelProps {
   jobId: string;
 }
@@ -43,18 +23,12 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
   const api = useApi();
   const authReady = useAuthReady();
 
-  const jobQuery = useQuery({
+  const jobQuery = usePollingQuery({
     queryKey: ["generations", jobId],
     queryFn: () => api.generations.get(jobId),
     enabled: authReady,
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      if (!status || TERMINAL_STATUSES.has(status)) {
-        return false;
-      }
-
-      return 3000;
-    },
+    isTerminal: (job) => Boolean(job && isGenerationTerminal(job.status)),
+    intervalMs: 3000,
   });
 
   if (!authReady) {
@@ -78,7 +52,7 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
     return (
       <section className={appShell.formPage}>
         <h1 className={appShell.formPageTitle}>Генерация</h1>
-        <p className={appShell.formError}>{resolveErrorMessage(jobQuery.error)}</p>
+        <p className={appShell.formError}>{parseApiError(jobQuery.error, "Не удалось загрузить статус генерации")}</p>
       </section>
     );
   }

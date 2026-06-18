@@ -13,8 +13,6 @@ export const lp = {
   subtitle: `relative z-10 text-base md:text-lg ${appShell.textSubtle} max-w-lg mb-10 leading-relaxed`,
   voiceWrap: "relative z-10 w-full max-w-2xl mb-4 text-left",
   voiceCard: `${appShell.promptCard} p-4 md:p-5`,
-  voiceHint: `text-sm ${appShell.textMuted} mb-1`,
-  voiceSubmit: `${appShell.btnPrimary} w-full`,
   note: `relative z-10 text-xs ${appShell.textSubtle}`,
   statsGrid:
     "relative z-10 mx-4 md:mx-auto md:max-w-4xl grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--app-hover-overlay)] rounded-2xl overflow-hidden mb-20",

@@ -1,18 +1,9 @@
 "use client";
 
-import { ApiError } from "@ai-music/api-client";
+import { parseApiError } from "@/shared/lib/parse-api-error";
 import { useEffect, useState } from "react";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
 import { useApi } from "@/shared/providers/api-provider";
-
-function resolveErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.body && typeof error.body === "object") {
-    const body = error.body as { error?: string };
-    if (body.error) return body.error;
-  }
-  if (error instanceof Error) return error.message;
-  return "Editor error";
-}
 
 export function useEditorInitialLoad(songId: string) {
   const api = useApi();
@@ -40,7 +31,7 @@ export function useEditorInitialLoad(songId: string) {
         hydrate(state);
         setTitle(state.song.title);
       } catch (loadError) {
-        if (!cancelled) setError(resolveErrorMessage(loadError));
+        if (!cancelled) setError(parseApiError(loadError, "Editor error"));
       } finally {
         if (!cancelled) setBusy(false);
       }
