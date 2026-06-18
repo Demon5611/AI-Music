@@ -21,6 +21,7 @@ import type {
   SunoUploadCoverRequest,
 } from "./suno-api.types.js";
 import { applySunoDurationHints } from "./suno-duration-hints.js";
+import { mapSunoVocalRemovalTaskToStemResult } from "./suno-vocal-removal.mapper.js";
 
 const PROVIDER_ID = "sunoapi" as const;
 
@@ -220,33 +221,4 @@ function shouldFallbackToLyricsLookup(error: unknown): boolean {
   }
 
   return !NON_LYRICS_LOOKUP_CODES.has(error.code);
-}
-
-function mapSunoVocalRemovalTaskToStemResult(
-  task: import("./suno-api.types.js").SunoVocalRemovalTaskRaw,
-): StemResult {
-  const flag = task.successFlag?.toUpperCase();
-
-  if (flag === "SUCCESS") {
-    const response = task.response;
-    return {
-      taskId: task.taskId,
-      status: "completed",
-      vocalUrl: response?.vocalUrl ?? response?.vocal_url,
-      instrumentalUrl: response?.instrumentalUrl ?? response?.instrumental_url,
-    };
-  }
-
-  if (flag === "FAILED" || flag === "CREATE_TASK_FAILED") {
-    return {
-      taskId: task.taskId,
-      status: "failed",
-      errorMessage: task.errorMessage ?? "Stem separation failed",
-    };
-  }
-
-  return {
-    taskId: task.taskId,
-    status: "processing",
-  };
 }

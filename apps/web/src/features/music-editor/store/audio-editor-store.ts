@@ -46,6 +46,7 @@ interface AudioEditorState {
   currentVersionId: string | null;
   versions: EditorStateDto["versions"];
   songStatus: EditorStateDto["song"]["status"] | null;
+  editorNotice: string | null;
   durationMs: number;
   isBusy: boolean;
   error: string | null;
@@ -188,6 +189,7 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
   currentVersionId: null,
   versions: [],
   songStatus: null,
+  editorNotice: null,
   durationMs: 0,
   isBusy: false,
   error: null,
@@ -226,6 +228,7 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
         currentVersionId: state.currentVersionId,
         versions: state.versions,
         songStatus: state.song.status,
+        editorNotice: state.song.stemSeparationNotice ?? null,
         durationMs: state.song.durationMs ?? 0,
         selectedRegionId,
         selectedTrackId,

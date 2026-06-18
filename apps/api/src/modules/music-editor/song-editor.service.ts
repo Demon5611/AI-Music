@@ -3,6 +3,11 @@ import { prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
 import { buildSongStemKey, getStorageService } from "../storage/storage.service.js";
 import { buildDefaultRegions, type SongVersionWithOperations } from "./song-editor.mapper.js";
+import {
+  buildStemSeparationFallbackNotice,
+  isStemSeparationTimedOut,
+  persistOriginalAudioAsStems,
+} from "./stem-separation.js";
 
 export async function ensureSongForTrack(userId: string, trackId: string) {
   const track = await prisma.musicGenerationTrack.findUnique({
@@ -90,6 +95,37 @@ export async function startStemSeparation(userId: string, songId: string) {
   return tickStemSeparation(userId, songId);
 }
 
+export async function retryStemSeparation(userId: string, songId: string) {
+  const song = await getSongForUser(userId, songId);
+
+  if (song.status === "separating_stems" || song.status === "pending_stems") {
+    throw new BadRequestError("Разделение уже выполняется");
+  }
+
+  if (!song.stemSeparationNotice?.trim()) {
+    throw new BadRequestError("Повторное разделение доступно только после ошибки Suno");
+  }
+
+  const storage = getStorageService();
+
+  for (const stem of song.stems) {
+    await storage.delete(stem.audioStorageKey).catch(() => undefined);
+  }
+
+  await prisma.songStem.deleteMany({ where: { songId } });
+  await prisma.song.update({
+    where: { id: songId },
+    data: {
+      status: "pending_stems",
+      stemSeparationTaskId: null,
+      stemSeparationNotice: null,
+    },
+  });
+
+  await kickoffStemSeparation(userId, songId);
+  return tickStemSeparation(userId, songId);
+}
+
 export async function kickoffStemSeparation(userId: string, songId: string) {
   const song = await getSongForUser(userId, songId);
 
@@ -129,6 +165,15 @@ export async function tickStemSeparation(userId: string, songId: string) {
     return getSongForUser(userId, songId);
   }
 
+  if (isStemSeparationTimedOut(song)) {
+    await persistOriginalAudioAsStems(
+      userId,
+      song,
+      buildStemSeparationFallbackNotice("Превышено время ожидания Suno"),
+    );
+    return getSongForUser(userId, songId);
+  }
+
   const musicService = createMusicService();
   const result = await musicService.getStemSeparationStatus(song.stemSeparationTaskId);
 
@@ -137,15 +182,25 @@ export async function tickStemSeparation(userId: string, songId: string) {
   }
 
   if (result.status === "failed") {
-    await prisma.song.update({
-      where: { id: songId },
-      data: { status: "failed" },
-    });
-    throw new BadRequestError(result.errorMessage ?? "Stem separation failed");
+    await persistOriginalAudioAsStems(
+      userId,
+      song,
+      buildStemSeparationFallbackNotice(result.errorMessage),
+    );
+    return getSongForUser(userId, songId);
   }
 
   if (result.status !== "completed") {
     return song;
+  }
+
+  if (!result.vocalUrl && !result.instrumentalUrl) {
+    await persistOriginalAudioAsStems(
+      userId,
+      song,
+      buildStemSeparationFallbackNotice("Suno не вернул ссылки на дорожки"),
+    );
+    return getSongForUser(userId, songId);
   }
 
   await persistStemResult(userId, songId, result);
@@ -189,14 +244,14 @@ async function persistStemResult(userId: string, songId: string, result: StemRes
 
   await prisma.song.update({
     where: { id: songId },
-    data: { status: "ready" },
+    data: { status: "ready", stemSeparationNotice: null },
   });
 }
 
 export async function refreshEditorProgress(userId: string, songId: string) {
   const song = await getSongForUser(userId, songId);
 
-  if (song.status === "separating_stems") {
+  if (song.status === "separating_stems" || song.status === "pending_stems") {
     return tickStemSeparation(userId, songId);
   }
 

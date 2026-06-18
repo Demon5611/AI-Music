@@ -17,6 +17,7 @@ import {
   getSongVersionAudio,
   kickoffStemSeparation,
   refreshEditorProgress,
+  retryStemSeparation,
 } from "./song-editor.service.js";
 import { toEditorStateDto, toRenderJobDto, parseOperations } from "./song-editor.mapper.js";
 async function buildEditorResponse(userId: string, songId: string) {
@@ -73,6 +74,19 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
     async (request, reply) => {
       try {
         await kickoffStemSeparation(request.userId!, request.params.songId);
+        return reply.send(await buildEditorResponse(request.userId!, request.params.songId));
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { songId: string } }>(
+    "/api/music/:songId/separate-stems/retry",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        await retryStemSeparation(request.userId!, request.params.songId);
         return reply.send(await buildEditorResponse(request.userId!, request.params.songId));
       } catch (error) {
         return sendAppError(reply, error);

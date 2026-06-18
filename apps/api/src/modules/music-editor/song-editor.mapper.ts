@@ -83,6 +83,7 @@ function toSongDto(song: Song, apiBaseUrl: string): SongDto {
     durationMs: song.durationMs,
     audioUrl: buildSongAudioUrl(song, apiBaseUrl),
     sourceTrackId: song.sourceTrackId,
+    stemSeparationNotice: song.stemSeparationNotice,
     createdAt: song.createdAt.toISOString(),
     updatedAt: song.updatedAt.toISOString(),
   };

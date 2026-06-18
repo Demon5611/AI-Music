@@ -7,11 +7,12 @@ const COLLAPSE_THRESHOLD = 30;
 
 interface CollapsibleLyricsProps {
   text: string;
+  defaultExpanded?: boolean;
 }
 
-export function CollapsibleLyrics({ text }: CollapsibleLyricsProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
-  const canCollapse = text.length > COLLAPSE_THRESHOLD;
+export function CollapsibleLyrics({ text, defaultExpanded = true }: CollapsibleLyricsProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const canCollapse = text.length > COLLAPSE_THRESHOLD || !defaultExpanded;
 
   if (!canCollapse) {
     return <pre className={mtk.lyrics}>{text}</pre>;

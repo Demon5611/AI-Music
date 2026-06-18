@@ -3,6 +3,7 @@
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { useClientMounted } from "@/shared/hooks/use-client-mounted";
+import { EditorStemNotice } from "@/features/music-editor/editor-stem-notice";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
 import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
 import { EditorHeader } from "@/features/music-editor/editor-header";
@@ -82,6 +83,15 @@ function useElapsedSeconds(): number {
   return elapsedSeconds;
 }
 
+function resolvePreparationProgress(elapsedSeconds: number): number {
+  if (elapsedSeconds <= EDITOR_PREPARATION_ESTIMATE_SEC) {
+    return Math.round((elapsedSeconds / EDITOR_PREPARATION_ESTIMATE_SEC) * 90);
+  }
+
+  const overtimeSeconds = elapsedSeconds - EDITOR_PREPARATION_ESTIMATE_SEC;
+  return Math.min(99, 90 + Math.floor(overtimeSeconds / 20));
+}
+
 function EditorPreparationStatus({
   message,
   compact = false,
@@ -91,12 +101,10 @@ function EditorPreparationStatus({
 }) {
   const mounted = useClientMounted();
   const elapsedSeconds = useElapsedSeconds();
-  const progress = Math.min(
-    95,
-    Math.round((elapsedSeconds / EDITOR_PREPARATION_ESTIMATE_SEC) * 100),
-  );
+  const progress = resolvePreparationProgress(elapsedSeconds);
   const elapsedLabel = formatElapsedTime(elapsedSeconds);
   const estimateLabel = formatElapsedTime(EDITOR_PREPARATION_ESTIMATE_SEC);
+  const isOvertime = elapsedSeconds > EDITOR_PREPARATION_ESTIMATE_SEC;
   const rootClassName = compact ? me.preparationStatusCompact : me.preparationStatus;
 
   return (
@@ -107,7 +115,9 @@ function EditorPreparationStatus({
           <p className={me.preparationTitle}>{message}</p>
           <p className={me.preparationMeta}>
             {mounted
-              ? `Прошло ${elapsedLabel}. Обычно это занимает до ${estimateLabel}.`
+              ? isOvertime
+                ? `Прошло ${elapsedLabel}. Обычно до ${estimateLabel}, но иногда Suno отвечает дольше.`
+                : `Прошло ${elapsedLabel}. Обычно это занимает до ${estimateLabel}.`
               : "Подготовка может занять до минуты."}
           </p>
         </div>
@@ -171,6 +181,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const operations = useAudioEditorStore((state) => state.operations);
   const versions = useAudioEditorStore((state) => state.versions);
   const songStatus = useAudioEditorStore((state) => state.songStatus);
+  const editorNotice = useAudioEditorStore((state) => state.editorNotice);
   const selectedRegionId = useAudioEditorStore((state) => state.selectedRegionId);
   const setSelectedRegion = useAudioEditorStore((state) => state.setSelectedRegion);
   const isBusy = useAudioEditorStore((state) => state.isBusy);
@@ -196,11 +207,27 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const { isProcessing } = useEditorPolling(songId);
   const { title } = useEditorInitialLoad(songId);
   const [isRendering, setIsRendering] = useState(false);
+  const [isRetryingStems, setIsRetryingStems] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [playbackUrls, setPlaybackUrls] = useState<PlaybackUrls>({
     vocal: null,
     instrumental: null,
   });
+
+  async function handleRetryStemSeparation() {
+    setIsRetryingStems(true);
+    setError(null);
+
+    try {
+      const state = await api.musicEditor.retryStemSeparation(songId);
+      hydrate(state);
+    } catch (retryError) {
+      const message = parseApiError(retryError, "Не удалось повторить разделение");
+      setError(message);
+    } finally {
+      setIsRetryingStems(false);
+    }
+  }
 
   async function handleRender() {
     setIsRendering(true);
@@ -231,7 +258,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const trackMixControlsDisabled = !editorReady || !stemsReady;
 
   const statusMessage = (() => {
-    if (songStatus === "separating_stems") {
+    if (songStatus === "separating_stems" || songStatus === "pending_stems") {
       return "Идет разделение трека на вокал и музыку...";
     }
 
@@ -248,6 +275,15 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
         <div className={me.statusCard}>
           <EditorPreparationStatus key={statusMessage} message={statusMessage} />
         </div>
+      ) : null}
+
+      {editorReady && editorNotice ? (
+        <EditorStemNotice
+          disabled={controlsDisabled}
+          isRetrying={isRetryingStems}
+          notice={editorNotice}
+          onRetry={() => void handleRetryStemSeparation()}
+        />
       ) : null}
 
       <AuthenticatedBlobUrl src={vocalTrack?.audioUrl ?? null}>

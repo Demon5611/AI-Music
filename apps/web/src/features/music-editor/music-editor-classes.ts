@@ -37,6 +37,12 @@ export const me = {
     "h-1 flex-1 appearance-none overflow-hidden rounded-full border-none bg-[var(--app-border-subtle)] [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-violet-600 [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-[var(--app-border-subtle)] [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-violet-600 [&::-webkit-progress-value]:transition-[width]",
   preparationProgressValue:
     "shrink-0 text-[0.8125rem] tabular-nums text-[var(--app-text-muted)]",
+  stemNoticeCard:
+    "rounded-xl border border-amber-500/35 bg-amber-500/10 p-4",
+  stemNoticeTitle: "text-sm font-semibold text-amber-200",
+  stemNoticeMessage: "mt-2 text-sm leading-relaxed text-[var(--app-text)]",
+  stemNoticeHint: "mt-2 text-[0.8125rem] leading-relaxed text-[var(--app-text-muted)]",
+  stemNoticeActions: "mt-3 flex flex-wrap gap-2",
   timelineBlock: `${appShell.surfaceCard} w-full p-4`,
   timelineHeader:
     "mb-3 flex flex-wrap items-center justify-between gap-3",

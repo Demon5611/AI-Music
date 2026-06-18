@@ -207,13 +207,14 @@ export function MusicHistoryPanel({
                   </button>
                 ) : null}
                 {track.lyricsText ? (
-                  <CollapsibleLyrics text={track.lyricsText} />
+                  <CollapsibleLyrics defaultExpanded={false} text={track.lyricsText} />
                 ) : null}
               </div>
             ))}
 
             {item.lyrics?.map((lyricsItem, index) => (
               <CollapsibleLyrics
+                defaultExpanded={false}
                 key={`${item.id}-lyrics-${index}`}
                 text={lyricsItem.text}
               />
