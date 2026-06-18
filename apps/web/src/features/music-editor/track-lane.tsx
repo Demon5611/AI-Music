@@ -128,10 +128,12 @@ export function TrackLane({
             className={preview.muted ? me.laneToggleActive : me.laneToggle}
             disabled={controlsDisabled}
             type="button"
-            onClick={() => {
+            onClick={(event) => {
+              event.stopPropagation();
               selectTrackForControls();
               onMuteToggle(track.id, !preview.muted);
             }}
+            onPointerDown={stopRowSelection}
           >
             M
           </button>
@@ -142,10 +144,12 @@ export function TrackLane({
             className={preview.solo ? me.laneToggleActive : me.laneToggle}
             disabled={controlsDisabled}
             type="button"
-            onClick={() => {
+            onClick={(event) => {
+              event.stopPropagation();
               selectTrackForControls();
               onSoloToggle(track.id, !preview.solo);
             }}
+            onPointerDown={stopRowSelection}
           >
             S
           </button>

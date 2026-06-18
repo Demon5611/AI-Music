@@ -6,6 +6,7 @@ import type { EditOperation, EditorTrackId, SongRegionDto } from "@ai-music/shar
 import {
   AUDIO_CONTEXT_OPTIONS,
   buildRegionTrack,
+  type RegionMixPreviewOverlay,
   type TimelineStemSource,
 } from "@/features/music-editor/utils/waveform-playlist-utils";
 
@@ -138,10 +139,25 @@ function useStemAudioBuffers(sources: TimelineStemSource[]): {
   return { buffersBySourceId, isLoading, error, ready };
 }
 
+function buildMixPreviewSignature(mixPreview?: RegionMixPreviewOverlay): string {
+  if (!mixPreview?.selectedRegionId) {
+    return "";
+  }
+
+  return (["vocal", "instrumental"] as const)
+    .map((trackId) => {
+      const state = mixPreview.previewTracks[trackId];
+
+      return [trackId, state.muted, state.solo].join(":");
+    })
+    .join("|");
+}
+
 export function useRegionPlaylistTracks(
   sources: TimelineStemSource[],
   regions: SongRegionDto[],
   operations: EditOperation[],
+  mixPreview?: RegionMixPreviewOverlay,
 ): {
   tracks: ClipTrack[];
   isLoading: boolean;
@@ -150,6 +166,7 @@ export function useRegionPlaylistTracks(
   const { buffersBySourceId, isLoading, error, ready } =
     useStemAudioBuffers(sources);
   const lastStableTracksRef = useRef<ClipTrack[]>([]);
+  const mixPreviewSignature = buildMixPreviewSignature(mixPreview);
 
   const tracks = useMemo(() => {
     if (regions.length === 0) {
@@ -169,13 +186,13 @@ export function useRegionPlaylistTracks(
           return null;
         }
 
-        return buildRegionTrack(source, audioBuffer, regions, operations);
+        return buildRegionTrack(source, audioBuffer, regions, operations, mixPreview);
       })
       .filter((track): track is ClipTrack => track !== null);
 
     lastStableTracksRef.current = nextTracks;
     return nextTracks;
-  }, [buffersBySourceId, operations, ready, regions, sources]);
+  }, [buffersBySourceId, mixPreview, mixPreviewSignature, operations, ready, regions, sources]);
 
   return {
     tracks,

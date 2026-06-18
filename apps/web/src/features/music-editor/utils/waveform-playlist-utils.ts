@@ -171,11 +171,105 @@ export function sortRegions(regions: SongRegionDto[]): SongRegionDto[] {
   return regions.slice().sort((left, right) => left.orderIndex - right.orderIndex);
 }
 
+const SILENT_GAIN_DB = -80;
+
+export interface RegionMixPreviewState {
+  gainDb: number;
+  muted: boolean;
+  solo: boolean;
+}
+
+export interface RegionMixPreviewOverlay {
+  selectedRegionId: string | null;
+  previewTracks: Record<EditorTrackId, RegionMixPreviewState>;
+}
+
+function resolveActiveSoloTrackIdForRegion(
+  regionId: string,
+  operations: EditOperation[],
+): EditorTrackId | null {
+  let soloTrackId: EditorTrackId | null = null;
+
+  for (const operation of operations) {
+    if (!("regionId" in operation) || operation.regionId !== regionId) {
+      continue;
+    }
+
+    if (operation.type !== "SOLO_TRACK") {
+      continue;
+    }
+
+    if (operation.solo) {
+      soloTrackId = operation.trackId;
+      continue;
+    }
+
+    if (operation.trackId === soloTrackId) {
+      soloTrackId = null;
+    }
+  }
+
+  return soloTrackId;
+}
+
+function resolvePreviewSoloTrackId(overlay: RegionMixPreviewOverlay): EditorTrackId | null {
+  return (
+    (["vocal", "instrumental"] as const).find((trackId) => overlay.previewTracks[trackId].solo) ??
+    null
+  );
+}
+
+export function resolveRegionPlaybackGainDb(
+  trackId: EditorTrackId,
+  regionId: string,
+  operations: EditOperation[],
+  mixPreview?: RegionMixPreviewOverlay,
+): number {
+  const previewState =
+    mixPreview?.selectedRegionId === regionId ? mixPreview.previewTracks[trackId] : null;
+
+  const soloTrackId = previewState
+    ? resolvePreviewSoloTrackId(mixPreview!)
+    : resolveActiveSoloTrackIdForRegion(regionId, operations);
+
+  if (soloTrackId !== null && trackId !== soloTrackId) {
+    return SILENT_GAIN_DB;
+  }
+
+  if (previewState) {
+    if (previewState.muted) {
+      return SILENT_GAIN_DB;
+    }
+
+    return 0;
+  }
+
+  let gainDb = 0;
+  let muted = false;
+
+  for (const operation of operations) {
+    if (!("regionId" in operation) || operation.regionId !== regionId) {
+      continue;
+    }
+
+    if (operation.type === "SET_VOLUME" && operation.trackId === trackId) {
+      gainDb = operation.gainDb;
+    }
+
+    if (operation.type === "MUTE_TRACK" && operation.trackId === trackId) {
+      muted = operation.muted;
+    }
+  }
+
+  return muted ? SILENT_GAIN_DB : gainDb;
+}
+
 export function buildRegionTrack(
   source: TimelineStemSource,
   audioBuffer: AudioBuffer,
   regions: SongRegionDto[],
   operations: EditOperation[],
+  mixPreview?: RegionMixPreviewOverlay,
 ): ClipTrack {
   let cursorSec = 0;
   const trackRegions = resolveTrackRegions(source.id, regions, operations);
@@ -183,13 +277,16 @@ export function buildRegionTrack(
     const durationSec = Math.max((region.endMs - region.startMs) / 1000, 0.1);
     const fadeEnvelope = resolveRegionFadeEnvelope(source.id, region, operations);
     const hasFade = regionFadeEnvelopeHasEffect(fadeEnvelope);
+    const clipGain = dbToGain(
+      resolveRegionPlaybackGainDb(source.id, region.id, operations, mixPreview),
+    );
     const clip = hasFade
       ? createClipFromSeconds({
           audioBuffer: bakeRegionFadeIntoBuffer(audioBuffer, region, fadeEnvelope),
           startTime: cursorSec,
           offset: 0,
           duration: durationSec,
-          gain: 1,
+          gain: clipGain,
           name: selectRegionLabel(region),
           color: REGION_COLORS[region.label],
         })
@@ -198,7 +295,7 @@ export function buildRegionTrack(
           startTime: cursorSec,
           offset: region.startMs / 1000,
           duration: durationSec,
-          gain: 1,
+          gain: clipGain,
           name: selectRegionLabel(region),
           color: REGION_COLORS[region.label],
         });

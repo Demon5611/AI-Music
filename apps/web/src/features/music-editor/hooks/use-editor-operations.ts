@@ -91,6 +91,25 @@ function resolveFadeSourceRange(
   };
 }
 
+function ensureSelectedRegionId(): string | null {
+  const state = useAudioEditorStore.getState();
+
+  if (state.selectedRegionId) {
+    return state.selectedRegionId;
+  }
+
+  const firstRegion = [...state.regions].sort(
+    (left, right) => left.orderIndex - right.orderIndex,
+  )[0];
+
+  if (!firstRegion) {
+    return null;
+  }
+
+  state.setSelectedRegion(firstRegion.id);
+  return firstRegion.id;
+}
+
 export function useEditorOperations() {
   const api = useApi();
   const songId = useAudioEditorStore((state) => state.songId);
@@ -185,7 +204,7 @@ export function useEditorOperations() {
 
   const muteTrack = useCallback(
     (trackId: EditorTrackId, muted: boolean) => {
-      const regionId = useAudioEditorStore.getState().selectedRegionId;
+      const regionId = ensureSelectedRegionId();
 
       if (!regionId) {
         setError("Выберите регион на timeline");
@@ -206,7 +225,7 @@ export function useEditorOperations() {
 
   const soloTrack = useCallback(
     (trackId: EditorTrackId, solo: boolean) => {
-      const regionId = useAudioEditorStore.getState().selectedRegionId;
+      const regionId = ensureSelectedRegionId();
 
       if (!regionId) {
         setError("Выберите регион на timeline");

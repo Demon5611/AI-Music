@@ -117,13 +117,14 @@ function PlaylistTimelineZoomBridge({ providerKey }: { providerKey: string }) {
 
 function PlaylistTrackStateBridge({ sources }: { sources: TimelineStemSource[] }) {
   const controls = usePlaylistControls();
+  const { isReady, tracks } = usePlaylistData();
   const controlsRef = useRef(controls);
   const previewTracks = useAudioEditorStore((state) => state.previewTracks);
   const previewSignature = sources
     .map((source) => {
       const trackState = previewTracks[source.id];
 
-      return [source.id, trackState.gainDb, trackState.muted, trackState.solo].join(":");
+      return [source.id, trackState.gainDb].join(":");
     })
     .join("|");
 
@@ -132,14 +133,22 @@ function PlaylistTrackStateBridge({ sources }: { sources: TimelineStemSource[] }
   }, [controls]);
 
   useEffect(() => {
+    if (!isReady || tracks.length === 0) {
+      return;
+    }
+
     sources.forEach((source, index) => {
+      if (!tracks[index]) {
+        return;
+      }
+
       const trackState = previewTracks[source.id];
 
+      controlsRef.current.setTrackMute(index, false);
+      controlsRef.current.setTrackSolo(index, false);
       controlsRef.current.setTrackVolume(index, dbToGain(trackState.gainDb));
-      controlsRef.current.setTrackMute(index, trackState.muted);
-      controlsRef.current.setTrackSolo(index, trackState.solo);
     });
-  }, [previewSignature, previewTracks, sources]);
+  }, [isReady, previewSignature, previewTracks, sources, tracks]);
 
   return null;
 }
@@ -328,6 +337,14 @@ export function WaveformTimeline({
 }: WaveformTimelineProps) {
   const linkedTracks = useAudioEditorStore((state) => state.linkedTracks);
   const setLinkedTracks = useAudioEditorStore((state) => state.setLinkedTracks);
+  const previewTracks = useAudioEditorStore((state) => state.previewTracks);
+  const mixPreview = useMemo(
+    () => ({
+      selectedRegionId,
+      previewTracks,
+    }),
+    [previewTracks, selectedRegionId],
+  );
   const sources = useMemo<TimelineStemSource[]>(() => {
     const nextSources: TimelineStemSource[] = [];
 
@@ -351,7 +368,12 @@ export function WaveformTimeline({
 
     return nextSources;
   }, [instrumentalPlaybackUrl, vocalPlaybackUrl]);
-  const { tracks, isLoading, error } = useRegionPlaylistTracks(sources, regions, operations);
+  const { tracks, isLoading, error } = useRegionPlaylistTracks(
+    sources,
+    regions,
+    operations,
+    mixPreview,
+  );
   const regionsLayoutKey = useMemo(() => regions.map((region) => region.id).join("|"), [regions]);
   const preservedPlayheadMsRef = useRef(0);
   const [playlistTracks, setPlaylistTracks] = useState<ClipTrack[]>(tracks);

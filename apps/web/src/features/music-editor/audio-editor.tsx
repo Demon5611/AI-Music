@@ -296,7 +296,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
                   key={track.id}
                   disabled={trackControlsDisabled}
                   mixControlsDisabled={trackMixControlsDisabled}
-                  regionSelected={Boolean(selectedRegionId)}
+                  regionSelected={regions.length > 0}
                   track={track}
                   onMuteToggle={muteTrack}
                   onSoloToggle={soloTrack}
