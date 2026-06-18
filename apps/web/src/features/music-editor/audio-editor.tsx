@@ -6,7 +6,6 @@ import { useClientMounted } from "@/shared/hooks/use-client-mounted";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
 import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
 import { EditorHeader } from "@/features/music-editor/editor-header";
-import { useEditorAiActions } from "@/features/music-editor/hooks/use-editor-ai-actions";
 import { useEditorOperations } from "@/features/music-editor/hooks/use-editor-operations";
 import { useEditorPolling } from "@/features/music-editor/hooks/use-editor-polling";
 import { RegionToolbar } from "@/features/music-editor/region-toolbar";
@@ -14,7 +13,6 @@ import { RenderButton } from "@/features/music-editor/render-button";
 import { SelectedContextPanel } from "@/features/music-editor/selected-context-panel";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
 import { TrackLane } from "@/features/music-editor/track-lane";
-import { VoiceTransferDialog } from "@/features/music-editor/voice-transfer-dialog";
 import { AuthenticatedBlobUrl } from "@/shared/ui/authenticated-blob-url";
 import { useApi } from "@/shared/providers/api-provider";
 import {
@@ -195,13 +193,10 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
     redo,
   } = useEditorOperations();
 
-  const { voiceTransfer } = useEditorAiActions();
-
   const { isProcessing } = useEditorPolling(songId);
   const { title } = useEditorInitialLoad(songId);
   const [isRendering, setIsRendering] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
-  const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
   const [playbackUrls, setPlaybackUrls] = useState<PlaybackUrls>({
     vocal: null,
     instrumental: null,
@@ -317,7 +312,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
             onFadeOut={() => fadeRegion("out")}
             onMoveLeft={() => moveRegion("left")}
             onMoveRight={() => moveRegion("right")}
-            onReplaceVocal={() => setVoiceDialogOpen(true)}
             onSplit={splitRegion}
           />
         </div>
@@ -340,13 +334,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
           />
         </div>
       </div>
-
-      <VoiceTransferDialog
-        disabled={controlsDisabled}
-        open={voiceDialogOpen}
-        onClose={() => setVoiceDialogOpen(false)}
-        onConfirm={voiceTransfer}
-      />
 
       {error ? <p className={me.error}>{error}</p> : null}
     </section>

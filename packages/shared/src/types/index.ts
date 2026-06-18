@@ -133,5 +133,4 @@ export type {
   SongStemDto,
   SongStemType,
   SongVersionDto,
-  VoiceTransferBody,
 } from "./music-editor.js";

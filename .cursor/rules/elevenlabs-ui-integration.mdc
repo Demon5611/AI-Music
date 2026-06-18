@@ -19,7 +19,6 @@ alwaysApply: true
 **Где применять:**
 
 - AI generation status (`generation/`)
-- Voice transfer status (`voice-transfer-dialog`, Kits)
 - Audio preview (`song-track-result`, preview panels)
 - Loading screens, empty states
 
@@ -47,10 +46,6 @@ ElevenLabs UI **не** для: timeline, track lanes, regions, mixer, split/dupl
 - Собственные React-комponents + CSS modules
 
 Файлы timeline/mixer/regions (`waveform-timeline`, `mixer-panel`, `track-lane`, `transport-controls`, `region-toolbar`) — **без** ElevenLabs UI.
-
-В `music-editor/` допустимы только **status/preview** обёртки:
-
-- `voice-transfer-dialog` — voice transfer status
 
 ## Архитектура
 

@@ -13,7 +13,6 @@ interface RegionToolbarProps {
   onFadeOut: () => void;
   onMoveLeft: () => void;
   onMoveRight: () => void;
-  onReplaceVocal: () => void;
 }
 
 function RegionActionButton({
@@ -27,14 +26,10 @@ function RegionActionButton({
   tooltip: string;
   disabled: boolean;
   onClick: () => void;
-  variant?: "default" | "destructive" | "ai";
+  variant?: "default" | "destructive";
 }) {
   const className =
-    variant === "destructive"
-      ? me.toolButtonDestructive
-      : variant === "ai"
-        ? me.toolButtonAi
-        : me.toolButton;
+    variant === "destructive" ? me.toolButtonDestructive : me.toolButton;
 
   const button = (
     <button className={className} disabled={disabled} type="button" onClick={onClick}>
@@ -59,7 +54,6 @@ export function RegionToolbar({
   onFadeOut,
   onMoveLeft,
   onMoveRight,
-  onReplaceVocal,
 }: RegionToolbarProps) {
   const actionsDisabled = disabled || !regionSelected;
 
@@ -115,19 +109,6 @@ export function RegionToolbar({
             label="Move right"
             tooltip="Переместить выбранный фрагмент правее"
             onClick={onMoveRight}
-          />
-        </div>
-      </div>
-
-      <div className={me.toolbarSection}>
-        <p className={me.toolbarSectionTitle}>AI actions</p>
-        <div className={me.toolbarGrid}>
-          <RegionActionButton
-            disabled={actionsDisabled}
-            label="Replace vocal"
-            tooltip="Заменить дорожку Vocal через Kits voice transfer"
-            variant="ai"
-            onClick={onReplaceVocal}
           />
         </div>
       </div>

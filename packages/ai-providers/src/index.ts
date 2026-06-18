@@ -45,15 +45,6 @@ export type {
 } from "./kits/types.js";
 export * from "./types.js";
 export * from "./music/index.js";
-export type {
-  VoiceTransferInput,
-  VoiceTransferProvider,
-  VoiceTransferResult,
-} from "./voice-transfer/voice-transfer.types.js";
-export {
-  KitsVoiceTransferProvider,
-  createKitsVoiceTransferProvider,
-} from "./voice-transfer/kits-voice-transfer.provider.js";
 export {
   createSunoVoiceClients,
   isSunoVoiceTaskFailed,

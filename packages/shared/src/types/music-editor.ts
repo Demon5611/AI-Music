@@ -92,12 +92,6 @@ export interface FadeOperation {
   rangeEndMs?: number;
 }
 
-export interface ReplaceVocalOperation {
-  type: "REPLACE_VOCAL";
-  regionId: string;
-  voiceModelId: number;
-}
-
 export type EditOperation =
   | SetVolumeOperation
   | MuteTrackOperation
@@ -110,8 +104,7 @@ export type EditOperation =
   | DuplicateRegionOperation
   | ResizeRegionOperation
   | ResizeTrackRegionOperation
-  | FadeOperation
-  | ReplaceVocalOperation;
+  | FadeOperation;
 
 export interface SongStemDto {
   id: string;
@@ -175,11 +168,6 @@ export interface ApplyOperationBody {
 }
 
 export type PreviewOperationBody = ApplyOperationBody;
-
-export interface VoiceTransferBody {
-  regionId: string;
-  voiceModelId: number;
-}
 
 export interface RenderSongResponse {
   renderJobId: string;

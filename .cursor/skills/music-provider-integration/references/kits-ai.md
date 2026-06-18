@@ -1,50 +1,29 @@
-# Kits.ai — voice transfer reference
+# Kits.ai — client reference
 
-Kits is **voice transfer**, not music generation. Music gen uses Suno; vocals are converted via Kits.
+Kits HTTP client lives in `packages/ai-providers/src/kits/`. Editor **Replace vocal** was removed; Kits is not used in the music editor UI.
 
 ## Files
 
-| File                                             | Role                                        |
-| ------------------------------------------------ | ------------------------------------------- |
-| `kits/kits-client.ts`                            | HTTP: voice models, conversions, separation |
-| `kits/create-kits-client.ts`                     | Factory from env                            |
-| `kits/poll.ts`                                   | Generic poll + `downloadUrl`                |
-| `kits/kits-api-error.ts`                         | Normalized API errors                       |
-| `voice-transfer/kits-voice-transfer.provider.ts` | `VoiceTransferProvider`                     |
+| File                         | Role                                        |
+| ---------------------------- | ------------------------------------------- |
+| `kits/kits-client.ts`        | HTTP: voice models, conversions, separation |
+| `kits/create-kits-client.ts` | Factory from env                            |
+| `kits/poll.ts`               | Generic poll + `downloadUrl`                |
+| `kits/kits-api-error.ts`     | Normalized API errors                       |
 
-## API surface used
+## API surface (client)
 
 - `GET /voice-models` — list/search models (paginated)
 - `GET /voice-models/:id` — single model
 - `POST /voice-conversions` — multipart: `voiceModelId`, `soundFile`
 - `GET /voice-conversions/:id` — poll job status
 
-Job statuses: `running` → `success` | `error` | `cancelled`.
-
 ## Integration points
 
-| Layer                              | Usage                                            |
-| ---------------------------------- | ------------------------------------------------ |
-| API `music-editor/routes.ts`       | Kits voice model catalog for editor              |
-| `VoiceSample.sunoVoiceId`          | Suno Voice persona for create-pipeline generation |
-| Worker `convert-voice.ts`          | Full pipeline voice conversion (Suno persona)    |
-| Editor `voice-transfer.service.ts` | Replace vocal region in song                     |
-
-## Flow (voice conversion)
-
-```txt
-createVoiceConversion({ voiceModelId, soundFile })
-  → job id, status running
-pollUntilComplete(getVoiceConversion)
-  → outputFileUrl
-download → Buffer → StorageService.put
-```
-
-## Frontend
-
-- Model picker: `voice-transfer-dialog.tsx` (ElevenLabs UI for status only).
-- Pagination helpers: `kits-voice-models.ts`.
-- API calls via `@ai-music/api-client` `kits` module, not direct Kits key in browser.
+| Layer                     | Usage                                             |
+| ------------------------- | ------------------------------------------------- |
+| `VoiceSample.sunoVoiceId` | Suno Voice persona for create-pipeline generation |
+| Worker `convert-voice.ts` | Full pipeline (Suno persona, not Kits)            |
 
 ## Env
 
@@ -71,4 +50,4 @@ UI: `VoiceRecordingTipsPanel` in `voice-upload-panel.tsx`.
 
 ## Error handling
 
-Use `handle-kits-error.ts` in API routes. Map to user-safe messages; log vendor body server-side only.
+Map Kits errors in API routes when adding new Kits integrations. Log vendor body server-side only.

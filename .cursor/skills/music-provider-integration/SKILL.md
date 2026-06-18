@@ -10,8 +10,7 @@ description: Integrates music and voice AI providers (Suno API, Kits.ai). Use wh
 Business code depends on interfaces, not vendor HTTP:
 
 - **Music generation**: `MusicProvider` in `packages/ai-providers/src/music/domain/`
-- **Voice transfer**: `VoiceTransferProvider` in `packages/ai-providers/src/voice-transfer/`
-- **Entry points**: `MusicService`, `MusicProviderFactory`, `createKitsClient()`
+- **Kits client** (optional integrations): `createKitsClient()` in `packages/ai-providers/src/kits/`
 
 Switch provider via `MUSIC_PROVIDER` env (`sunoapi` is production default).
 
@@ -45,12 +44,11 @@ API routes must not parse raw vendor JSON.
 | Start generation          | API creates DB record, may call `MusicService.generateSong` |
 | Poll until done           | Worker or service layer, not React                          |
 | Download audio to storage | API `music-record.service.ts` or worker `upload-result.ts`  |
-| Voice conversion (editor stems)    | Worker / editor via `KitsVoiceTransferProvider` |
 | Suno Voice persona (create flow)   | API `suno-voice.service.ts` — см. [suno-voice-flow.md](references/suno-voice-flow.md) |
 
 ## Suno Voice (create pipeline)
 
-Не путать с Kits voice transfer в редакторе. Create-flow — два шага записи:
+Create-flow — два шага записи:
 
 1. Главная: свободный сэмпл → `VoiceSample`
 2. `/consent`: фраза Suno + верификация → `sunoVoiceId` → генерация на `/music-create`

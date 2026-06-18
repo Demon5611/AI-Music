@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { ApplyOperationBodySchema, VoiceTransferBodySchema } from "@ai-music/shared";
+import { ApplyOperationBodySchema } from "@ai-music/shared";
 import { requireAuth } from "../../common/require-auth.js";
 import { sendAppError } from "../../common/errors.js";
 import {
@@ -19,10 +19,6 @@ import {
   refreshEditorProgress,
 } from "./song-editor.service.js";
 import { toEditorStateDto, toRenderJobDto, parseOperations } from "./song-editor.mapper.js";
-import { transferVoiceForRegion } from "./voice-transfer.service.js";
-import { sendKitsError } from "./kits-error.js";
-import { createKitsClient } from "@ai-music/ai-providers";
-
 async function buildEditorResponse(userId: string, songId: string) {
   const song = await refreshEditorProgress(userId, songId);
   const version = await getCurrentVersion(song.id);
@@ -228,31 +224,6 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
     },
   );
 
-  app.post<{ Params: { songId: string }; Body: unknown }>(
-    "/api/music/:songId/voice-transfer",
-    { preHandler: requireAuth },
-    async (request, reply) => {
-      const parsed = VoiceTransferBodySchema.safeParse(request.body);
-
-      if (!parsed.success) {
-        return reply.status(400).send({ error: parsed.error.flatten() });
-      }
-
-      try {
-        const song = await transferVoiceForRegion(
-          request.userId!,
-          request.params.songId,
-          parsed.data.regionId,
-          parsed.data.voiceModelId,
-        );
-        const version = await getCurrentVersion(song.id);
-        return reply.send(toEditorStateDto(song, version));
-      } catch (error) {
-        return sendAppError(reply, error);
-      }
-    },
-  );
-
   app.get<{ Params: { songId: string } }>(
     "/api/music/songs/:songId/audio/original",
     { preHandler: requireAuth },
@@ -312,44 +283,4 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
     },
   );
 
-  app.get<{ Querystring: { myModels?: string; page?: string; perPage?: string } }>(
-    "/api/music-editor/kits-voice-models",
-    { preHandler: requireAuth },
-    async (request, reply) => {
-      try {
-        const client = createKitsClient();
-        const models = await client.listVoiceModels({
-          myModels: request.query.myModels === "true",
-          instruments: false,
-          page: request.query.page ? Number(request.query.page) : 1,
-          perPage: request.query.perPage ? Number(request.query.perPage) : 20,
-        });
-        return reply.send(models);
-      } catch (error) {
-        request.log.error(error);
-        return sendKitsError(reply, error);
-      }
-    },
-  );
-
-  app.get<{ Params: { id: string } }>(
-    "/api/music-editor/kits-voice-models/:id",
-    { preHandler: requireAuth },
-    async (request, reply) => {
-      const modelId = Number(request.params.id);
-
-      if (!Number.isFinite(modelId)) {
-        return reply.status(400).send({ error: "Invalid voice model id" });
-      }
-
-      try {
-        const client = createKitsClient();
-        const model = await client.getVoiceModel(modelId);
-        return reply.send(model);
-      } catch (error) {
-        request.log.error(error);
-        return sendKitsError(reply, error);
-      }
-    },
-  );
 }

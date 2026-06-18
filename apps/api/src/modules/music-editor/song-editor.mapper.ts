@@ -141,15 +141,23 @@ function stripUndoMeta(operation: EditOperation): EditOperation {
   return cleanOperation;
 }
 
+function isStoredEditOperation(value: unknown): value is EditOperation {
+  if (!value || typeof value !== "object" || !("type" in value)) {
+    return false;
+  }
+
+  return (value as { type: string }).type !== "REPLACE_VOCAL";
+}
+
 export function parseOperations(operations: DbEditOperation[]): EditOperation[] {
   return operations
     .filter((operation) => operation.undoneAt === null)
-    .map(
-      (operation) =>
-        normalizeLegacyEditOperation(
-          stripUndoMeta(operation.payloadJson as unknown as EditOperation),
-        ) as EditOperation,
-    );
+    .map((operation) =>
+      normalizeLegacyEditOperation(
+        stripUndoMeta(operation.payloadJson as unknown as EditOperation),
+      ),
+    )
+    .filter(isStoredEditOperation);
 }
 
 function parseUndoneOperations(operations: DbEditOperation[]): EditOperation[] {
@@ -161,12 +169,12 @@ function parseUndoneOperations(operations: DbEditOperation[]): EditOperation[] {
       const rightTime = right.undoneAt?.getTime() ?? 0;
       return rightTime - leftTime;
     })
-    .map(
-      (operation) =>
-        normalizeLegacyEditOperation(
-          stripUndoMeta(operation.payloadJson as unknown as EditOperation),
-        ) as EditOperation,
-    );
+    .map((operation) =>
+      normalizeLegacyEditOperation(
+        stripUndoMeta(operation.payloadJson as unknown as EditOperation),
+      ),
+    )
+    .filter(isStoredEditOperation);
 }
 
 function computeTrackState(

@@ -53,9 +53,7 @@ export {
   MuteTrackOperationSchema,
   SoloTrackOperationSchema,
   normalizeLegacyEditOperation,
-  ReplaceVocalOperationSchema,
   SetVolumeOperationSchema,
   SplitRegionOperationSchema,
-  VoiceTransferBodySchema,
 } from "./music-editor.js";
 export type { ParsedApplyOperationBody, ParsedEditOperation } from "./music-editor.js";

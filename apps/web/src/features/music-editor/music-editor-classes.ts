@@ -88,7 +88,6 @@ export const me = {
   toolbarRow: "flex flex-wrap gap-2",
   toolButton: `${btnBase} border-[var(--app-border-default)] bg-[var(--app-bg-surface)] text-[var(--app-text)] hover:bg-[var(--app-hover-overlay)]`,
   toolButtonDestructive: `${btnBase} border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20`,
-  toolButtonAi: `${btnBase} border-violet-500/40 bg-violet-600/15 text-violet-400 hover:bg-violet-600/25`,
   primaryButton: `${btnBase} border-violet-600 bg-violet-600 text-white hover:bg-violet-500 hover:border-violet-500`,
   historyList: "m-0 mb-3 flex list-none flex-col gap-1.5 p-0",
   historyItem:
