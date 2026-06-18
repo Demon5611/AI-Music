@@ -23,11 +23,6 @@ const DURATION_OPTIONS = [
   { value: 120, label: "~2 мин" },
 ] as const;
 
-const VOCAL_GENDER_OPTIONS = [
-  { value: "m" as const, label: "Мужской" },
-  { value: "f" as const, label: "Женский" },
-];
-
 interface MusicCreateFormProps {
   configured: boolean | null;
   canGenerateWithVoice: boolean;
@@ -38,7 +33,6 @@ interface MusicCreateFormProps {
   prompt: string;
   lyricsBrief: string;
   durationSec: number;
-  vocalGender: "m" | "f";
   voiceSampleId: string | null;
   onTitleChange: (value: string) => void;
   onStyleChange: (value: string) => void;
@@ -46,7 +40,6 @@ interface MusicCreateFormProps {
   onManualLyricsChange: (value: string) => void;
   onApplyGeneratedLyrics: (text: string, suggestedTitle?: string) => void;
   onDurationChange: (value: number) => void;
-  onVocalGenderChange: (value: "m" | "f") => void;
   onGenerate: (input: GenerateSongInput) => void;
 }
 
@@ -60,7 +53,6 @@ export function MusicCreateForm({
   prompt,
   lyricsBrief,
   durationSec,
-  vocalGender,
   voiceSampleId,
   onTitleChange,
   onStyleChange,
@@ -68,7 +60,6 @@ export function MusicCreateForm({
   onManualLyricsChange,
   onApplyGeneratedLyrics,
   onDurationChange,
-  onVocalGenderChange,
   onGenerate,
 }: MusicCreateFormProps) {
   const hasLyricsBrief = lyricsBrief.trim().length > 0;
@@ -146,32 +137,6 @@ export function MusicCreateForm({
         ) : null}
       </label>
 
-      {canGenerateWithVoice ? (
-        <div>
-          <span className={mc.fieldLabel} id="vocal-gender-label">
-            Пол вокала
-          </span>
-          <div aria-labelledby="vocal-gender-label" className={mc.chipRow} role="radiogroup">
-            {VOCAL_GENDER_OPTIONS.map((option) => (
-              <label
-                key={option.value}
-                className={vocalGender === option.value ? mc.chipSelected : mc.chip}
-              >
-                <input
-                  checked={vocalGender === option.value}
-                  className={mc.chipInput}
-                  name="vocalGender"
-                  type="radio"
-                  value={option.value}
-                  onChange={() => onVocalGenderChange(option.value)}
-                />
-                {option.label}
-              </label>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       <label className="block">
         <span className={mc.fieldLabel}>
           Длительность (AI не всегда точно соблюдает заданную длительность)
@@ -213,7 +178,6 @@ export function MusicCreateForm({
             style,
             title,
             durationSec,
-            vocalGender,
             voiceSampleId,
           })
         }

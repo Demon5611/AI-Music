@@ -156,7 +156,7 @@ export class SunoApiProvider implements MusicProvider {
         callBackUrl: this.config.sunoCallbackUrl,
         personaId: input.personaId,
         personaModel,
-        vocalGender: input.vocalGender,
+        ...(useVoicePersona ? {} : { vocalGender: input.vocalGender }),
       };
     }
 
@@ -168,7 +168,7 @@ export class SunoApiProvider implements MusicProvider {
       callBackUrl: this.config.sunoCallbackUrl,
       personaId: input.personaId,
       personaModel,
-      vocalGender: input.vocalGender,
+      ...(useVoicePersona ? {} : { vocalGender: input.vocalGender }),
     };
   }
 

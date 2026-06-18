@@ -80,23 +80,36 @@ function resolveSampleMimeType(filename: string): string {
   return normalizeVoiceSampleMime(filename, "");
 }
 
-async function resolveRecordVoiceId(
-  taskId: string,
-  recordInfo: { status: string; voiceId?: string | null },
-  voice: ReturnType<typeof createSunoVoiceClients>["voice"],
-): Promise<string | null> {
-  const fromRecord = recordInfo.voiceId?.trim();
-
-  if (fromRecord) {
-    return fromRecord;
-  }
-
+function resolveRecordVoiceId(recordInfo: {
+  status: string;
+  voiceId?: string | null;
+}): string | null {
   if (String(recordInfo.status) !== "success") {
     return null;
   }
 
-  const available = await voice.checkVoiceAvailability(taskId);
-  return available ? taskId : null;
+  const voiceId = recordInfo.voiceId?.trim();
+  return voiceId || null;
+}
+
+const SUNO_VOICE_UNAVAILABLE_MESSAGE =
+  "Голос Suno недоступен для генерации. Пройдите верификацию заново на /consent.";
+
+export async function reconcileReadySunoVoiceSample(
+  sample: VoiceSample,
+): Promise<VoiceSample> {
+  if (sample.voiceCloneStatus !== "ready" || !sample.sunoVoiceId?.trim()) {
+    return sample;
+  }
+
+  const { voice } = createSunoVoiceClients();
+  const available = await voice.checkVoiceAvailability(sample.sunoVoiceId);
+
+  if (available) {
+    return sample;
+  }
+
+  return markCloneFailed(sample, SUNO_VOICE_UNAVAILABLE_MESSAGE);
 }
 
 async function promoteValidatePhraseIfReady(
@@ -205,7 +218,9 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
   if (isVoiceCloneTimedOut(sample)) {
     return markCloneFailed(
       sample,
-      "Превышено время ожидания Suno Voice (10 мин). Попробуйте снова.",
+      sample.voiceCloneStatus === "preparing"
+        ? "Suno не выдал фразу за 5 минут. Нажмите «Повторить верификацию» или загрузите образец заново."
+        : "Превышено время ожидания Suno Voice (10 мин). Попробуйте снова.",
     );
   }
 
@@ -228,17 +243,34 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
     return markCloneFailed(sample, mapSunoVoiceFailMessage(errorMessage));
   }
 
-  const voiceId = await resolveRecordVoiceId(taskId, recordInfo, voice);
+  const voiceId = resolveRecordVoiceId(recordInfo);
 
   if (recordStatus === "success" && voiceId) {
-    return prisma.voiceSample.update({
-      where: { id: sample.id },
-      data: {
-        voiceCloneStatus: "ready",
-        sunoVoiceId: voiceId,
-        voiceCloneError: null,
-      },
-    });
+    const available = await voice.checkVoiceAvailability(voiceId);
+
+    if (available) {
+      return prisma.voiceSample.update({
+        where: { id: sample.id },
+        data: {
+          voiceCloneStatus: "ready",
+          sunoVoiceId: voiceId,
+          voiceCloneError: null,
+        },
+      });
+    }
+
+    if (sample.voiceCloneStatus !== "cloning") {
+      return prisma.voiceSample.update({
+        where: { id: sample.id },
+        data: {
+          voiceCloneStatus: "cloning",
+          sunoVoiceId: voiceId,
+          voiceCloneError: null,
+        },
+      });
+    }
+
+    return sample;
   }
 
   if (
@@ -294,6 +326,34 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
   return sample;
 }
 
+function mapSunoVoicePrepareError(error: unknown): string {
+  const message = error instanceof Error ? error.message.trim() : String(error);
+
+  if (message.toLowerCase().includes("internal error")) {
+    return "Сервис Suno временно недоступен. Подождите 1–2 минуты и нажмите «Повторить верификацию».";
+  }
+
+  if (message.toLowerCase().includes("abort")) {
+    return "Загрузка в Suno прервана по таймауту. Проверьте интернет и попробуйте снова.";
+  }
+
+  return message || "Не удалось отправить образец в Suno Voice";
+}
+
+async function markPrepareFailed(sampleId: string, error: unknown): Promise<never> {
+  const voiceCloneError = mapSunoVoicePrepareError(error);
+
+  await prisma.voiceSample.update({
+    where: { id: sampleId },
+    data: {
+      voiceCloneStatus: "failed",
+      voiceCloneError,
+    },
+  });
+
+  throw new ForbiddenError(voiceCloneError);
+}
+
 function mapSunoVoiceSubmitError(error: unknown): never {
   if (error instanceof MusicProviderError) {
     if (error.message.toLowerCase().includes("not in valid status")) {
@@ -302,7 +362,19 @@ function mapSunoVoiceSubmitError(error: unknown): never {
       );
     }
 
+    if (error.message.toLowerCase().includes("internal error")) {
+      throw new ForbiddenError(
+        "Сервис Suno временно недоступен. Подождите 1–2 минуты и попробуйте снова.",
+      );
+    }
+
     throw new ForbiddenError(error.message);
+  }
+
+  if (error instanceof Error && error.message.toLowerCase().includes("internal error")) {
+    throw new ForbiddenError(
+      "Сервис Suno временно недоступен. Подождите 1–2 минуты и попробуйте снова.",
+    );
   }
 
   throw error;
@@ -430,30 +502,35 @@ export async function prepareSunoVoiceClone(
   const filename = resolveSampleFilename(sample);
   const mimeType = resolveSampleMimeType(filename);
   const { voice, fileUpload } = createSunoVoiceClients(config);
-  const uploaded = await fileUpload.uploadAudio(buffer, filename, mimeType);
-  const vocalEndS = Math.max(1, Math.min(sample.durationSec, 120));
-  const taskId = await voice.createValidationPhrase({
-    voiceUrl: uploaded.downloadUrl,
-    vocalStartS: 0,
-    vocalEndS,
-    language: config.voiceLanguage,
-    callBackUrl: config.callbackUrl,
-  });
 
-  const updated = await prisma.voiceSample.update({
-    where: { id: sample.id },
-    data: {
-      sunoVoiceTaskId: taskId,
-      voiceCloneStatus: "preparing",
-      sunoValidatePhrase: null,
-      sunoVoiceId: null,
-      sunoValidateRegenCount: 0,
-      ...voiceCloneStartData(),
-    },
-  });
+  try {
+    const uploaded = await fileUpload.uploadAudio(buffer, filename, mimeType);
+    const vocalEndS = Math.max(1, Math.min(sample.durationSec, 120));
+    const taskId = await voice.createValidationPhrase({
+      voiceUrl: uploaded.downloadUrl,
+      vocalStartS: 0,
+      vocalEndS,
+      language: config.voiceLanguage,
+      callBackUrl: config.callbackUrl,
+    });
 
-  const synced = await syncSunoVoiceTaskStatus(updated);
-  return toVoiceSampleDto(synced);
+    const updated = await prisma.voiceSample.update({
+      where: { id: sample.id },
+      data: {
+        sunoVoiceTaskId: taskId,
+        voiceCloneStatus: "preparing",
+        sunoValidatePhrase: null,
+        sunoVoiceId: null,
+        sunoValidateRegenCount: 0,
+        ...voiceCloneStartData(),
+      },
+    });
+
+    const synced = await syncSunoVoiceTaskStatus(updated);
+    return toVoiceSampleDto(synced);
+  } catch (error) {
+    return markPrepareFailed(sample.id, error);
+  }
 }
 
 export interface SubmitSunoVoiceVerificationInput {

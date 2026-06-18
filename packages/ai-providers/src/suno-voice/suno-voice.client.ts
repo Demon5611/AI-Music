@@ -51,11 +51,25 @@ export class SunoVoiceClient {
     ).then((raw) => this.normalizeRecordInfo(raw));
   }
 
-  checkVoiceAvailability(taskId: string): Promise<boolean> {
+  checkVoiceAvailability(id: string): Promise<boolean> {
+    return this.checkVoiceAvailabilityByPayload({ task_id: id }).then(async (available) => {
+      if (available) {
+        return true;
+      }
+
+      return this.checkVoiceAvailabilityByPayload({ voice_id: id });
+    });
+  }
+
+  private checkVoiceAvailabilityByPayload(
+    body: Record<string, string>,
+  ): Promise<boolean> {
     return this.request<{ isAvailable: boolean }>("/voice/check-voice", {
       method: "POST",
-      body: JSON.stringify({ task_id: taskId }),
-    }).then((data) => data.isAvailable);
+      body: JSON.stringify(body),
+    })
+      .then((data) => data.isAvailable)
+      .catch(() => false);
   }
 
   private async createTask(path: string, body: unknown): Promise<string> {

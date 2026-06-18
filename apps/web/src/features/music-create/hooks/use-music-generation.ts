@@ -20,7 +20,6 @@ export interface GenerateSongInput {
   style: string;
   title: string;
   durationSec: number;
-  vocalGender: "m" | "f";
   voiceSampleId: string | null;
 }
 
@@ -111,7 +110,6 @@ export function useMusicGeneration() {
           customMode: true,
           instrumental: false,
           durationSec: input.durationSec > 0 ? input.durationSec : undefined,
-          vocalGender: input.vocalGender,
           voiceSampleId: input.voiceSampleId ?? undefined,
         });
 

@@ -119,7 +119,7 @@ export function SunoVoiceVerifyPanel() {
       const timeoutMessage =
         statusQuery.error.cloneStatus === "cloning"
           ? "Suno не завершил создание голоса за 6 минут. Нажмите «Повторить верификацию» или обновите страницу."
-          : "Suno не выдал фразу для записи за 6 минут. Нажмите «Повторить верификацию» или обновите страницу.";
+          : "Suno не выдал фразу за 6 минут. Нажмите «Повторить верификацию» или загрузите образец заново.";
       setError(timeoutMessage);
       stopPolling();
       return;

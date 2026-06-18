@@ -2,6 +2,21 @@ import type { GenerateSongInput } from "../../domain/music.types.js";
 
 const MAX_STYLE_LENGTH = 1000;
 const MAX_PROMPT_LENGTH = 500;
+const CUSTOM_MODE_CHARS_PER_SEC = 12;
+const CUSTOM_MODE_MIN_PROMPT_CHARS = 80;
+
+function truncateCustomModePrompt(prompt: string, durationSec: number): string {
+  const maxChars = Math.max(
+    CUSTOM_MODE_MIN_PROMPT_CHARS,
+    Math.floor(durationSec * CUSTOM_MODE_CHARS_PER_SEC),
+  );
+
+  if (prompt.length <= maxChars) {
+    return prompt;
+  }
+
+  return `${prompt.slice(0, maxChars).trimEnd()}...`;
+}
 
 export function applySunoDurationHints(
   input: GenerateSongInput,
@@ -23,7 +38,7 @@ export function applySunoDurationHints(
     const style = styleParts.join(", ").slice(0, MAX_STYLE_LENGTH);
 
     return {
-      prompt: input.prompt,
+      prompt: truncateCustomModePrompt(input.prompt, durationSec),
       style,
     };
   }

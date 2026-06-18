@@ -156,10 +156,16 @@ function VoiceSamplePickerItem({
         </div>
       </div>
       <div className={mc.voicePickerPlayerRow}>
-        <AudioPreviewPlayer
-          className={mc.voicePickerPlayer}
-          src={buildVoiceSampleAudioUrl(sample.id)}
-        />
+        {sample.voiceCloneStatus === "failed" ? (
+          <p className={mc.voicePickerItemMeta}>
+            {sample.voiceCloneError ?? "Аудио недоступно для предпрослушивания"}
+          </p>
+        ) : (
+          <AudioPreviewPlayer
+            className={mc.voicePickerPlayer}
+            src={buildVoiceSampleAudioUrl(sample.id)}
+          />
+        )}
         <button
           className={mc.voicePickerDeleteButton}
           disabled={isDeleting}

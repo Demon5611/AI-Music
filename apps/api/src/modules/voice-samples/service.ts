@@ -63,7 +63,8 @@ export async function createVoiceSample(input: CreateVoiceSampleInput) {
 
     return toVoiceSampleDto(updated);
   } catch (error) {
-    await prisma.voiceSample.delete({ where: { id: sample.id } });
+    await storage.delete(storageKey).catch(() => undefined);
+    await prisma.voiceSample.delete({ where: { id: sample.id } }).catch(() => undefined);
     throw error;
   }
 }

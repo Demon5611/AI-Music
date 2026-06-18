@@ -67,6 +67,14 @@ export function mapSunoMusicTaskStatusToError(
     return new MusicInvalidPromptError(PROVIDER_ID, message);
   }
 
+  if (status === "CREATE_TASK_FAILED") {
+    return new MusicGenerationFailedError(
+      PROVIDER_ID,
+      errorMessage ??
+        "Suno не принял задачу. Проверьте образец голоса на /consent, сократите текст для короткого трека или попробуйте снова.",
+    );
+  }
+
   return new MusicGenerationFailedError(PROVIDER_ID, message);
 }
 

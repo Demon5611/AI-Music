@@ -1,4 +1,5 @@
 import { prisma } from "@ai-music/db";
+import { reconcileReadySunoVoiceSample } from "./suno-voice.service.js";
 
 export async function findReadySunoVoiceSample(userId: string, voiceSampleId?: string) {
   return prisma.voiceSample.findFirst({
@@ -18,16 +19,23 @@ export async function resolveSunoVoicePersonaForUser(
   userId: string,
   voiceSampleId?: string,
 ) {
-  const sample = await findReadySunoVoiceSample(userId, voiceSampleId);
-  const personaId = sample?.sunoVoiceId?.trim();
+  const found = await findReadySunoVoiceSample(userId, voiceSampleId);
 
-  if (!sample || !personaId) {
+  if (!found) {
+    return null;
+  }
+
+  const sample = await reconcileReadySunoVoiceSample(found);
+  const personaId = sample.sunoVoiceId?.trim();
+
+  if (sample.voiceCloneStatus !== "ready" || !personaId) {
     return null;
   }
 
   return {
     voiceSampleId: sample.id,
     personaId,
+    sunoVoiceTaskId: sample.sunoVoiceTaskId,
     personaModel: "voice_persona" as const,
   };
 }

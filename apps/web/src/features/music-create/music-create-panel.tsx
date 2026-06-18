@@ -24,7 +24,6 @@ export function MusicCreatePanel() {
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState(DEFAULT_STYLE);
   const [title, setTitle] = useState(DEFAULT_TITLE);
-  const [vocalGender, setVocalGender] = useState<"m" | "f">("m");
 
   const {
     configured,
@@ -128,8 +127,7 @@ export function MusicCreatePanel() {
 
         {hasReadyVoice ? (
           <p className={mc.cardHeaderSubtitle}>
-            Генерация использует выбранный Suno Voice (модель V5). Укажите пол вокала — без этого
-            Suno может выбрать голос по стилю трека.
+            Вокал берётся из выбранного Suno Voice (модель V5) — тембр и манера задаёт ваш образец.
           </p>
         ) : null}
 
@@ -155,7 +153,6 @@ export function MusicCreatePanel() {
             prompt={prompt}
             style={style}
             title={title}
-            vocalGender={vocalGender}
             voiceSampleId={selectedVoiceSampleId}
             onApplyGeneratedLyrics={handleApplyGeneratedLyrics}
             onDurationChange={setDurationSec}
@@ -164,7 +161,6 @@ export function MusicCreatePanel() {
             onManualLyricsChange={handleManualLyricsChange}
             onStyleChange={setStyle}
             onTitleChange={setTitle}
-            onVocalGenderChange={setVocalGender}
           />
 
           <MusicCreateResults
