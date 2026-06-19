@@ -45,7 +45,7 @@ export function VoiceCloneWaitingPanel({
   const progress = Math.min(95, Math.round((elapsedSec / EXPECTED_WAIT_SEC) * 100));
   const slowHint =
     elapsedSec >= 120
-      ? "Suno отвечает дольше обычного. Если прошло больше 5 минут — нажмите «Повторить верификацию»."
+      ? "AI Music отвечает дольше обычного. Если прошло больше 5 минут — нажмите «Повторить верификацию»."
       : WAIT_HINT;
 
   return (

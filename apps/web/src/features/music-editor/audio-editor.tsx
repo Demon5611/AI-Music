@@ -116,7 +116,7 @@ function EditorPreparationStatus({
           <p className={me.preparationMeta}>
             {mounted
               ? isOvertime
-                ? `Прошло ${elapsedLabel}. Обычно до ${estimateLabel}, но иногда Suno отвечает дольше.`
+                ? `Прошло ${elapsedLabel}. Обычно до ${estimateLabel}, но иногда AI Music отвечает дольше.`
                 : `Прошло ${elapsedLabel}. Обычно это занимает до ${estimateLabel}.`
               : "Подготовка может занять до минуты."}
           </p>

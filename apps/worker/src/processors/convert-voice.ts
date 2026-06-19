@@ -20,7 +20,7 @@ export async function generateSongWithSunoVoice(
   const sunoVoiceId = voiceSample.sunoVoiceId;
 
   if (!sunoVoiceId) {
-    throw new Error("Suno voice is not ready");
+    throw new Error("Голос AI Music не готов");
   }
 
   if (config.providerId === "sunoapi" && config.sunoApiKey.trim()) {
@@ -43,7 +43,7 @@ export async function generateSongWithSunoVoice(
     const audioUrl = completed.tracks?.[0]?.audioUrl;
 
     if (!audioUrl) {
-      throw new Error("Suno music generation returned no audio URL");
+      throw new Error("AI Music не вернул ссылку на аудио");
     }
 
     return downloadUrl(audioUrl);

@@ -4,7 +4,7 @@ import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
 
 const CLONE_STATUS_LABELS: Record<VoiceCloneStatus, string> = {
   pending: "Загружен",
-  preparing: "Анализ Suno",
+  preparing: "Анализ AI Music",
   awaiting_verification: "Нужна верификация",
   cloning: "Создание голоса",
   ready: "Готов",

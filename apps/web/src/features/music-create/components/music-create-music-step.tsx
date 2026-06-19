@@ -59,7 +59,7 @@ export function MusicCreateMusicStep({
         <span className={mc.wizardStepBadge}>Шаг 2 из 2</span>
         <h2 className={mc.wizardStepTitle}>Создание музыки</h2>
         <p className={mc.wizardStepHint}>
-          Выберите стиль, название и длительность — вокал будет вашим Suno Voice.
+          Выберите стиль, название и длительность — вокал будет вашим AI Music Voice.
         </p>
       </div>
 

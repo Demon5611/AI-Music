@@ -156,7 +156,7 @@ export function MusicLyricsFromPrompt({
         </div>
         {vocalGender ? (
           <p className={cn(mc.meta, "mt-1")}>
-            Лимит уменьшен: Suno получает подсказку про род глаголов для вашего голоса.
+            Лимит уменьшен: AI Music получает подсказку про род глаголов для вашего голоса.
           </p>
         ) : null}
       </label>

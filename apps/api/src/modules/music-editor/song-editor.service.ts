@@ -103,7 +103,7 @@ export async function retryStemSeparation(userId: string, songId: string) {
   }
 
   if (!song.stemSeparationNotice?.trim()) {
-    throw new BadRequestError("Повторное разделение доступно только после ошибки Suno");
+    throw new BadRequestError("Повторное разделение доступно только после ошибки AI Music");
   }
 
   const storage = getStorageService();
@@ -169,7 +169,7 @@ export async function tickStemSeparation(userId: string, songId: string) {
     await persistOriginalAudioAsStems(
       userId,
       song,
-      buildStemSeparationFallbackNotice("Превышено время ожидания Suno"),
+      buildStemSeparationFallbackNotice("Превышено время ожидания AI Music"),
     );
     return getSongForUser(userId, songId);
   }
@@ -198,7 +198,7 @@ export async function tickStemSeparation(userId: string, songId: string) {
     await persistOriginalAudioAsStems(
       userId,
       song,
-      buildStemSeparationFallbackNotice("Suno не вернул ссылки на дорожки"),
+      buildStemSeparationFallbackNotice("AI Music не вернул ссылки на дорожки"),
     );
     return getSongForUser(userId, songId);
   }

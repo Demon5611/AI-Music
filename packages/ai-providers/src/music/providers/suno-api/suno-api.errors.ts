@@ -71,7 +71,7 @@ export function mapSunoMusicTaskStatusToError(
     return new MusicGenerationFailedError(
       PROVIDER_ID,
       errorMessage ??
-        "Suno не принял задачу. Проверьте образец голоса на /consent, сократите текст для короткого трека или попробуйте снова.",
+        "AI Music не принял задачу. Проверьте образец голоса на /consent, сократите текст для короткого трека или попробуйте снова.",
     );
   }
 

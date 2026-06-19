@@ -4,7 +4,7 @@ import { ForbiddenError } from "../../common/errors.js";
 import { resolveSunoVoicePersonaForUser } from "../voice-samples/resolve-suno-voice-persona.js";
 
 const SUNO_VOICE_UNAVAILABLE_MESSAGE =
-  "Голос Suno недоступен для генерации. Пройдите верификацию заново на /consent.";
+  "Голос AI Music недоступен для генерации. Пройдите верификацию заново на /consent.";
 
 export interface MusicGenerateLogger {
   info: (payload: Record<string, unknown>, message: string) => void;

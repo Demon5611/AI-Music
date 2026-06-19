@@ -95,7 +95,7 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
       <div>
         <h2 className={voiceUi.creationSectionTitle}>Создание голоса</h2>
         <p className={voiceUi.creationSectionHint}>
-          Запишите или загрузите образец, затем пройдите верификацию Suno — без неё вокал в треке
+          Запишите или загрузите образец, затем пройдите верификацию AI Music — без неё вокал в треке
           не будет вашим.
         </p>
       </div>

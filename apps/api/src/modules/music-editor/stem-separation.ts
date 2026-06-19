@@ -6,7 +6,7 @@ import { buildSongStemKey, getStorageService } from "../storage/storage.service.
 export const STEM_SEPARATION_TIMEOUT_MS = 5 * 60 * 1000;
 
 const FALLBACK_NOTICE =
-  "Suno не смог разделить дорожки — в редакторе используется полный микс на обеих дорожках.";
+  "AI Music не смог разделить дорожки — в редакторе используется полный микс на обеих дорожках.";
 
 export function buildStemSeparationFallbackNotice(errorMessage?: string | null): string {
   const detail = errorMessage?.trim();

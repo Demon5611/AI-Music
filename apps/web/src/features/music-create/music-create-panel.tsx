@@ -112,7 +112,7 @@ export function MusicCreatePanel() {
 
         {configured === false ? (
           <div className={mp.alertWarning} role="alert">
-            SUNO_API_KEY не настроен. Добавьте ключ в корневой .env и перезапустите API.
+            Сервис генерации музыки не настроен. Добавьте API-ключ в корневой .env и перезапустите API.
           </div>
         ) : null}
 
@@ -124,7 +124,7 @@ export function MusicCreatePanel() {
 
         {!isVoiceSamplesLoading && !hasReadyVoice ? (
           <div className={mp.alertWarning} role="alert">
-            Голос Suno ещё не готов.{" "}
+            Голос AI Music ещё не готов.{" "}
             <Link className={mc.voicePickerLink} href="/">
               Создайте и верифицируйте голос на главной
             </Link>
@@ -134,7 +134,7 @@ export function MusicCreatePanel() {
 
         {hasReadyVoice ? (
           <p className={mc.cardHeaderSubtitle}>
-            Используется ваш последний верифицированный образец Suno Voice (модель V5).
+            Используется ваш последний верифицированный образец AI Music Voice (модель V5).
           </p>
         ) : null}
 

@@ -87,7 +87,7 @@ export function MusicStyleChips({
         })}
       </div>
       <p className={cn(mc.styleHint, "mt-2")}>
-        Выберите {RECOMMENDED_STYLE_CHIPS_MIN}–{MAX_SELECTED_STYLE_CHIPS} тегов — Suno лучше
+        Выберите {RECOMMENDED_STYLE_CHIPS_MIN}–{MAX_SELECTED_STYLE_CHIPS} тегов — AI Music лучше
         понимает короткие стили через запятую, чем длинные описания. Выбрано: {selectedCount}/
         {MAX_SELECTED_STYLE_CHIPS}.
       </p>

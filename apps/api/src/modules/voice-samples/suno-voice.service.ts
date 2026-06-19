@@ -23,7 +23,7 @@ const STUCK_PHRASE_REGEN_MS = 90_000;
 const MAX_STUCK_PHRASE_REGENS = 2;
 
 const EXPIRED_PHRASE_MESSAGE =
-  "Фраза верификации истекла. Нажмите «Повторить верификацию» — Suno выдаст новую фразу.";
+  "Фраза верификации истекла. Нажмите «Повторить верификацию» — AI Music выдаст новую фразу.";
 
 function extractValidatePhrase(validateInfo: { validateInfo?: string | null }): string | null {
   const phrase = validateInfo.validateInfo?.trim();
@@ -44,7 +44,7 @@ function mapSunoVoiceFailMessage(message: string | null | undefined): string {
   const trimmed = message?.trim();
 
   if (!trimmed) {
-    return "Suno Voice отклонил аудио. Запишите фразу чище и напевом.";
+    return "AI Music Voice отклонил аудио. Запишите фразу чище и напевом.";
   }
 
   if (isExpiredVerificationPhraseMessage(trimmed)) {
@@ -53,7 +53,7 @@ function mapSunoVoiceFailMessage(message: string | null | undefined): string {
 
   if (trimmed.toLowerCase().includes("voices sound different")) {
     return (
-      "Голос не совпал с первым образцом. Suno сравнивает две записи: " +
+      "Голос не совпал с первым образцом. AI Music сравнивает две записи: " +
       "запишите образец на главной и фразу здесь одним способом — " +
       "оба раза напевом или оба раза речью, тем же голосом и в том же помещении."
     );
@@ -110,7 +110,7 @@ function resolveRecordVoiceId(recordInfo: {
 }
 
 const SUNO_VOICE_UNAVAILABLE_MESSAGE =
-  "Голос Suno недоступен для генерации. Пройдите верификацию заново на /consent.";
+  "Голос AI Music недоступен для генерации. Пройдите верификацию заново на /consent.";
 
 export async function reconcileReadySunoVoiceSample(
   sample: VoiceSample,
@@ -283,7 +283,7 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
       sample,
       sample.voiceCloneStatus === "preparing"
         ? "AI Music не выдал фразу за 5 минут. Нажмите «Повторить верификацию» или загрузите образец заново."
-        : "Превышено время ожидания Suno Voice (10 мин). Попробуйте снова.",
+        : "Превышено время ожидания AI Music Voice (10 мин). Попробуйте снова.",
     );
   }
 
@@ -404,14 +404,14 @@ function mapSunoVoicePrepareError(error: unknown): string {
   const message = error instanceof Error ? error.message.trim() : String(error);
 
   if (message.toLowerCase().includes("internal error")) {
-    return "Сервис Suno временно недоступен. Подождите 1–2 минуты и нажмите «Повторить верификацию».";
+    return "Сервис AI Music временно недоступен. Подождите 1–2 минуты и нажмите «Повторить верификацию».";
   }
 
   if (message.toLowerCase().includes("abort")) {
-    return "Загрузка в Suno прервана по таймауту. Проверьте интернет и попробуйте снова.";
+    return "Загрузка в AI Music прервана по таймауту. Проверьте интернет и попробуйте снова.";
   }
 
-  return message || "Не удалось отправить образец в Suno Voice";
+  return message || "Не удалось отправить образец в AI Music Voice";
 }
 
 async function markPrepareFailed(sampleId: string, error: unknown): Promise<never> {
@@ -436,13 +436,13 @@ function mapSunoVoiceSubmitError(error: unknown): never {
 
     if (error.message.toLowerCase().includes("not in valid status")) {
       throw new ForbiddenError(
-        "Сессия верификации Suno истекла или уже использована. Нажмите «Повторить» и запишите фразу снова.",
+        "Сессия верификации AI Music истекла или уже использована. Нажмите «Повторить» и запишите фразу снова.",
       );
     }
 
     if (error.message.toLowerCase().includes("internal error")) {
       throw new ForbiddenError(
-        "Сервис Suno временно недоступен. Подождите 1–2 минуты и попробуйте снова.",
+        "Сервис AI Music временно недоступен. Подождите 1–2 минуты и попробуйте снова.",
       );
     }
 
@@ -451,7 +451,7 @@ function mapSunoVoiceSubmitError(error: unknown): never {
 
   if (error instanceof Error && error.message.toLowerCase().includes("internal error")) {
     throw new ForbiddenError(
-      "Сервис Suno временно недоступен. Подождите 1–2 минуты и попробуйте снова.",
+      "Сервис AI Music временно недоступен. Подождите 1–2 минуты и попробуйте снова.",
     );
   }
 
@@ -505,7 +505,7 @@ async function assertValidateTaskReady(
   }
 
   throw new ForbiddenError(
-    "Suno ещё не готов принять запись верификации. Подождите несколько секунд и попробуйте снова.",
+    "AI Music ещё не готов принять запись верификации. Подождите несколько секунд и попробуйте снова.",
   );
 }
 
@@ -654,13 +654,13 @@ export async function submitSunoVoiceVerification(
     if (sample.voiceCloneStatus === "failed") {
       throw new ForbiddenError(
         sample.voiceCloneError ??
-          "Suno Voice отклонил аудио. Запишите фразу чище и напевом.",
+          "AI Music Voice отклонил аудио. Запишите фразу чище и напевом.",
       );
     }
 
     if (sample.voiceCloneStatus === "preparing") {
       throw new ForbiddenError(
-        "Фраза устарела — Suno готовит новую. Подождите 10–20 секунд, пока появится текст для записи.",
+        "Фраза устарела — AI Music готовит новую. Подождите 10–20 секунд, пока появится текст для записи.",
       );
     }
   }
@@ -670,7 +670,7 @@ export async function submitSunoVoiceVerification(
   }
 
   if (!sample.sunoVoiceTaskId || !sample.sunoValidatePhrase?.trim()) {
-    throw new ForbiddenError("Suno Voice task is not initialized");
+    throw new ForbiddenError("Задача верификации голоса AI Music не инициализирована");
   }
 
   const mimeType = normalizeVoiceSampleMime(input.filename, input.mimeType);

@@ -25,7 +25,7 @@ export async function createGenerationJob(
   }
 
   if (!voiceSample.sunoVoiceId || voiceSample.voiceCloneStatus !== "ready") {
-    throw new ForbiddenError("Suno voice is not ready");
+    throw new ForbiddenError("Голос AI Music не готов");
   }
 
   await spendCredits(userId, GENERATION_CREDIT_COST, "generation_start");

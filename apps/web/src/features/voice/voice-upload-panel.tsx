@@ -434,7 +434,7 @@ export function VoiceUploadPanel({
           <h1 className={appShell.formPageTitle}>Запись голоса</h1>
           <p className={appShell.formPageDescription}>
             Выберите один способ: запись с микрофона или загрузка файла ({durationHint}). Затем
-            пройдите верификацию голоса Suno.
+            пройдите верификацию голоса AI Music.
           </p>
         </>
       ) : (

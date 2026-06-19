@@ -68,7 +68,7 @@ export async function generateMusicForUser(
 
   if (!persona) {
     throw new ForbiddenError(
-      "Голос Suno не готов. Запишите голос на главной и пройдите верификацию на /consent.",
+      "Голос AI Music не готов. Запишите голос на главной и пройдите верификацию на /consent.",
     );
   }
 
@@ -145,7 +145,7 @@ export async function generateLyricsForUser(userId: string, prompt: string) {
   if (trimmedPrompt.length > briefMaxLength) {
     throw new BadRequestError(
       vocalGender
-        ? `Описание слишком длинное — максимум ${briefMaxLength} символов (Suno учитывает подсказку про род глаголов).`
+        ? `Описание слишком длинное — максимум ${briefMaxLength} символов (AI Music учитывает подсказку про род глаголов).`
         : `Описание слишком длинное — максимум ${SUNO_LYRICS_PROMPT_MAX_LENGTH} символов.`,
     );
   }
@@ -156,7 +156,7 @@ export async function generateLyricsForUser(userId: string, prompt: string) {
 
   if (genderAwarePrompt.length > SUNO_LYRICS_PROMPT_MAX_LENGTH) {
     throw new BadRequestError(
-      `Описание слишком длинное для Suno — максимум ${briefMaxLength} символов.`,
+      `Описание слишком длинное для AI Music — максимум ${briefMaxLength} символов.`,
     );
   }
 

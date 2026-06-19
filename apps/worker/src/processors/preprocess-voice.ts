@@ -10,7 +10,7 @@ export async function preprocessVoice(
   voiceSample: VoiceSample,
 ): Promise<PreprocessedVoice> {
   if (!voiceSample.sunoVoiceId || voiceSample.voiceCloneStatus !== "ready") {
-    throw new Error("Suno voice is not ready");
+    throw new Error("Голос AI Music не готов");
   }
 
   if (voiceSample.status !== "ready" || !voiceSample.consentConfirmed) {

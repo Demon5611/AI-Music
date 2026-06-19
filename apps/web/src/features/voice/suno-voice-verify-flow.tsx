@@ -21,6 +21,7 @@ const STATUS_POLL_MS = 3_000;
 const PHRASE_SYNC_POLL_MS = 15_000;
 const MAX_STATUS_POLLS = 120;
 const STUCK_WAIT_SEC = 120;
+const VOICE_SETUP_ERROR = "Не удалось настроить голос AI Music";
 
 class SunoVoicePollTimeoutError extends Error {
   constructor(public readonly cloneStatus: VoiceSample["voiceCloneStatus"]) {
@@ -94,11 +95,11 @@ function resolvePollError(queryError: Error | null | undefined): string | null {
 
   if (queryError instanceof SunoVoicePollTimeoutError) {
     return queryError.cloneStatus === "cloning"
-      ? "Ai Music не завершил создание голоса за 6 минут. Нажмите «Повторить верификацию» или обновите страницу."
+      ? "AI Music не завершил создание голоса за 6 минут. Нажмите «Повторить верификацию» или обновите страницу."
       : "AI Music не выдал фразу за 6 минут. Нажмите «Повторить верификацию» или загрузите образец заново.";
   }
 
-  return parseApiError(queryError, "Не удалось настроить голос Suno");
+  return parseApiError(queryError, VOICE_SETUP_ERROR);
 }
 
 export function SunoVoiceVerifyFlow({
@@ -270,7 +271,7 @@ export function SunoVoiceVerifyFlow({
         bootstrappedSampleIdRef.current = sampleId;
       } catch (bootstrapError) {
         if (!cancelled) {
-          setError(parseApiError(bootstrapError, "Не удалось настроить голос Suno"));
+          setError(parseApiError(bootstrapError, VOICE_SETUP_ERROR));
         }
       } finally {
         if (!cancelled) {
@@ -329,11 +330,11 @@ export function SunoVoiceVerifyFlow({
 
       if (verified.voiceCloneStatus === "awaiting_verification") {
         setError(
-          "Запись отправлена, но Suno не начал создание голоса. Обновите страницу или нажмите «Повторить».",
+          "Запись отправлена, но AI Music не начал создание голоса. Обновите страницу или нажмите «Повторить».",
         );
       }
     } catch (submitError) {
-      setError(parseApiError(submitError, "Не удалось настроить голос Suno"));
+      setError(parseApiError(submitError, VOICE_SETUP_ERROR));
 
       try {
         const refreshed = await api.voiceSamples.getSunoVoiceStatus(sampleId);
@@ -380,7 +381,7 @@ export function SunoVoiceVerifyFlow({
           startPolling();
         }
       })
-      .catch((retryError) => setError(parseApiError(retryError, "Не удалось настроить голос Suno")))
+      .catch((retryError) => setError(parseApiError(retryError, VOICE_SETUP_ERROR)))
       .finally(() => {
         setIsBootstrapping(false);
         if (sampleId) {
@@ -432,7 +433,7 @@ export function SunoVoiceVerifyFlow({
     error ??
     pollError ??
     (resolvedSample?.voiceCloneStatus === "failed"
-      ? resolvedSample.voiceCloneError ?? "Не удалось создать голос Suno"
+      ? resolvedSample.voiceCloneError ?? "Не удалось создать голос AI Music"
       : null);
   const showFailedActions = Boolean(displayError);
   const showStuckActions = isWaitingForSuno && waitElapsedSec >= STUCK_WAIT_SEC;
@@ -440,7 +441,7 @@ export function SunoVoiceVerifyFlow({
   const showVoiceMismatchHint = isVoiceMismatchMessage(displayError);
   const showWaitingPanel = isWaitingForSuno;
   const waitingLabel = isSubmitting
-    ? "Отправляем запись верификации в Suno..."
+    ? "Отправляем запись верификации в AI Music..."
     : resolveStatusLabel(resolvedSample);
   const isReady = resolvedSample ? isVoiceSampleReadyForGeneration(resolvedSample) : false;
 
@@ -529,7 +530,7 @@ export function SunoVoiceVerifyFlow({
           <>
             {showVoiceMismatchHint ? (
               <p className={descriptionClassName}>
-                Если при записи образца вы читали текст, а здесь напевали (или наоборот), Suno
+                Если при записи образца вы читали текст, а здесь напевали (или наоборот), AI Music
                 отклонит запись. Запишите новый образец напевом и повторите верификацию тем же
                 голосом.
               </p>

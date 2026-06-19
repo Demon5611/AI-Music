@@ -17,10 +17,10 @@ export function EditorStemNotice({
 }: EditorStemNoticeProps) {
   return (
     <div className={me.stemNoticeCard} role="status">
-      <p className={me.stemNoticeTitle}>Suno не разделил дорожки</p>
+      <p className={me.stemNoticeTitle}>AI Music не разделил дорожки</p>
       <p className={me.stemNoticeMessage}>{notice}</p>
       <p className={me.stemNoticeHint}>
-        Редактор открыт с полным миксом на обеих дорожках. Можно повторить разделение — Suno
+        Редактор открыт с полным миксом на обеих дорожках. Можно повторить разделение — AI Music
         иногда отклоняет трек при первой попытке.
       </p>
       <div className={me.stemNoticeActions}>
