@@ -1,22 +1,26 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { consumeMusicCreateLyricsBriefDraft } from "@/shared/lib/music-create-prompt-transfer";
-import { MusicCreateForm } from "@/features/music-create/components/music-create-form";
+import { MusicCreateLyricsStep } from "@/features/music-create/components/music-create-lyrics-step";
+import { MusicCreateMusicStep } from "@/features/music-create/components/music-create-music-step";
 import { IconMusic } from "@/features/music-create/components/music-create-icons";
 import { MusicCreateResults } from "@/features/music-create/components/music-create-results";
 import { useMusicGeneration } from "@/features/music-create/hooks/use-music-generation";
 import { useVoiceSampleSelection } from "@/features/music-create/hooks/use-voice-sample-selection";
 import { mc } from "@/features/music-create/music-create-classes";
-import { VoiceSamplePicker } from "@/features/music-create/voice-sample-picker";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { mp } from "@/shared/theme/music-page-classes";
 
 const DEFAULT_STYLE = "lo-fi chill, dreamy, soft, warm textures, relaxed";
 const DEFAULT_TITLE = "Summer Friends";
 
+type WizardStep = "lyrics" | "music";
+
 export function MusicCreatePanel() {
   const authReady = useAuthReady();
+  const [wizardStep, setWizardStep] = useState<WizardStep>("lyrics");
   const [durationSec, setDurationSec] = useState(0);
   const [lyricsBrief, setLyricsBrief] = useState(
     () => consumeMusicCreateLyricsBriefDraft() ?? "",
@@ -44,16 +48,10 @@ export function MusicCreatePanel() {
   } = useMusicGeneration();
 
   const {
-    samples: voiceSamples,
-    selectedId: selectedVoiceSampleId,
     hasReadyVoice,
     canGenerateWithVoice,
     isLoading: isVoiceSamplesLoading,
     loadError: voiceSamplesLoadError,
-    setSelectedId: setSelectedVoiceSampleId,
-    removeSample,
-    deletingSampleId,
-    deleteError,
   } = useVoiceSampleSelection(authReady);
 
   const handleLyricsBriefChange = useCallback((value: string) => {
@@ -118,50 +116,57 @@ export function MusicCreatePanel() {
           </div>
         ) : null}
 
+        {voiceSamplesLoadError ? (
+          <div className={mp.alertError} role="alert">
+            {voiceSamplesLoadError}
+          </div>
+        ) : null}
+
         {!isVoiceSamplesLoading && !hasReadyVoice ? (
           <div className={mp.alertWarning} role="alert">
-            Нет готовых образцов Suno Voice. Запишите голос на главной и пройдите верификацию —
-            без этого песня будет с чужим AI-вокалом.
+            Голос Suno ещё не готов.{" "}
+            <Link className={mc.voicePickerLink} href="/">
+              Создайте и верифицируйте голос на главной
+            </Link>
+            — без этого песня будет с чужим AI-вокалом.
           </div>
         ) : null}
 
         {hasReadyVoice ? (
           <p className={mc.cardHeaderSubtitle}>
-            Вокал берётся из выбранного Suno Voice (модель V5) — тембр и манера задаёт ваш образец.
+            Используется ваш последний верифицированный образец Suno Voice (модель V5).
           </p>
         ) : null}
 
-        <VoiceSamplePicker
-          deleteError={deleteError}
-          deletingSampleId={deletingSampleId}
-          isLoading={isVoiceSamplesLoading}
-          loadError={voiceSamplesLoadError}
-          samples={voiceSamples}
-          selectedId={selectedVoiceSampleId}
-          onDelete={(sampleId) => void removeSample(sampleId)}
-          onSelect={setSelectedVoiceSampleId}
-        />
-
         <section className={mp.sectionCard}>
-          <MusicCreateForm
-            canGenerateWithVoice={canGenerateWithVoice}
-            configured={configured}
-            durationSec={durationSec}
-            isBusy={isBusy}
-            isGenerating={isGenerating}
-            lyricsBrief={lyricsBrief}
-            prompt={prompt}
-            style={style}
-            title={title}
-            voiceSampleId={selectedVoiceSampleId}
-            onApplyGeneratedLyrics={handleApplyGeneratedLyrics}
-            onDurationChange={setDurationSec}
-            onGenerate={(input) => void generate(input)}
-            onLyricsBriefChange={handleLyricsBriefChange}
-            onManualLyricsChange={handleManualLyricsChange}
-            onStyleChange={setStyle}
-            onTitleChange={setTitle}
-          />
+          {wizardStep === "lyrics" ? (
+            <MusicCreateLyricsStep
+              configured={configured}
+              isBusy={isBusy}
+              lyricsBrief={lyricsBrief}
+              prompt={prompt}
+              onApplyGeneratedLyrics={handleApplyGeneratedLyrics}
+              onContinue={() => setWizardStep("music")}
+              onLyricsBriefChange={handleLyricsBriefChange}
+              onManualLyricsChange={handleManualLyricsChange}
+            />
+          ) : (
+            <MusicCreateMusicStep
+              canGenerateWithVoice={canGenerateWithVoice}
+              configured={configured}
+              durationSec={durationSec}
+              isBusy={isBusy}
+              isGenerating={isGenerating}
+              prompt={prompt}
+              style={style}
+              title={title}
+              onBack={() => setWizardStep("lyrics")}
+              onDurationChange={setDurationSec}
+              onGenerate={(input) => void generate(input)}
+              onStyleChange={setStyle}
+              onTitleChange={setTitle}
+            />
+          )}
 
           <MusicCreateResults
             isBusy={isBusy}

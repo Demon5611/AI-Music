@@ -26,6 +26,44 @@ export async function listVoiceSamples(userId: string) {
   return samples.map(toVoiceSampleDto);
 }
 
+export async function deleteVoiceSample(userId: string, sampleId: string) {
+  const sample = await prisma.voiceSample.findFirst({
+    where: { id: sampleId, userId },
+  });
+
+  if (!sample) {
+    throw new NotFoundError("Voice sample not found");
+  }
+
+  await getStorageService().delete(sample.r2Key);
+  await prisma.voiceSample.delete({ where: { id: sample.id } });
+}
+
+async function deleteAllUserVoiceSamples(userId: string) {
+  const samples = await prisma.voiceSample.findMany({
+    where: { userId },
+    select: { id: true, r2Key: true },
+  });
+
+  if (samples.length === 0) {
+    return;
+  }
+
+  const storage = getStorageService();
+
+  await Promise.all(
+    samples.map((sample) => {
+      if (sample.r2Key === "pending") {
+        return Promise.resolve();
+      }
+
+      return storage.delete(sample.r2Key).catch(() => undefined);
+    }),
+  );
+
+  await prisma.voiceSample.deleteMany({ where: { userId } });
+}
+
 export async function createVoiceSample(input: CreateVoiceSampleInput) {
   const parsedFields = uploadVoiceSampleFieldsSchema.safeParse({
     confirmed: input.fields.confirmed === "true",
@@ -36,6 +74,8 @@ export async function createVoiceSample(input: CreateVoiceSampleInput) {
   if (!parsedFields.success) {
     throw new ForbiddenError("Voice consent is required");
   }
+
+  await deleteAllUserVoiceSamples(input.userId);
 
   const mimeType = normalizeVoiceSampleMime(input.filename, input.mimeType);
 
@@ -67,19 +107,6 @@ export async function createVoiceSample(input: CreateVoiceSampleInput) {
     await prisma.voiceSample.delete({ where: { id: sample.id } }).catch(() => undefined);
     throw error;
   }
-}
-
-export async function deleteVoiceSample(userId: string, sampleId: string) {
-  const sample = await prisma.voiceSample.findFirst({
-    where: { id: sampleId, userId },
-  });
-
-  if (!sample) {
-    throw new NotFoundError("Voice sample not found");
-  }
-
-  await getStorageService().delete(sample.r2Key);
-  await prisma.voiceSample.delete({ where: { id: sample.id } });
 }
 
 export async function getVoiceSampleAudio(userId: string, sampleId: string) {

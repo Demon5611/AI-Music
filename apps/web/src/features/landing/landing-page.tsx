@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FREE_DEMO_CREDITS } from "@ai-music/shared";
-import { VoiceUploadPanel } from "@/features/voice/voice-upload-panel";
+import { VoiceCreationPanel } from "@/features/voice/voice-creation-panel";
 import { lp } from "./landing-classes";
 
 export function LandingPage() {
@@ -23,7 +23,11 @@ export function LandingPage() {
           Запиши свой голос или загрузи образец — и создай трек с твоим вокалом за несколько минут.
         </p>
 
-        <VoiceUploadPanel variant="landing" />
+        <div className={lp.voiceWrap}>
+          <div className={lp.voiceCard}>
+            <VoiceCreationPanel variant="landing" />
+          </div>
+        </div>
 
         <p className={lp.note}>
           {FREE_DEMO_CREDITS} demo credits для новых пользователей · без кредитной карты

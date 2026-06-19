@@ -8,7 +8,6 @@ import {
   type VocalGender,
 } from "@ai-music/shared";
 import { Mic } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { readAudioDurationSec } from "@/features/voice/read-audio-duration";
 import {
@@ -95,17 +94,18 @@ function VoiceModeButton({ active, children, disabled, onSelect }: VoiceModeButt
 
 interface VoiceUploadPanelProps {
   disabled?: boolean;
+  embedded?: boolean;
   onSuccess?: (sampleId: string) => void;
   variant?: VoiceUploadVariant;
 }
 
 export function VoiceUploadPanel({
   disabled = false,
+  embedded = false,
   onSuccess,
   variant = "page",
 }: VoiceUploadPanelProps) {
   const api = useApi();
-  const router = useRouter();
   const authReady = useAuthReady();
   const [file, setFile] = useState<File | null>(null);
   const [fileSource, setFileSource] = useState<VoiceInputMode | null>(null);
@@ -397,8 +397,6 @@ export function VoiceUploadPanel({
 
       if (onSuccess) {
         onSuccess(sample.id);
-      } else {
-        router.push(`/consent?id=${sample.id}`);
       }
     } catch (submitError) {
       setError(parseApiError(submitError, "Не удалось загрузить образец голоса"));
@@ -669,6 +667,10 @@ export function VoiceUploadPanel({
       {error ? <p className={errorClassName}>{error}</p> : null}
     </>
   );
+
+  if (embedded) {
+    return content;
+  }
 
   if (isLanding) {
     return (

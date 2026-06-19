@@ -43,19 +43,14 @@ export function resolveVoiceSampleStatusLabel(sample: VoiceSample): string {
   return CLONE_STATUS_LABELS[sample.voiceCloneStatus];
 }
 
+export function pickLatestReadyVoiceSampleId(samples: VoiceSample[]): string | null {
+  const readySample = samples.find(isVoiceSampleReadyForGeneration);
+  return readySample?.id ?? null;
+}
+
 export function pickDefaultVoiceSampleId(
   samples: VoiceSample[],
-  storedId: string | null,
+  _storedId: string | null,
 ): string | null {
-  const readySamples = samples.filter(isVoiceSampleReadyForGeneration);
-
-  if (readySamples.length === 0) {
-    return null;
-  }
-
-  if (storedId && readySamples.some((sample) => sample.id === storedId)) {
-    return storedId;
-  }
-
-  return readySamples[0]?.id ?? null;
+  return pickLatestReadyVoiceSampleId(samples);
 }

@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useRef } from "react"
-import { useTexture } from "@react-three/drei"
+import { Component, type ErrorInfo, type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 import type { AgentState } from "@/shared/ui/elevenlabs/agent-state"
+import { createNoiseTexture } from "@/shared/lib/create-noise-texture"
 
 export type { AgentState }
 
@@ -39,32 +39,85 @@ export function Orb({
   getOutputVolume,
   className,
 }: OrbProps) {
+  const [canvasFailed, setCanvasFailed] = useState(false)
+
+  if (canvasFailed) {
+    return <OrbFallback className={className} />
+  }
+
   return (
-    <div className={className ?? "relative h-full w-full"}>
-      <Canvas
-        resize={{ debounce: resizeDebounce }}
-        gl={{
-          alpha: true,
-          antialias: true,
-          premultipliedAlpha: true,
-        }}
-      >
-        <Scene
-          colors={colors}
-          colorsRef={colorsRef}
-          seed={seed}
-          agentState={agentState}
-          volumeMode={volumeMode}
-          manualInput={manualInput}
-          manualOutput={manualOutput}
-          inputVolumeRef={inputVolumeRef}
-          outputVolumeRef={outputVolumeRef}
-          getInputVolume={getInputVolume}
-          getOutputVolume={getOutputVolume}
-        />
-      </Canvas>
-    </div>
+    <OrbErrorBoundary
+      fallback={<OrbFallback className={className} />}
+      onError={() => setCanvasFailed(true)}
+    >
+      <div className={className ?? "relative h-full w-full"}>
+        <Canvas
+          resize={{ debounce: resizeDebounce }}
+          gl={{
+            alpha: true,
+            antialias: true,
+            premultipliedAlpha: true,
+          }}
+        >
+          <Scene
+            colors={colors}
+            colorsRef={colorsRef}
+            seed={seed}
+            agentState={agentState}
+            volumeMode={volumeMode}
+            manualInput={manualInput}
+            manualOutput={manualOutput}
+            inputVolumeRef={inputVolumeRef}
+            outputVolumeRef={outputVolumeRef}
+            getInputVolume={getInputVolume}
+            getOutputVolume={getOutputVolume}
+          />
+        </Canvas>
+      </div>
+    </OrbErrorBoundary>
   )
+}
+
+function OrbFallback({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={
+        className ??
+        "relative h-full w-full animate-pulse rounded-full bg-violet-600/20"
+      }
+    />
+  )
+}
+
+interface OrbErrorBoundaryProps {
+  children: ReactNode
+  fallback: ReactNode
+  onError?: () => void
+}
+
+interface OrbErrorBoundaryState {
+  hasError: boolean
+}
+
+class OrbErrorBoundary extends Component<OrbErrorBoundaryProps, OrbErrorBoundaryState> {
+  state: OrbErrorBoundaryState = { hasError: false }
+
+  static getDerivedStateFromError(): OrbErrorBoundaryState {
+    return { hasError: true }
+  }
+
+  componentDidCatch(_error: Error, _info: ErrorInfo) {
+    this.props.onError?.()
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback
+    }
+
+    return this.props.children
+  }
 }
 
 function Scene({
@@ -99,9 +152,7 @@ function Scene({
   const targetColor1Ref = useRef(new THREE.Color(colors[0]))
   const targetColor2Ref = useRef(new THREE.Color(colors[1]))
   const animSpeedRef = useRef(0.1)
-  const perlinNoiseTexture = useTexture(
-    "https://storage.googleapis.com/eleven-public-cdn/images/perlin-noise.png"
-  )
+  const perlinNoiseTexture = useMemo(() => createNoiseTexture(), [])
 
   const agentRef = useRef<AgentState>(agentState)
   const modeRef = useRef<"auto" | "manual">(volumeMode)

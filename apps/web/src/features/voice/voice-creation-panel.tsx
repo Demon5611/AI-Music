@@ -1,0 +1,133 @@
+"use client";
+
+import type { VoiceSample } from "@ai-music/shared";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
+import { SunoVoiceVerifyFlow } from "@/features/voice/suno-voice-verify-flow";
+import { VoiceSampleCard } from "@/features/voice/voice-sample-card";
+import { VoiceUploadPanel } from "@/features/voice/voice-upload-panel";
+import { voiceUi } from "@/features/voice/voice-classes";
+import { useAuthReady } from "@/shared/hooks/use-auth-ready";
+import { useApi } from "@/shared/providers/api-provider";
+import { appShell } from "@/shared/theme/app-theme";
+import { LoadingPanel } from "@/shared/ui/elevenlabs";
+
+type VoiceCreationVariant = "page" | "landing";
+
+interface VoiceCreationPanelProps {
+  variant?: VoiceCreationVariant;
+}
+
+export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelProps) {
+  const api = useApi();
+  const authReady = useAuthReady();
+  const [sample, setSample] = useState<VoiceSample | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showUploadForm, setShowUploadForm] = useState(true);
+
+  const reloadSample = useCallback(async () => {
+    if (!authReady) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const samples = await api.voiceSamples.list();
+      const latest = samples[0] ?? null;
+      setSample(latest);
+      setShowUploadForm(!latest || isVoiceSampleReadyForGeneration(latest));
+    } catch {
+      setSample(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [api.voiceSamples, authReady]);
+
+  useEffect(() => {
+    void reloadSample();
+  }, [reloadSample]);
+
+  function handleUploadSuccess(sampleId: string) {
+    setShowUploadForm(false);
+    void api.voiceSamples
+      .list()
+      .then((samples) => {
+        const uploaded = samples.find((item) => item.id === sampleId) ?? samples[0] ?? null;
+        setSample(uploaded);
+      })
+      .catch(() => {
+        setSample(null);
+      });
+  }
+
+  function handleVoiceReady() {
+    void reloadSample();
+  }
+
+  function handleRecordNewSample() {
+    setShowUploadForm(true);
+    setSample(null);
+  }
+
+  if (!authReady || isLoading) {
+    return variant === "landing" ? (
+      <LoadingPanel lines={3} />
+    ) : (
+      <LoadingPanel />
+    );
+  }
+
+  const isReady = sample ? isVoiceSampleReadyForGeneration(sample) : false;
+  const needsVerification = sample && !isReady;
+
+  return (
+    <section className={voiceUi.creationSection}>
+      <div>
+        <h2 className={voiceUi.creationSectionTitle}>Создание голоса</h2>
+        <p className={voiceUi.creationSectionHint}>
+          Запишите или загрузите образец, затем пройдите верификацию Suno — без неё вокал в треке
+          не будет вашим.
+        </p>
+      </div>
+
+      {sample ? <VoiceSampleCard sample={sample} /> : null}
+
+      {needsVerification ? (
+        <SunoVoiceVerifyFlow
+          sampleId={sample.id}
+          variant="inline"
+          onRecordNewSample={handleRecordNewSample}
+          onVoiceReady={handleVoiceReady}
+        />
+      ) : null}
+
+      {isReady ? (
+        <div className={voiceUi.verifyReadyActions}>
+          <p className={voiceUi.creationSectionHint}>
+            Голос готов. Можно перейти к генерации текста и музыки.
+          </p>
+          <Link className={appShell.formSubmit} href="/music-create">
+            Создать трек
+          </Link>
+          <button
+            className={voiceUi.upload.toolButton}
+            type="button"
+            onClick={() => setShowUploadForm(true)}
+          >
+            Загрузить новый образец
+          </button>
+        </div>
+      ) : null}
+
+      {showUploadForm || !sample ? (
+        <VoiceUploadPanel
+          embedded
+          variant={variant}
+          onSuccess={handleUploadSuccess}
+        />
+      ) : null}
+    </section>
+  );
+}

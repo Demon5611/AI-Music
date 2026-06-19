@@ -73,6 +73,36 @@ export function IconChevronDown() {
   );
 }
 
+export function IconChevronRight() {
+  return (
+    <svg
+      aria-hidden="true"
+      className={mp.iconSmall}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+    >
+      <path d="m8.25 4.5 7.5 7.5-7.5 7.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconChevronLeft() {
+  return (
+    <svg
+      aria-hidden="true"
+      className={mp.iconSmall}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+    >
+      <path d="M15.75 19.5 8.25 12l7.5-7.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function CharCounter({ current, max }: { current: number; max: number }) {
   const isNearLimit = current / max > 0.9;
 

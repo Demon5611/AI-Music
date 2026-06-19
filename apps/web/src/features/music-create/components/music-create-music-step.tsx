@@ -2,18 +2,17 @@
 
 import type { GenerateSongInput } from "@/features/music-create/hooks/use-music-generation";
 import { mc } from "@/features/music-create/music-create-classes";
-import { MusicLyricsFromPrompt } from "@/features/music-create/music-lyrics-from-prompt";
 import { MusicStyleChips } from "@/features/music-create/music-style-chips-panel";
 import {
   CharCounter,
   IconChevronDown,
+  IconChevronLeft,
   IconClock,
   IconWand,
 } from "@/features/music-create/components/music-create-icons";
 import { cn } from "@/lib/utils";
 
 const STYLE_MAX_LENGTH = 200;
-const LYRICS_MAX_LENGTH = 3000;
 const TITLE_MAX_LENGTH = 100;
 
 const DURATION_OPTIONS = [
@@ -23,7 +22,7 @@ const DURATION_OPTIONS = [
   { value: 120, label: "~2 мин" },
 ] as const;
 
-interface MusicCreateFormProps {
+interface MusicCreateMusicStepProps {
   configured: boolean | null;
   canGenerateWithVoice: boolean;
   isBusy: boolean;
@@ -31,19 +30,15 @@ interface MusicCreateFormProps {
   title: string;
   style: string;
   prompt: string;
-  lyricsBrief: string;
   durationSec: number;
-  voiceSampleId: string | null;
   onTitleChange: (value: string) => void;
   onStyleChange: (value: string) => void;
-  onLyricsBriefChange: (value: string) => void;
-  onManualLyricsChange: (value: string) => void;
-  onApplyGeneratedLyrics: (text: string, suggestedTitle?: string) => void;
   onDurationChange: (value: number) => void;
+  onBack: () => void;
   onGenerate: (input: GenerateSongInput) => void;
 }
 
-export function MusicCreateForm({
+export function MusicCreateMusicStep({
   configured,
   canGenerateWithVoice,
   isBusy,
@@ -51,22 +46,28 @@ export function MusicCreateForm({
   title,
   style,
   prompt,
-  lyricsBrief,
   durationSec,
-  voiceSampleId,
   onTitleChange,
   onStyleChange,
-  onLyricsBriefChange,
-  onManualLyricsChange,
-  onApplyGeneratedLyrics,
   onDurationChange,
+  onBack,
   onGenerate,
-}: MusicCreateFormProps) {
-  const hasLyricsBrief = lyricsBrief.trim().length > 0;
-  const hasManualLyrics = prompt.trim().length > 0;
-
+}: MusicCreateMusicStepProps) {
   return (
     <div className={mc.fieldStack}>
+      <div className={mc.wizardStepHeader}>
+        <span className={mc.wizardStepBadge}>Шаг 2 из 2</span>
+        <h2 className={mc.wizardStepTitle}>Создание музыки</h2>
+        <p className={mc.wizardStepHint}>
+          Выберите стиль, название и длительность — вокал будет вашим Suno Voice.
+        </p>
+      </div>
+
+      <div className={mc.wizardLyricsPreview}>
+        <span className={mc.fieldLabel}>Текст песни</span>
+        <pre className={mc.wizardLyricsPreviewText}>{prompt.trim() || "—"}</pre>
+      </div>
+
       <label className="block">
         <span className={mc.fieldLabel}>Название</span>
         <input
@@ -103,40 +104,6 @@ export function MusicCreateForm({
         </div>
       </div>
 
-      <MusicLyricsFromPrompt
-        configured={configured === true}
-        disabled={isBusy || hasManualLyrics}
-        lyricsBrief={lyricsBrief}
-        onLyricsBriefChange={onLyricsBriefChange}
-        onApply={onApplyGeneratedLyrics}
-      />
-
-      <p className={mc.lyricsOrDivider} aria-hidden>
-        или
-      </p>
-
-      <label className="block">
-        <span className={mc.fieldLabel}>Введи текст песни и его споет AI</span>
-        <div className="relative">
-          <textarea
-            className={cn(mc.textareaLarge, (isBusy || hasLyricsBrief) && mc.fieldDisabled)}
-            disabled={isBusy || hasLyricsBrief}
-            maxLength={LYRICS_MAX_LENGTH}
-            placeholder="Напишите собственные тексты, или куплеты (8 строк) для лучшего результата"
-            value={prompt}
-            onChange={(event) => onManualLyricsChange(event.target.value)}
-          />
-          <div className={mc.counterPosLarge}>
-            <CharCounter current={prompt.length} max={LYRICS_MAX_LENGTH} />
-          </div>
-        </div>
-        {hasLyricsBrief && !hasManualLyrics ? (
-          <p className={mc.meta}>
-            Очистите описание выше или нажмите «Сгенерировать текст», чтобы заполнить это поле.
-          </p>
-        ) : null}
-      </label>
-
       <label className="block">
         <span className={mc.fieldLabel}>
           Длительность (AI не всегда точно соблюдает заданную длительность)
@@ -160,40 +127,45 @@ export function MusicCreateForm({
             <IconChevronDown />
           </span>
         </div>
-        {durationSec > 0 ? (
-          <p className={mc.meta}>
-            AI не гарантирует точную длительность — подсказка добавляется в поле «Стиль музыки».
-            Для коротких треков (~30 сек) используйте краткий стиль и короткие тексты.
-          </p>
-        ) : null}
       </label>
 
-      <button
-        className={mc.submit}
-        disabled={isBusy || configured !== true || !canGenerateWithVoice}
-        type="button"
-        onClick={() =>
-          void onGenerate({
-            prompt,
-            style,
-            title,
-            durationSec,
-            voiceSampleId,
-          })
-        }
-      >
-        {isGenerating ? (
-          <>
-            <span aria-hidden="true" className={mc.submitSpinner} />
-            Запуск...
-          </>
-        ) : (
-          <>
-            <IconWand />
-            Создать музыку
-          </>
-        )}
-      </button>
+      <div className={mc.wizardActions}>
+        <button
+          className={cn(mc.secondaryButton, "inline-flex items-center justify-center gap-2")}
+          disabled={isBusy}
+          type="button"
+          onClick={onBack}
+        >
+          <IconChevronLeft />
+          Назад к тексту
+        </button>
+        <button
+          className={cn(mc.submit, "inline-flex items-center justify-center gap-2")}
+          disabled={isBusy || configured !== true || !canGenerateWithVoice || !prompt.trim()}
+          type="button"
+          onClick={() =>
+            void onGenerate({
+              prompt,
+              style,
+              title,
+              durationSec,
+              voiceSampleId: null,
+            })
+          }
+        >
+          {isGenerating ? (
+            <>
+              <span aria-hidden="true" className={mc.submitSpinner} />
+              Запуск...
+            </>
+          ) : (
+            <>
+              <IconWand />
+              Создать музыку
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

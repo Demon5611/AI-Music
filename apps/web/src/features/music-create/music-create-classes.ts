@@ -57,6 +57,16 @@ export const mc = {
   lyricsVariantActive:
     "rounded-full border border-violet-500 bg-violet-600/15 px-3 py-1.5 text-xs text-violet-500 dark:text-violet-400",
   errorInline: "text-sm text-rose-400",
+  wizardStepHeader: "flex flex-col gap-1.5",
+  wizardStepBadge:
+    "w-fit rounded-full bg-violet-600/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-violet-400",
+  wizardStepTitle: "text-lg font-semibold text-[var(--app-text)]",
+  wizardStepHint: `text-sm ${appShell.textMuted}`,
+  wizardLyricsPreview:
+    "rounded-lg border border-[var(--app-border-subtle)] bg-[var(--app-bg-elevated)] p-3",
+  wizardLyricsPreviewText:
+    "m-0 max-h-40 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-[var(--app-text)]",
+  wizardActions: "grid gap-2 sm:grid-cols-[auto_1fr]",
   voicePickerSection: "flex flex-col gap-2",
   voicePickerToggle:
     "flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--app-border-default)] bg-[var(--app-hover-overlay)] px-4 py-3 text-left transition-colors hover:bg-[var(--app-surface-elevated)]",

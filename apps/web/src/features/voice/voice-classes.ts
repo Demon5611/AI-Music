@@ -47,6 +47,32 @@ export const voiceUi = {
   ].join(" "),
   genderButtonActive:
     "rounded-lg border border-violet-600 bg-violet-600 px-3 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+  verifyInlineShell:
+    "rounded-lg border border-violet-500/20 bg-violet-600/5 p-4",
+  verifyInlineForm: "flex flex-col gap-3",
+  verifyInlineTitle: "m-0 text-sm font-semibold text-[var(--app-text)]",
+  verifyInlineDescription: "m-0 text-sm leading-relaxed text-[var(--app-text-muted)]",
+  verifyReadyActions: "flex flex-col gap-3",
+  sampleCard:
+    "flex flex-col gap-3 rounded-lg border border-[var(--app-border-subtle)] bg-[var(--app-bg-elevated)] p-3",
+  sampleCardHeader: "flex items-start gap-3",
+  sampleCardBody: "min-w-0 flex-1",
+  sampleCardTitle: "text-sm font-medium text-[var(--app-text)]",
+  sampleCardMeta: `flex flex-wrap items-center gap-2 text-xs ${appShell.textMuted}`,
+  sampleCardBadgeReady:
+    "rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-400",
+  sampleCardBadgePending:
+    "rounded-full bg-[var(--app-hover-overlay)] px-2 py-0.5 text-[11px] font-medium text-[var(--app-text-muted)]",
+  sampleCardBadgeWarning:
+    "rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300",
+  sampleCardBadgeError:
+    "rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium text-rose-300",
+  sampleCardPlayer: "min-w-0 flex-1",
+  sampleCardPlayerReady: "opacity-100",
+  sampleCardPlayerRow: "flex items-center gap-2",
+  creationSection: "flex flex-col gap-4",
+  creationSectionTitle: "text-base font-semibold text-[var(--app-text)]",
+  creationSectionHint: `text-sm ${appShell.textMuted}`,
   upload: {
     hint: `text-sm ${appShell.textMuted} mb-1`,
     submit: `${appShell.btnPrimary} w-full`,
