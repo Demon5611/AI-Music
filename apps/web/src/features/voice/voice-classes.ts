@@ -36,6 +36,17 @@ export const voiceUi = {
   ].join(" "),
   scriptPopoverHint: "m-0 mb-2 text-xs text-[var(--app-text-muted)]",
   scriptPopoverText: "m-0 text-sm leading-relaxed text-[var(--app-text)]",
+  genderSelect: "inline-flex flex-wrap items-center gap-2",
+  genderLabel: "text-sm font-medium text-[var(--app-text-muted)]",
+  genderButtons: "inline-flex gap-1",
+  genderButton: [
+    "rounded-lg border border-[var(--app-border-default)] bg-[var(--app-bg-surface)]",
+    "px-3 py-2 text-sm font-semibold text-[var(--app-text)] transition-colors",
+    "hover:border-violet-500/40 hover:bg-violet-600/5",
+    "disabled:cursor-not-allowed disabled:opacity-50",
+  ].join(" "),
+  genderButtonActive:
+    "rounded-lg border border-violet-600 bg-violet-600 px-3 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50",
   upload: {
     hint: `text-sm ${appShell.textMuted} mb-1`,
     submit: `${appShell.btnPrimary} w-full`,

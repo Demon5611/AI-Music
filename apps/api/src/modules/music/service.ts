@@ -20,6 +20,8 @@ import {
   type MusicGenerateLogger,
 } from "./music-persona.js";
 import { ForbiddenError } from "../../common/errors.js";
+import { prisma } from "@ai-music/db";
+import { buildGenderAwareLyricsPrompt, isVocalGender } from "@ai-music/shared";
 
 const musicService = createMusicService();
 
@@ -105,8 +107,15 @@ export function extendMusic(input: {
   return musicService.extendSong(input);
 }
 
-export async function generateLyricsForUser(prompt: string) {
-  const result = await musicService.generateLyrics({ prompt });
+export async function generateLyricsForUser(userId: string, prompt: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { vocalGender: true },
+  });
+  const vocalGender =
+    user?.vocalGender && isVocalGender(user.vocalGender) ? user.vocalGender : null;
+  const genderAwarePrompt = buildGenderAwareLyricsPrompt(prompt, vocalGender);
+  const result = await musicService.generateLyrics({ prompt: genderAwarePrompt });
 
   return {
     provider: result.provider,

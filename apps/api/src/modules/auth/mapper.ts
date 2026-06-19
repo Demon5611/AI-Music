@@ -6,6 +6,7 @@ export function toUserDto(user: User): UserDto {
     id: user.id,
     email: user.email,
     name: user.name,
+    vocalGender: user.vocalGender === "m" || user.vocalGender === "f" ? user.vocalGender : null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };

@@ -30,3 +30,5 @@ export const MAX_VOICE_SAMPLE_DURATION_SEC = 120;
 export const MIN_VOICE_VERIFY_DURATION_SEC = 5;
 
 export const GENERATION_QUEUE_NAME = "generation";
+
+export * from "./vocal-gender.js";

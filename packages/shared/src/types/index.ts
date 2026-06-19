@@ -20,10 +20,15 @@ export type VoiceCloneStatus =
 
 export type CreditTransactionType = "purchase" | "spend" | "refund";
 
+import type { VocalGender } from "../constants/vocal-gender.js";
+
+export type { VocalGender };
+
 export interface User {
   id: string;
   email: string;
   name: string | null;
+  vocalGender: VocalGender | null;
   createdAt: string;
   updatedAt: string;
 }

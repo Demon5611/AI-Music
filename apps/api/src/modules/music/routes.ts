@@ -190,7 +190,7 @@ export async function registerMusicRoutes(app: FastifyInstance) {
       }
 
       try {
-        const result = await generateLyricsForUser(prompt);
+        const result = await generateLyricsForUser(request.userId!, prompt);
         return reply.send(result);
       } catch (error) {
         request.log.error(error);

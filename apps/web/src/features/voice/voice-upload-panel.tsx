@@ -5,6 +5,7 @@ import {
   MAX_VOICE_SAMPLE_DURATION_SEC,
   MIN_VOICE_SAMPLE_DURATION_SEC,
   VOICE_CONSENT_PHRASE,
+  type VocalGender,
 } from "@ai-music/shared";
 import { Mic } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -14,6 +15,8 @@ import {
   VoiceRecordingScriptPanel,
   VoiceRecordingScriptToggle,
 } from "@/features/voice/voice-recording-script-control";
+import { VoiceGenderSelect } from "@/features/voice/voice-gender-select";
+import { useVoiceRecordingScript } from "@/features/voice/hooks/use-voice-recording-script";
 import { VoiceRecordingTipsPanel } from "@/features/voice/voice-recording-tips-panel";
 import { voiceUi } from "@/features/voice/voice-classes";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
@@ -113,6 +116,8 @@ export function VoiceUploadPanel({
   const [recordedDurationHintSec, setRecordedDurationHintSec] = useState<number | null>(null);
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   const [confirmed, setConfirmed] = useState(false);
+  const [vocalGender, setVocalGender] = useState<VocalGender | null>(null);
+  const [isSavingGender, setIsSavingGender] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScriptPanelOpen, setIsScriptPanelOpen] = useState(false);
@@ -125,6 +130,12 @@ export function VoiceUploadPanel({
     startRecording,
     stopRecording,
   } = useVoiceRecorder();
+  const {
+    error: scriptError,
+    generateScript,
+    isGenerating: isScriptGenerating,
+    script: recordingScript,
+  } = useVoiceRecordingScript(vocalGender);
 
   const styles = resolveVoiceUploadStyles(variant);
   const { isLanding, isPage } = styles;
@@ -139,6 +150,43 @@ export function VoiceUploadPanel({
       URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void api.users
+      .getMe()
+      .then((user) => {
+        if (!cancelled) {
+          setVocalGender(user.vocalGender);
+        }
+      })
+      .catch(() => {
+        // Profile gender is optional for the form — ignore load errors.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [api.users, authReady]);
+
+  useEffect(() => {
+    if (!isScriptPanelOpen || !vocalGender || recordingScript || isScriptGenerating) {
+      return;
+    }
+
+    void generateScript();
+  }, [
+    generateScript,
+    isScriptGenerating,
+    isScriptPanelOpen,
+    recordingScript,
+    vocalGender,
+  ]);
 
   useEffect(() => {
     if (!file) {
@@ -182,6 +230,11 @@ export function VoiceUploadPanel({
   function selectUploadedFile(nextFile: File | null) {
     if (nextFile && !confirmed) {
       setError("Подтвердите согласие перед загрузкой файла");
+      return;
+    }
+
+    if (nextFile && !vocalGender) {
+      setError("Выберите пол");
       return;
     }
 
@@ -233,6 +286,21 @@ export function VoiceUploadPanel({
     setPendingInputMode(null);
   }
 
+  async function handleGenderChange(nextGender: VocalGender) {
+    setError(null);
+    setVocalGender(nextGender);
+    setIsSavingGender(true);
+
+    try {
+      const user = await api.users.updateMe({ vocalGender: nextGender });
+      setVocalGender(user.vocalGender);
+    } catch (saveError) {
+      setError(parseApiError(saveError, "Не удалось сохранить пол"));
+    } finally {
+      setIsSavingGender(false);
+    }
+  }
+
   async function handleStopRecording() {
     setRecorderError(null);
     const recording = await stopRecording();
@@ -272,8 +340,19 @@ export function VoiceUploadPanel({
   const isPreviewTooLong =
     previewDurationSec !== null && previewDurationSec > MAX_VOICE_SAMPLE_DURATION_SEC;
   const consentRequired = !confirmed;
-  const voiceInputDisabled =
-    disabled || isSubmitting || consentRequired || Boolean(pendingInputMode);
+  const genderRequired = !vocalGender;
+  const recordInputDisabled =
+    disabled ||
+    isSubmitting ||
+    consentRequired ||
+    genderRequired ||
+    Boolean(pendingInputMode);
+  const uploadInputDisabled =
+    disabled ||
+    isSubmitting ||
+    consentRequired ||
+    genderRequired ||
+    Boolean(pendingInputMode);
   const consentNoticeClassName = styles.consentNotice;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -287,6 +366,11 @@ export function VoiceUploadPanel({
 
     if (!confirmed) {
       setError("Подтвердите согласие на использование голоса");
+      return;
+    }
+
+    if (!vocalGender) {
+      setError("Выберите пол");
       return;
     }
 
@@ -383,6 +467,12 @@ export function VoiceUploadPanel({
             <p className={consentNoticeClassName}>
               Без подтверждения согласия запись голоса и загрузка файла недоступны.
             </p>
+          ) : genderRequired ? (
+            <p className={consentNoticeClassName}>
+              {inputMode === "record"
+                ? "Выберите пол перед записью голоса."
+                : "Выберите пол перед загрузкой файла."}
+            </p>
           ) : null}
         </div>
 
@@ -439,11 +529,16 @@ export function VoiceUploadPanel({
                 {!isRecording ? (
                   <button
                     className={upload.recordButton}
-                    disabled={voiceInputDisabled}
+                    disabled={recordInputDisabled}
                     type="button"
                     onClick={() => {
                       if (!confirmed) {
                         setError("Подтвердите согласие перед записью голоса");
+                        return;
+                      }
+
+                      if (!vocalGender) {
+                        setError("Выберите пол");
                         return;
                       }
 
@@ -477,28 +572,46 @@ export function VoiceUploadPanel({
                   </>
                 )}
                 <VoiceRecordingScriptToggle
-                  disabled={disabled || isSubmitting}
+                  disabled={disabled || isSubmitting || isSavingGender || consentRequired}
                   open={isScriptPanelOpen}
                   onToggle={() => setIsScriptPanelOpen((value) => !value)}
                 />
+                <VoiceGenderSelect
+                  disabled={disabled || isSubmitting || isRecording || isSavingGender || consentRequired}
+                  value={vocalGender}
+                  onChange={(value) => void handleGenderChange(value)}
+                />
               </div>
-              <VoiceRecordingScriptPanel open={isScriptPanelOpen} />
+              <VoiceRecordingScriptPanel
+                error={scriptError}
+                isGenerating={isScriptGenerating}
+                open={isScriptPanelOpen}
+                script={recordingScript}
+              />
             </div>
           </div>
         ) : (
-          <label className={fieldClassName}>
+          <div className={fieldClassName}>
             <span className={labelClassName}>Загрузка файла</span>
-            <input
-              key={fileInputKey}
-              className={inputClassName}
-              disabled={voiceInputDisabled}
-              type="file"
-              accept="audio/*"
-              onChange={(event) => {
-                selectUploadedFile(event.target.files?.[0] ?? null);
-              }}
-            />
-          </label>
+            <div className={upload.recordRow}>
+              <input
+                key={fileInputKey}
+                aria-label="Выберите аудиофайл голоса"
+                className={inputClassName}
+                disabled={uploadInputDisabled}
+                type="file"
+                accept="audio/*"
+                onChange={(event) => {
+                  selectUploadedFile(event.target.files?.[0] ?? null);
+                }}
+              />
+              <VoiceGenderSelect
+                disabled={disabled || isSubmitting || isSavingGender || consentRequired}
+                value={vocalGender}
+                onChange={(value) => void handleGenderChange(value)}
+              />
+            </div>
+          </div>
         )}
 
         {file && previewUrl ? (
@@ -543,7 +656,9 @@ export function VoiceUploadPanel({
 
         <button
           className={submitClassName}
-          disabled={disabled || isSubmitting || isRecording || consentRequired || !file}
+          disabled={
+            disabled || isSubmitting || isRecording || consentRequired || genderRequired || !file
+          }
           type="submit"
         >
           {isSubmitting ? "Загрузка..." : "Загрузить образец"}
