@@ -401,7 +401,7 @@ export function SunoVoiceVerifyFlow({
   const shellContent = (
     <div className={formClassName}>
         {isInline ? (
-          <h2 className={titleClassName}>Верификация голоса Suno</h2>
+          <h2 className={titleClassName}>Верификация голоса</h2>
         ) : (
           <h1 className={titleClassName}>Создание вашего голоса</h1>
         )}

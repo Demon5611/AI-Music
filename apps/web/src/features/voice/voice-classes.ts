@@ -12,7 +12,7 @@ export const voiceUi = {
   ].join(" "),
   consentContent: "flex min-w-0 flex-col gap-1",
   consentTitle: "text-sm font-medium leading-snug text-[var(--app-text)]",
-  consentPhrase: "text-sm leading-snug text-[var(--app-text-muted)]",
+  consentPhrase: "text-xl leading-snug text-[var(--app-text-muted)]",
   recordingTips:
     "rounded-lg border border-violet-500/20 bg-violet-600/5 p-3",
   recordingTipsTitle: "m-0 mb-2 text-sm font-medium text-[var(--app-text)]",
