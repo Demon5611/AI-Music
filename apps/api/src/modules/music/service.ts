@@ -21,9 +21,29 @@ import {
 } from "./music-persona.js";
 import { ForbiddenError, BadRequestError } from "../../common/errors.js";
 import { prisma } from "@ai-music/db";
-import { buildGenderAwareLyricsPrompt, isVocalGender, resolveLyricsBriefMaxLength, SUNO_LYRICS_PROMPT_MAX_LENGTH } from "@ai-music/shared";
+import {
+  buildGenderAwareLyricsPrompt,
+  checkContentAllowed,
+  CONTENT_MODERATION_ERROR_RU,
+  isVocalGender,
+  resolveLyricsBriefMaxLength,
+  SUNO_LYRICS_PROMPT_MAX_LENGTH,
+} from "@ai-music/shared";
 
 const musicService = createMusicService();
+const CONTENT_MODERATION_ERROR_CODE = "CONTENT_MODERATION";
+
+function assertModerationForNonEmptyText(value: string): void {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return;
+  }
+
+  const moderationResult = checkContentAllowed(trimmed);
+  if (!moderationResult.allowed) {
+    throw new BadRequestError(moderationResult.reasonMessageRu, CONTENT_MODERATION_ERROR_CODE);
+  }
+}
 
 export function getMusicTestStatus() {
   const config = resolveMusicProviderConfig();
@@ -40,6 +60,10 @@ export async function generateMusicForUser(
   options: { voiceSampleId?: string } = {},
   log?: MusicGenerateLogger,
 ) {
+  assertModerationForNonEmptyText(input.prompt);
+  assertModerationForNonEmptyText(input.style ?? "");
+  assertModerationForNonEmptyText(input.title ?? "");
+
   const persona = await resolveMusicPersonaForUser(userId, options.voiceSampleId, log);
 
   if (!persona) {
@@ -126,6 +150,8 @@ export async function generateLyricsForUser(userId: string, prompt: string) {
     );
   }
 
+  assertModerationForNonEmptyText(trimmedPrompt);
+
   const genderAwarePrompt = buildGenderAwareLyricsPrompt(trimmedPrompt, vocalGender);
 
   if (genderAwarePrompt.length > SUNO_LYRICS_PROMPT_MAX_LENGTH) {
@@ -133,6 +159,8 @@ export async function generateLyricsForUser(userId: string, prompt: string) {
       `Описание слишком длинное для Suno — максимум ${briefMaxLength} символов.`,
     );
   }
+
+  assertModerationForNonEmptyText(genderAwarePrompt);
 
   const result = await musicService.generateLyrics({ prompt: genderAwarePrompt });
 
@@ -145,14 +173,19 @@ export async function generateLyricsForUser(userId: string, prompt: string) {
 
 export async function getLyricsGenerationStatus(taskId: string) {
   const status = await musicService.getLyricsGenerationStatus(taskId);
+  const hasBlockedLyrics =
+    status.status === "completed" &&
+    (status.lyrics ?? []).some((item) => !checkContentAllowed(item.text).allowed);
+  const hasProviderSensitiveWordError = status.rawStatus === "SENSITIVE_WORD_ERROR";
+  const moderationBlocked = hasBlockedLyrics || hasProviderSensitiveWordError;
 
   return {
     taskId: status.taskId,
-    status: status.status,
+    status: moderationBlocked ? "failed" : status.status,
     provider: status.provider,
-    rawStatus: status.rawStatus,
-    lyrics: status.lyrics,
-    errorMessage: status.errorMessage,
+    rawStatus: moderationBlocked ? "CONTENT_MODERATION" : status.rawStatus,
+    lyrics: moderationBlocked ? undefined : status.lyrics,
+    errorMessage: moderationBlocked ? CONTENT_MODERATION_ERROR_RU : status.errorMessage,
   };
 }
 

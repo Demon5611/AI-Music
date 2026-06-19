@@ -2,7 +2,7 @@
 
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import type { MusicLyricsStatusResponseDto } from "@ai-music/shared";
-import { isVocalGender, resolveLyricsBriefMaxLength } from "@ai-music/shared";
+import { checkContentAllowed, isVocalGender, resolveLyricsBriefMaxLength } from "@ai-music/shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
@@ -107,6 +107,12 @@ export function MusicLyricsFromPrompt({
 
     if (!prompt) {
       setError("Введите описание текста");
+      return;
+    }
+
+    const moderationResult = checkContentAllowed(prompt);
+    if (!moderationResult.allowed) {
+      setError(moderationResult.reasonMessageRu);
       return;
     }
 

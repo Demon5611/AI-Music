@@ -147,6 +147,11 @@ export async function registerMusicRoutes(app: FastifyInstance) {
         return reply.send(result);
       } catch (error) {
         request.log.error(error);
+
+        if (isAppError(error)) {
+          return sendAppError(reply, error);
+        }
+
         return sendMusicError(reply, error);
       }
     },
