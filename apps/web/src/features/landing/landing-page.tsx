@@ -44,21 +44,6 @@ export function LandingPage() {
           </Link>
         </div>
       </section>
-
-      <footer className={lp.footer}>
-        <span>© 2026 AI Music</span>
-        <div className={lp.footerLinks}>
-          <Link href="/music-create" className={lp.footerLink}>
-            Создать
-          </Link>
-          <Link href="/history" className={lp.footerLink}>
-            История
-          </Link>
-          <Link href="/pricing" className={lp.footerLink}>
-            Тарифы
-          </Link>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -25,8 +25,4 @@ export const lp = {
   ctaActions: "flex items-center justify-center gap-3 flex-wrap",
   ctaPrimary: appShell.btnPrimaryPill,
   ctaSecondary: appShell.btnSecondaryOutline,
-  footer:
-    "border-t border-[var(--app-border-subtle)] px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--app-text-subtle)]",
-  footerLinks: "flex gap-6",
-  footerLink: "hover:text-[var(--app-text-muted)] transition-colors",
 } as const;

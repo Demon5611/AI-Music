@@ -6,9 +6,10 @@ import { useCallback, useEffect, useState } from "react";
 import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
 import { SunoVoiceVerifyFlow } from "@/features/voice/suno-voice-verify-flow";
 import { VoiceSampleCard } from "@/features/voice/voice-sample-card";
+import { VoiceAuthGate } from "@/features/voice/voice-auth-gate";
 import { VoiceUploadPanel } from "@/features/voice/voice-upload-panel";
 import { voiceUi } from "@/features/voice/voice-classes";
-import { useAuthReady } from "@/shared/hooks/use-auth-ready";
+import { useAuthSession } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { appShell } from "@/shared/theme/app-theme";
 import { LoadingPanel } from "@/shared/ui/elevenlabs";
@@ -21,13 +22,14 @@ interface VoiceCreationPanelProps {
 
 export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelProps) {
   const api = useApi();
-  const authReady = useAuthReady();
+  const { isLoaded, isSignedIn, authReady } = useAuthSession();
   const [sample, setSample] = useState<VoiceSample | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(true);
 
   const reloadSample = useCallback(async () => {
     if (!authReady) {
+      setIsLoading(false);
       return;
     }
 
@@ -79,12 +81,16 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
     setSample(updated);
   }, []);
 
-  if (!authReady || isLoading) {
-    return variant === "landing" ? (
-      <LoadingPanel lines={3} />
-    ) : (
-      <LoadingPanel />
-    );
+  if (!isLoaded) {
+    return variant === "landing" ? <LoadingPanel lines={3} /> : <LoadingPanel />;
+  }
+
+  if (!isSignedIn) {
+    return <VoiceAuthGate variant={variant} />;
+  }
+
+  if (isLoading) {
+    return variant === "landing" ? <LoadingPanel lines={3} /> : <LoadingPanel />;
   }
 
   const isReady = sample ? isVoiceSampleReadyForGeneration(sample) : false;

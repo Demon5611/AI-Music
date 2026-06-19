@@ -19,7 +19,7 @@ import { useVoiceRecordingScript } from "@/features/voice/hooks/use-voice-record
 import { VoiceRecordingTipsPanel } from "@/features/voice/voice-recording-tips-panel";
 import { voiceUi } from "@/features/voice/voice-classes";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
-import { useAuthReady } from "@/shared/hooks/use-auth-ready";
+import { useAuthSession } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { lp } from "@/features/landing/landing-classes";
 import { LoadingPanel } from "@/shared/ui/elevenlabs";
@@ -106,7 +106,7 @@ export function VoiceUploadPanel({
   variant = "page",
 }: VoiceUploadPanelProps) {
   const api = useApi();
-  const authReady = useAuthReady();
+  const { isLoaded, isSignedIn, authReady } = useAuthSession();
   const [file, setFile] = useState<File | null>(null);
   const [fileSource, setFileSource] = useState<VoiceInputMode | null>(null);
   const [inputMode, setInputMode] = useState<VoiceInputMode>("record");
@@ -405,18 +405,12 @@ export function VoiceUploadPanel({
     }
   }
 
-  if (!authReady) {
-    if (isLanding) {
-      return (
-        <div className={lp.voiceWrap}>
-          <div className={lp.voiceCard}>
-            <LoadingPanel lines={3} />
-          </div>
-        </div>
-      );
-    }
+  if (!isLoaded) {
+    return <LoadingPanel lines={isLanding ? 3 : 2} />;
+  }
 
-    return <LoadingPanel />;
+  if (!isSignedIn) {
+    return null;
   }
 
   const formClassName = styles.form;
