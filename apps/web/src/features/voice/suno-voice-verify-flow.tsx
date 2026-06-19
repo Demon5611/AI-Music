@@ -92,6 +92,13 @@ export function SunoVoiceVerifyFlow({
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [pollEnabled, setPollEnabled] = useState(false);
   const pollCountRef = useRef(0);
+  const bootstrappedSampleIdRef = useRef<string | null>(null);
+  const onVoiceReadyRef = useRef(onVoiceReady);
+  const onRecordNewSampleRef = useRef(onRecordNewSample);
+  const apiRef = useRef(api);
+  apiRef.current = api;
+  onVoiceReadyRef.current = onVoiceReady;
+  onRecordNewSampleRef.current = onRecordNewSample;
   const {
     elapsedSec,
     error: recorderError,
@@ -110,13 +117,13 @@ export function SunoVoiceVerifyFlow({
   }, []);
 
   const handleVoiceReady = useCallback(() => {
-    if (onVoiceReady) {
-      onVoiceReady();
+    if (onVoiceReadyRef.current) {
+      onVoiceReadyRef.current();
       return;
     }
 
     router.push("/music-create");
-  }, [onVoiceReady, router]);
+  }, [router]);
 
   const statusQuery = usePollingQuery({
     queryKey: ["suno-voice-status", sampleId],
@@ -174,6 +181,10 @@ export function SunoVoiceVerifyFlow({
       return;
     }
 
+    if (bootstrappedSampleIdRef.current === sampleId) {
+      return;
+    }
+
     let cancelled = false;
 
     async function bootstrap() {
@@ -181,7 +192,7 @@ export function SunoVoiceVerifyFlow({
       setError(null);
 
       try {
-        const current = await api.voiceSamples.getSunoVoiceStatus(sampleId!);
+        const current = await apiRef.current.voiceSamples.getSunoVoiceStatus(sampleId!);
 
         if (cancelled) {
           return;
@@ -191,15 +202,17 @@ export function SunoVoiceVerifyFlow({
 
         if (isVoiceSampleReadyForGeneration(current)) {
           handleVoiceReady();
+          bootstrappedSampleIdRef.current = sampleId;
           return;
         }
 
         if (current.voiceCloneStatus === "failed" || current.voiceCloneStatus === "awaiting_verification") {
+          bootstrappedSampleIdRef.current = sampleId;
           return;
         }
 
         const prepared = shouldAutoPrepare(current.voiceCloneStatus)
-          ? await api.voiceSamples.prepareSunoVoice(sampleId!)
+          ? await apiRef.current.voiceSamples.prepareSunoVoice(sampleId!)
           : current;
 
         if (cancelled) {
@@ -210,12 +223,15 @@ export function SunoVoiceVerifyFlow({
 
         if (isVoiceSampleReadyForGeneration(prepared)) {
           handleVoiceReady();
+          bootstrappedSampleIdRef.current = sampleId;
           return;
         }
 
         if (isProcessingStatus(prepared.voiceCloneStatus)) {
           startPolling();
         }
+
+        bootstrappedSampleIdRef.current = sampleId;
       } catch (bootstrapError) {
         if (!cancelled) {
           setError(parseApiError(bootstrapError, "Не удалось настроить голос Suno"));
@@ -232,7 +248,7 @@ export function SunoVoiceVerifyFlow({
     return () => {
       cancelled = true;
     };
-  }, [api, authReady, handleVoiceReady, sampleId, startPolling]);
+  }, [authReady, handleVoiceReady, sampleId, startPolling]);
 
   useEffect(() => {
     if (!sample) {
@@ -326,8 +342,9 @@ export function SunoVoiceVerifyFlow({
     pollCountRef.current = 0;
     setIsBootstrapping(true);
     stopPolling();
+    bootstrappedSampleIdRef.current = null;
 
-    void api.voiceSamples
+    void apiRef.current.voiceSamples
       .prepareSunoVoice(sampleId, { restart: true })
       .then((next) => {
         setSample(next);
@@ -342,12 +359,17 @@ export function SunoVoiceVerifyFlow({
         }
       })
       .catch((retryError) => setError(parseApiError(retryError, "Не удалось настроить голос Suno")))
-      .finally(() => setIsBootstrapping(false));
+      .finally(() => {
+        setIsBootstrapping(false);
+        if (sampleId) {
+          bootstrappedSampleIdRef.current = sampleId;
+        }
+      });
   }
 
   function handleRecordNewSample() {
-    if (onRecordNewSample) {
-      onRecordNewSample();
+    if (onRecordNewSampleRef.current) {
+      onRecordNewSampleRef.current();
       return;
     }
 

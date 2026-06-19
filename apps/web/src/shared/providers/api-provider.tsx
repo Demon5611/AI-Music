@@ -6,6 +6,7 @@ import {
   createContext,
   useContext,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import { createDevAuthToken, env } from "@/shared/config/env";
@@ -27,14 +28,17 @@ export function DevApiProvider({ children }: { children: ReactNode }) {
 
 export function ClerkApiProvider({ children }: { children: ReactNode }) {
   const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+
+  getTokenRef.current = getToken;
 
   const api = useMemo(
     () =>
       createApi({
         baseUrl: env.apiUrl,
-        getAuthToken: () => getToken(),
+        getAuthToken: () => getTokenRef.current(),
       }),
-    [getToken],
+    [],
   );
 
   return <ApiContext.Provider value={api}>{children}</ApiContext.Provider>;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AiProcessingStatus, LoadingPanel } from "@/shared/ui/elevenlabs";
+import { AiProcessingStatus } from "@/shared/ui/elevenlabs";
 
 const WAIT_HINT = "Обычно требуется около 1 минуты — не закрывайте страницу.";
 const EXPECTED_WAIT_SEC = 60;
@@ -17,7 +17,7 @@ interface VoiceCloneWaitingPanelProps {
   label: string;
 }
 
-function VoiceCloneWaitingPanelContent({ active, label }: VoiceCloneWaitingPanelProps) {
+export function VoiceCloneWaitingPanel({ active, label }: VoiceCloneWaitingPanelProps) {
   const [elapsedSec, setElapsedSec] = useState(0);
 
   useEffect(() => {
@@ -47,18 +47,4 @@ function VoiceCloneWaitingPanelContent({ active, label }: VoiceCloneWaitingPanel
       meta={`${slowHint} Прошло: ${formatElapsed(elapsedSec)}.`}
     />
   );
-}
-
-export function VoiceCloneWaitingPanel({ active, label }: VoiceCloneWaitingPanelProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <LoadingPanel lines={2} />;
-  }
-
-  return <VoiceCloneWaitingPanelContent active={active} label={label} />;
 }

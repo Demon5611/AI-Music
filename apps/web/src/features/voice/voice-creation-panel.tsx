@@ -43,7 +43,7 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
     } finally {
       setIsLoading(false);
     }
-  }, [api.voiceSamples, authReady]);
+  }, [api, authReady]);
 
   useEffect(() => {
     void reloadSample();
@@ -62,14 +62,14 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
       });
   }
 
-  function handleVoiceReady() {
+  const handleVoiceReady = useCallback(() => {
     void reloadSample();
-  }
+  }, [reloadSample]);
 
-  function handleRecordNewSample() {
+  const handleRecordNewSample = useCallback(() => {
     setShowUploadForm(true);
     setSample(null);
-  }
+  }, []);
 
   if (!authReady || isLoading) {
     return variant === "landing" ? (
