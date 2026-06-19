@@ -58,7 +58,7 @@ function resolveStatusLabel(sample: VoiceSample | null): string {
     case "awaiting_verification":
       return "Запишите фразу ниже тем же голосом и манерой, что при записи образца";
     case "cloning":
-      return "Создаём ваш голос в Suno...";
+      return "Создаём ваш голос в AI Music...";
     case "ready":
       return "Голос готов";
     case "failed":
