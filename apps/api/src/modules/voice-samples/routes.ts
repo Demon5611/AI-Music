@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { requireAuth } from "../../common/require-auth.js";
+import { RATE_LIMITS, userRateLimitRouteConfig } from "../../common/rate-limit.js";
 import { sendAppError } from "../../common/errors.js";
 import {
   createVoiceSample,
@@ -103,7 +104,13 @@ export async function registerVoiceSampleRoutes(app: FastifyInstance) {
 
   app.post<{ Params: { id: string }; Body: { restart?: boolean } }>(
     "/api/voice-samples/:id/suno-voice/prepare",
-    { preHandler: requireAuth },
+    {
+      config: userRateLimitRouteConfig(
+        RATE_LIMITS.voicePrepare.max,
+        RATE_LIMITS.voicePrepare.timeWindowMs,
+      ),
+      preHandler: requireAuth,
+    },
     async (request, reply) => {
       try {
         const sample = await prepareSunoVoiceClone(
@@ -136,7 +143,13 @@ export async function registerVoiceSampleRoutes(app: FastifyInstance) {
 
   app.post<{ Params: { id: string } }>(
     "/api/voice-samples/:id/suno-voice/verify",
-    { preHandler: requireAuth },
+    {
+      config: userRateLimitRouteConfig(
+        RATE_LIMITS.voiceVerify.max,
+        RATE_LIMITS.voiceVerify.timeWindowMs,
+      ),
+      preHandler: requireAuth,
+    },
     async (request, reply) => {
       try {
         let fileBuffer: Buffer | null = null;

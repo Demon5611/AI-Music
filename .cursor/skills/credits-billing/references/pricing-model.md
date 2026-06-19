@@ -17,7 +17,10 @@ Free tier: `FREE_DEMO_CREDITS = 3` on first auth sync (`sync-auth-user.ts`).
 | Operation                                            | Constant                       | Default |
 | ---------------------------------------------------- | ------------------------------ | ------- |
 | Full generation (voice + song + conversion + upload) | `GENERATION_CREDIT_COST`       | 10      |
+| Suno music generate (`/api/music/generate`)          | `GENERATION_CREDIT_COST`       | 10      |
 | Voice conversion only                                | `VOICE_CONVERSION_CREDIT_COST` | 5       |
+| Suno voice prepare (онбординг)                      | `VOICE_CLONE_PREPARE_CREDIT_COST` | 0 (бесплатно) |
+| Suno voice verify (онбординг)                      | `VOICE_CLONE_VERIFY_CREDIT_COST`  | 0 (бесплатно) |
 
 Store per-job cost in `GenerationJob.creditsCost` for accurate refunds.
 

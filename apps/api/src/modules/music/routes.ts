@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { requireAuth } from "../../common/require-auth.js";
+import { RATE_LIMITS, userRateLimitRouteConfig } from "../../common/rate-limit.js";
 import { isAppError, sendAppError } from "../../common/errors.js";
 import { sendMusicError } from "./handle-music-error.js";
 import { SUNO_LYRICS_PROMPT_MAX_LENGTH } from "@ai-music/shared";
@@ -112,7 +113,13 @@ export async function registerMusicRoutes(app: FastifyInstance) {
 
   app.post<{ Body: GenerateBody }>(
     "/api/music/generate",
-    { preHandler: requireAuth },
+    {
+      config: userRateLimitRouteConfig(
+        RATE_LIMITS.musicGenerate.max,
+        RATE_LIMITS.musicGenerate.timeWindowMs,
+      ),
+      preHandler: requireAuth,
+    },
     async (request, reply) => {
       const prompt = request.body.prompt?.trim();
 

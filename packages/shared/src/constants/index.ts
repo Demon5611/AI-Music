@@ -11,6 +11,12 @@ export const GENERATION_CREDIT_COST = 10;
 
 export const VOICE_CONVERSION_CREDIT_COST = 5;
 
+/** Онбординг голоса — бесплатно. */
+export const VOICE_CLONE_PREPARE_CREDIT_COST = 0;
+
+/** Онбординг голоса — бесплатно. */
+export const VOICE_CLONE_VERIFY_CREDIT_COST = 0;
+
 export const FREE_DEMO_CREDITS = 3;
 
 export const CREDIT_PACKAGES = {

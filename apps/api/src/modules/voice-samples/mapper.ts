@@ -5,12 +5,9 @@ export function toVoiceSampleDto(sample: VoiceSample): VoiceSampleDto {
   return {
     id: sample.id,
     userId: sample.userId,
-    r2Key: sample.r2Key,
     durationSec: sample.durationSec,
     status: sample.status as VoiceSampleDto["status"],
     consentConfirmed: sample.consentConfirmed,
-    sunoVoiceId: sample.sunoVoiceId,
-    sunoVoiceTaskId: sample.sunoVoiceTaskId,
     sunoValidatePhrase: sample.sunoValidatePhrase,
     voiceCloneStatus: sample.voiceCloneStatus as VoiceSampleDto["voiceCloneStatus"],
     voiceCloneError: sample.voiceCloneError,

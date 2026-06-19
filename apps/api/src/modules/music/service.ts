@@ -20,11 +20,13 @@ import {
   type MusicGenerateLogger,
 } from "./music-persona.js";
 import { ForbiddenError, BadRequestError } from "../../common/errors.js";
+import { refundCredits, spendCredits } from "../credits/service.js";
 import { prisma } from "@ai-music/db";
 import {
   buildGenderAwareLyricsPrompt,
   checkContentAllowed,
   CONTENT_MODERATION_ERROR_RU,
+  GENERATION_CREDIT_COST,
   isVocalGender,
   resolveLyricsBriefMaxLength,
   SUNO_LYRICS_PROMPT_MAX_LENGTH,
@@ -88,17 +90,28 @@ export async function generateMusicForUser(
     "Submitting Suno music generation with persona",
   );
 
-  const result = await musicService.generateSong(songInput);
-  const record = await createMusicGenerationRecord(
-    buildSongRecordInput(userId, input, result.taskId),
-  );
+  await spendCredits(userId, GENERATION_CREDIT_COST, "music_generate");
 
-  return {
-    recordId: record.id,
-    provider: result.provider,
-    taskId: result.taskId,
-    status: result.status,
-  };
+  try {
+    const result = await musicService.generateSong(songInput);
+    const record = await createMusicGenerationRecord(
+      buildSongRecordInput(userId, input, result.taskId),
+    );
+
+    return {
+      recordId: record.id,
+      provider: result.provider,
+      taskId: result.taskId,
+      status: result.status,
+    };
+  } catch (error) {
+    await refundCredits(
+      userId,
+      GENERATION_CREDIT_COST,
+      `music_generate_failed:${userId}`,
+    ).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function getMusicGenerationStatusForUser(taskId: string, userId?: string) {

@@ -4,6 +4,7 @@ import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import { fileURLToPath } from "node:url";
 import { isAppError } from "./common/errors.js";
+import { registerRateLimitPlugin } from "./common/rate-limit.js";
 import { registerAuthPlugin } from "./modules/auth/plugin.js";
 import { registerAuthRoutes } from "./modules/auth/routes.js";
 import { registerUserRoutes } from "./modules/users/routes.js";
@@ -30,6 +31,8 @@ export async function buildApp() {
   await app.register(multipart, {
     limits: { fileSize: 100 * 1024 * 1024 },
   });
+
+  await registerRateLimitPlugin(app);
 
   await registerAuthPlugin(app);
 

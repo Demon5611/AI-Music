@@ -33,15 +33,13 @@ export interface User {
   updatedAt: string;
 }
 
+/** Public API shape — без storage keys и Suno task/persona IDs. */
 export interface VoiceSample {
   id: string;
   userId: string;
-  r2Key: string;
   durationSec: number;
   status: VoiceSampleStatus;
   consentConfirmed: boolean;
-  sunoVoiceId: string | null;
-  sunoVoiceTaskId: string | null;
   sunoValidatePhrase: string | null;
   voiceCloneStatus: VoiceCloneStatus;
   voiceCloneError: string | null;
