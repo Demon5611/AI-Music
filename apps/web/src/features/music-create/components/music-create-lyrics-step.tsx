@@ -7,6 +7,7 @@ import {
   IconChevronRight,
 } from "@/features/music-create/components/music-create-icons";
 import { cn } from "@/lib/utils";
+import { checkContentAllowed } from "@ai-music/shared";
 
 const LYRICS_MAX_LENGTH = 3000;
 
@@ -33,7 +34,18 @@ export function MusicCreateLyricsStep({
 }: MusicCreateLyricsStepProps) {
   const hasLyricsBrief = lyricsBrief.trim().length > 0;
   const hasManualLyrics = prompt.trim().length > 0;
-  const canContinue = hasManualLyrics;
+  const manualLyricsModerationResult = checkContentAllowed(prompt);
+  const manualLyricsModerationError =
+    manualLyricsModerationResult.allowed ? null : manualLyricsModerationResult.reasonMessageRu;
+  const canContinue = hasManualLyrics && !manualLyricsModerationError;
+
+  function handleContinue() {
+    if (manualLyricsModerationError) {
+      return;
+    }
+
+    onContinue();
+  }
 
   return (
     <div className={mc.fieldStack}>
@@ -77,13 +89,16 @@ export function MusicCreateLyricsStep({
             Очистите описание выше или нажмите «Сгенерировать текст», чтобы заполнить это поле.
           </p>
         ) : null}
+        {hasManualLyrics && manualLyricsModerationError ? (
+          <p className={cn(mc.errorInline, "mt-2")}>{manualLyricsModerationError}</p>
+        ) : null}
       </label>
 
       <button
         className={cn(mc.submit, "inline-flex items-center justify-center gap-2")}
         disabled={isBusy || !canContinue}
         type="button"
-        onClick={onContinue}
+        onClick={handleContinue}
       >
         Далее: создание музыки
         <IconChevronRight />

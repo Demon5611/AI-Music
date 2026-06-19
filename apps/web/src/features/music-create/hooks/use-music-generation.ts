@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { useApi } from "@/shared/providers/api-provider";
-import type { MusicStatusResponseDto } from "@ai-music/shared";
+import { checkContentAllowed, type MusicStatusResponseDto } from "@ai-music/shared";
 
 const POLL_INTERVAL_MS = 12_000;
 
@@ -25,6 +25,19 @@ export interface GenerateSongInput {
 
 function isMusicStatusTerminal(data: MusicStatusResponseDto | undefined): boolean {
   return !data || data.status === "completed" || data.status === "failed";
+}
+
+function resolveInputModerationError(input: GenerateSongInput): string | null {
+  const checks = [input.prompt, input.style, input.title];
+
+  for (const value of checks) {
+    const moderationResult = checkContentAllowed(value);
+    if (!moderationResult.allowed) {
+      return moderationResult.reasonMessageRu;
+    }
+  }
+
+  return null;
 }
 
 export function useMusicGeneration() {
@@ -96,6 +109,12 @@ export function useMusicGeneration() {
 
   const generate = useCallback(
     async (input: GenerateSongInput) => {
+      const moderationError = resolveInputModerationError(input);
+      if (moderationError) {
+        setError(moderationError);
+        return;
+      }
+
       setError(null);
       setIsGenerating(true);
       setStatus(null);
