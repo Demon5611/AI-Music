@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import {
   AudioPlayerButton,
-  AudioPlayerDuration,
   AudioPlayerProgress,
   AudioPlayerProvider,
   AudioPlayerTime,
@@ -33,8 +32,6 @@ function AudioPreviewControls({ playbackUrl }: { playbackUrl: string }) {
       </div>
       <div className={styles.audioPreviewTime}>
         <AudioPlayerTime />
-        <span>/</span>
-        <AudioPlayerDuration />
       </div>
     </div>
   );

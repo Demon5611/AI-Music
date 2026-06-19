@@ -64,7 +64,9 @@ export const voiceUi = {
   sampleCardBadgePending:
     "rounded-full bg-[var(--app-hover-overlay)] px-2 py-0.5 text-[11px] font-medium text-[var(--app-text-muted)]",
   sampleCardBadgeWarning:
-    "rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300",
+    "rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300",
+  sampleCardBadgeVerification:
+    "rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-rose-600 dark:text-rose-400",
   sampleCardBadgeError:
     "rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium text-rose-300",
   sampleCardPlayer: "min-w-0 flex-1",

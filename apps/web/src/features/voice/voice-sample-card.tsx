@@ -25,11 +25,11 @@ function resolveStatusBadgeClass(sample: VoiceSample): string {
     return voiceUi.sampleCardBadgeError;
   }
 
-  if (
-    sample.voiceCloneStatus === "awaiting_verification" ||
-    sample.voiceCloneStatus === "preparing" ||
-    sample.voiceCloneStatus === "cloning"
-  ) {
+  if (sample.voiceCloneStatus === "awaiting_verification") {
+    return voiceUi.sampleCardBadgeVerification;
+  }
+
+  if (sample.voiceCloneStatus === "preparing" || sample.voiceCloneStatus === "cloning") {
     return voiceUi.sampleCardBadgeWarning;
   }
 
