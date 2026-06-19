@@ -15,9 +15,14 @@ function formatElapsed(seconds: number): string {
 interface VoiceCloneWaitingPanelProps {
   active: boolean;
   label: string;
+  onElapsedChange?: (elapsedSec: number) => void;
 }
 
-export function VoiceCloneWaitingPanel({ active, label }: VoiceCloneWaitingPanelProps) {
+export function VoiceCloneWaitingPanel({
+  active,
+  label,
+  onElapsedChange,
+}: VoiceCloneWaitingPanelProps) {
   const [elapsedSec, setElapsedSec] = useState(0);
 
   useEffect(() => {
@@ -32,6 +37,10 @@ export function VoiceCloneWaitingPanel({ active, label }: VoiceCloneWaitingPanel
 
     return () => clearInterval(timer);
   }, [active]);
+
+  useEffect(() => {
+    onElapsedChange?.(elapsedSec);
+  }, [elapsedSec, onElapsedChange]);
 
   const progress = Math.min(95, Math.round((elapsedSec / EXPECTED_WAIT_SEC) * 100));
   const slowHint =

@@ -37,7 +37,11 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
       const samples = await api.voiceSamples.list();
       const latest = samples[0] ?? null;
       setSample(latest);
-      setShowUploadForm(!latest || isVoiceSampleReadyForGeneration(latest));
+      setShowUploadForm(
+        !latest ||
+          isVoiceSampleReadyForGeneration(latest) ||
+          latest.voiceCloneStatus === "failed",
+      );
     } catch {
       setSample(null);
     } finally {
@@ -71,6 +75,10 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
     setSample(null);
   }, []);
 
+  const handleSampleChange = useCallback((updated: VoiceSample) => {
+    setSample(updated);
+  }, []);
+
   if (!authReady || isLoading) {
     return variant === "landing" ? (
       <LoadingPanel lines={3} />
@@ -96,9 +104,11 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
 
       {needsVerification ? (
         <SunoVoiceVerifyFlow
+          key={sample.id}
           sampleId={sample.id}
           variant="inline"
           onRecordNewSample={handleRecordNewSample}
+          onSampleChange={handleSampleChange}
           onVoiceReady={handleVoiceReady}
         />
       ) : null}

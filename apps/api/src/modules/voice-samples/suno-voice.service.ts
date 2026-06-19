@@ -22,9 +22,22 @@ import { normalizeVoiceSampleMime } from "./resolve-voice-sample-mime.js";
 const STUCK_PHRASE_REGEN_MS = 90_000;
 const MAX_STUCK_PHRASE_REGENS = 2;
 
+const EXPIRED_PHRASE_MESSAGE =
+  "Фраза верификации истекла. Нажмите «Повторить верификацию» — Suno выдаст новую фразу.";
+
 function extractValidatePhrase(validateInfo: { validateInfo?: string | null }): string | null {
   const phrase = validateInfo.validateInfo?.trim();
   return phrase ? phrase : null;
+}
+
+function isExpiredVerificationPhraseMessage(message: string | null | undefined): boolean {
+  const normalized = message?.trim().toLowerCase() ?? "";
+
+  return (
+    normalized.includes("phrase expired") ||
+    normalized.includes("verification phrase expired") ||
+    (normalized.includes("not found") && normalized.includes("phrase"))
+  );
 }
 
 function mapSunoVoiceFailMessage(message: string | null | undefined): string {
@@ -32,6 +45,10 @@ function mapSunoVoiceFailMessage(message: string | null | undefined): string {
 
   if (!trimmed) {
     return "Suno Voice отклонил аудио. Запишите фразу чище и напевом.";
+  }
+
+  if (isExpiredVerificationPhraseMessage(trimmed)) {
+    return EXPIRED_PHRASE_MESSAGE;
   }
 
   if (trimmed.toLowerCase().includes("voices sound different")) {
@@ -139,6 +156,7 @@ async function markCloneFailed(sample: VoiceSample, message: string) {
     data: {
       voiceCloneStatus: "failed",
       voiceCloneError: message,
+      sunoValidatePhrase: null,
     },
   });
 }
@@ -210,6 +228,51 @@ async function resolveWaitValidatingPhrase(
   return sample;
 }
 
+async function refreshStaleVerificationPhrase(
+  sample: VoiceSample,
+  taskId: string,
+  validateInfo: { validateInfo?: string | null; status: string },
+  voice: ReturnType<typeof createSunoVoiceClients>["voice"],
+): Promise<VoiceSample | null> {
+  if (sample.voiceCloneStatus !== "awaiting_verification") {
+    return null;
+  }
+
+  if (String(validateInfo.status) !== "wait_validating") {
+    return null;
+  }
+
+  if (extractValidatePhrase(validateInfo)) {
+    return null;
+  }
+
+  if (!sample.sunoValidatePhrase?.trim()) {
+    return null;
+  }
+
+  if (sample.sunoValidateRegenCount >= MAX_STUCK_PHRASE_REGENS) {
+    return markCloneFailed(sample, EXPIRED_PHRASE_MESSAGE);
+  }
+
+  try {
+    const config = resolveSunoVoiceConfig();
+    const newTaskId = await voice.regenerateValidationPhrase(taskId, config.callbackUrl);
+
+    return prisma.voiceSample.update({
+      where: { id: sample.id },
+      data: {
+        sunoVoiceTaskId: newTaskId,
+        sunoValidatePhrase: null,
+        voiceCloneStatus: "preparing",
+        sunoValidateRegenCount: sample.sunoValidateRegenCount + 1,
+        ...voiceCloneStartData(),
+      },
+    });
+  } catch {
+    return markCloneFailed(sample, EXPIRED_PHRASE_MESSAGE);
+  }
+}
+
 async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
   if (!canSyncSunoVoiceTask(sample)) {
     return sample;
@@ -219,7 +282,7 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
     return markCloneFailed(
       sample,
       sample.voiceCloneStatus === "preparing"
-        ? "Suno не выдал фразу за 5 минут. Нажмите «Повторить верификацию» или загрузите образец заново."
+        ? "AI Music не выдал фразу за 5 минут. Нажмите «Повторить верификацию» или загрузите образец заново."
         : "Превышено время ожидания Suno Voice (10 мин). Попробуйте снова.",
     );
   }
@@ -231,6 +294,17 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
     voice.getValidationPhraseInfo(taskId),
     voice.getVoiceRecordInfo(taskId),
   ]);
+
+  const staleRefresh = await refreshStaleVerificationPhrase(
+    sample,
+    taskId,
+    validateInfo,
+    voice,
+  );
+
+  if (staleRefresh) {
+    return syncSunoVoiceTaskStatus(staleRefresh);
+  }
 
   const validateStatus = String(validateInfo.status);
   const recordStatus = String(recordInfo.status);
@@ -356,6 +430,10 @@ async function markPrepareFailed(sampleId: string, error: unknown): Promise<neve
 
 function mapSunoVoiceSubmitError(error: unknown): never {
   if (error instanceof MusicProviderError) {
+    if (isExpiredVerificationPhraseMessage(error.message)) {
+      throw new ForbiddenError(EXPIRED_PHRASE_MESSAGE);
+    }
+
     if (error.message.toLowerCase().includes("not in valid status")) {
       throw new ForbiddenError(
         "Сессия верификации Suno истекла или уже использована. Нажмите «Повторить» и запишите фразу снова.",
@@ -399,8 +477,14 @@ async function assertValidateTaskReady(
   }
 
   if (status === "wait_validating") {
-    if (extractValidatePhrase(validateInfo) || cachedPhrase?.trim()) {
+    const livePhrase = extractValidatePhrase(validateInfo);
+
+    if (livePhrase) {
       return;
+    }
+
+    if (cachedPhrase?.trim()) {
+      throw new ForbiddenError(EXPIRED_PHRASE_MESSAGE);
     }
 
     throw new ForbiddenError(
@@ -443,21 +527,24 @@ export async function prepareSunoVoiceClone(
   let sample = await loadOwnedSample(userId, sampleId);
 
   if (options.restart) {
-    if (
-      sample.voiceCloneStatus === "preparing" ||
-      sample.voiceCloneStatus === "failed"
-    ) {
-      if (sample.sunoVoiceTaskId) {
-        sample = await syncSunoVoiceTaskStatus(sample);
+    if (sample.sunoVoiceTaskId) {
+      sample = await syncSunoVoiceTaskStatus(sample);
 
-        if (
-          sample.voiceCloneStatus === "awaiting_verification" ||
-          (sample.voiceCloneStatus === "ready" && sample.sunoVoiceId)
-        ) {
-          return toVoiceSampleDto(sample);
-        }
+      if (sample.voiceCloneStatus === "ready" && sample.sunoVoiceId) {
+        return toVoiceSampleDto(sample);
       }
 
+      if (sample.voiceCloneStatus === "cloning") {
+        return toVoiceSampleDto(sample);
+      }
+    }
+
+    if (
+      sample.voiceCloneStatus === "preparing" ||
+      sample.voiceCloneStatus === "failed" ||
+      sample.voiceCloneStatus === "awaiting_verification" ||
+      sample.voiceCloneStatus === "pending"
+    ) {
       sample = await resetSunoVoiceTask(sample);
     }
   }
@@ -570,6 +657,12 @@ export async function submitSunoVoiceVerification(
           "Suno Voice отклонил аудио. Запишите фразу чище и напевом.",
       );
     }
+
+    if (sample.voiceCloneStatus === "preparing") {
+      throw new ForbiddenError(
+        "Фраза устарела — Suno готовит новую. Подождите 10–20 секунд, пока появится текст для записи.",
+      );
+    }
   }
 
   if (sample.voiceCloneStatus !== "awaiting_verification") {
@@ -613,6 +706,18 @@ export async function submitSunoVoiceVerification(
       callBackUrl: config.callbackUrl,
     });
   } catch (error) {
+    const rawMessage =
+      error instanceof MusicProviderError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : String(error);
+
+    if (isExpiredVerificationPhraseMessage(rawMessage)) {
+      await markCloneFailed(sample, EXPIRED_PHRASE_MESSAGE);
+      throw new ForbiddenError(EXPIRED_PHRASE_MESSAGE);
+    }
+
     mapSunoVoiceSubmitError(error);
   }
 

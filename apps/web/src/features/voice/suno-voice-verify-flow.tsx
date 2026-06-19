@@ -18,7 +18,9 @@ import { appShell } from "@/shared/theme/app-theme";
 import { cn } from "@/lib/utils";
 
 const STATUS_POLL_MS = 3_000;
+const PHRASE_SYNC_POLL_MS = 15_000;
 const MAX_STATUS_POLLS = 120;
+const STUCK_WAIT_SEC = 120;
 
 class SunoVoicePollTimeoutError extends Error {
   constructor(public readonly cloneStatus: VoiceSample["voiceCloneStatus"]) {
@@ -32,6 +34,7 @@ export interface SunoVoiceVerifyFlowProps {
   variant?: "page" | "inline";
   onVoiceReady?: () => void;
   onRecordNewSample?: () => void;
+  onSampleChange?: (sample: VoiceSample) => void;
 }
 
 function isVoiceMismatchMessage(message: string | null | undefined): boolean {
@@ -76,11 +79,34 @@ function isProcessingStatus(status: VoiceSample["voiceCloneStatus"]): boolean {
   return status === "preparing" || status === "cloning" || status === "pending";
 }
 
+function shouldPollVoiceStatus(status: VoiceSample["voiceCloneStatus"]): boolean {
+  return isProcessingStatus(status) || status === "awaiting_verification";
+}
+
+function resolvePollIntervalMs(status: VoiceSample["voiceCloneStatus"] | undefined): number {
+  return status === "awaiting_verification" ? PHRASE_SYNC_POLL_MS : STATUS_POLL_MS;
+}
+
+function resolvePollError(queryError: Error | null | undefined): string | null {
+  if (!queryError) {
+    return null;
+  }
+
+  if (queryError instanceof SunoVoicePollTimeoutError) {
+    return queryError.cloneStatus === "cloning"
+      ? "Ai Music не завершил создание голоса за 6 минут. Нажмите «Повторить верификацию» или обновите страницу."
+      : "AI Music не выдал фразу за 6 минут. Нажмите «Повторить верификацию» или загрузите образец заново.";
+  }
+
+  return parseApiError(queryError, "Не удалось настроить голос Suno");
+}
+
 export function SunoVoiceVerifyFlow({
   sampleId,
   variant = "page",
   onVoiceReady,
   onRecordNewSample,
+  onSampleChange,
 }: SunoVoiceVerifyFlowProps) {
   const api = useApi();
   const router = useRouter();
@@ -90,15 +116,22 @@ export function SunoVoiceVerifyFlow({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
-  const [pollEnabled, setPollEnabled] = useState(false);
+  const [pollRequested, setPollRequested] = useState(false);
+  const [waitElapsedSec, setWaitElapsedSec] = useState(0);
   const pollCountRef = useRef(0);
   const bootstrappedSampleIdRef = useRef<string | null>(null);
   const onVoiceReadyRef = useRef(onVoiceReady);
   const onRecordNewSampleRef = useRef(onRecordNewSample);
+  const onSampleChangeRef = useRef(onSampleChange);
   const apiRef = useRef(api);
-  apiRef.current = api;
-  onVoiceReadyRef.current = onVoiceReady;
-  onRecordNewSampleRef.current = onRecordNewSample;
+
+  useEffect(() => {
+    apiRef.current = api;
+    onVoiceReadyRef.current = onVoiceReady;
+    onRecordNewSampleRef.current = onRecordNewSample;
+    onSampleChangeRef.current = onSampleChange;
+  }, [api, onVoiceReady, onRecordNewSample, onSampleChange]);
+
   const {
     elapsedSec,
     error: recorderError,
@@ -108,12 +141,16 @@ export function SunoVoiceVerifyFlow({
   } = useVoiceRecorder();
 
   const stopPolling = useCallback(() => {
-    setPollEnabled(false);
+    setPollRequested(false);
   }, []);
 
   const startPolling = useCallback(() => {
     pollCountRef.current = 0;
-    setPollEnabled(true);
+    setPollRequested(true);
+  }, []);
+
+  const handleWaitElapsedChange = useCallback((elapsedSec: number) => {
+    setWaitElapsedSec(elapsedSec);
   }, []);
 
   const handleVoiceReady = useCallback(() => {
@@ -141,40 +178,33 @@ export function SunoVoiceVerifyFlow({
 
       return next;
     },
-    enabled: authReady && Boolean(sampleId) && pollEnabled,
-    isTerminal: (data) => Boolean(data && !isProcessingStatus(data.voiceCloneStatus)),
+    enabled: authReady && Boolean(sampleId) && pollRequested,
+    isTerminal: (data) => Boolean(data && !shouldPollVoiceStatus(data.voiceCloneStatus)),
     intervalMs: STATUS_POLL_MS,
+    resolveIntervalMs: (data) => resolvePollIntervalMs(data?.voiceCloneStatus),
   });
 
+  const resolvedSample = statusQuery.data ?? sample;
+  const pollError = resolvePollError(statusQuery.error);
+  const isWaitingForSuno =
+    isSubmitting ||
+    (isProcessingStatus(resolvedSample?.voiceCloneStatus ?? "pending") && !isBootstrapping);
+
   useEffect(() => {
-    if (statusQuery.error instanceof SunoVoicePollTimeoutError) {
-      const timeoutMessage =
-        statusQuery.error.cloneStatus === "cloning"
-          ? "Suno не завершил создание голоса за 6 минут. Нажмите «Повторить верификацию» или обновите страницу."
-          : "Suno не выдал фразу за 6 минут. Нажмите «Повторить верификацию» или загрузите образец заново.";
-      setError(timeoutMessage);
-      stopPolling();
+    if (!resolvedSample) {
       return;
     }
 
-    if (statusQuery.error) {
-      setError(parseApiError(statusQuery.error, "Не удалось настроить голос Suno"));
-      stopPolling();
-    }
-  }, [statusQuery.error, stopPolling]);
+    onSampleChangeRef.current?.(resolvedSample);
+  }, [resolvedSample]);
 
   useEffect(() => {
-    const next = statusQuery.data;
-    if (!next) {
+    if (!resolvedSample || !isVoiceSampleReadyForGeneration(resolvedSample) || isInline) {
       return;
     }
 
-    setSample(next);
-
-    if (!isProcessingStatus(next.voiceCloneStatus)) {
-      stopPolling();
-    }
-  }, [statusQuery.data, stopPolling]);
+    handleVoiceReady();
+  }, [handleVoiceReady, isInline, resolvedSample]);
 
   useEffect(() => {
     if (!authReady || !sampleId) {
@@ -206,7 +236,13 @@ export function SunoVoiceVerifyFlow({
           return;
         }
 
-        if (current.voiceCloneStatus === "failed" || current.voiceCloneStatus === "awaiting_verification") {
+        if (current.voiceCloneStatus === "failed") {
+          bootstrappedSampleIdRef.current = sampleId;
+          return;
+        }
+
+        if (current.voiceCloneStatus === "awaiting_verification") {
+          startPolling();
           bootstrappedSampleIdRef.current = sampleId;
           return;
         }
@@ -249,36 +285,6 @@ export function SunoVoiceVerifyFlow({
       cancelled = true;
     };
   }, [authReady, handleVoiceReady, sampleId, startPolling]);
-
-  useEffect(() => {
-    if (!sample) {
-      return;
-    }
-
-    if (isVoiceSampleReadyForGeneration(sample)) {
-      stopPolling();
-
-      if (!isInline) {
-        handleVoiceReady();
-      }
-
-      return;
-    }
-
-    if (sample.voiceCloneStatus === "failed") {
-      stopPolling();
-      return;
-    }
-
-    if (sample.voiceCloneStatus === "awaiting_verification") {
-      stopPolling();
-      return;
-    }
-
-    if (isProcessingStatus(sample.voiceCloneStatus) && !pollEnabled) {
-      startPolling();
-    }
-  }, [handleVoiceReady, isInline, pollEnabled, sample, startPolling, stopPolling]);
 
   async function handleVerifySubmit() {
     if (!sampleId) {
@@ -328,6 +334,17 @@ export function SunoVoiceVerifyFlow({
       }
     } catch (submitError) {
       setError(parseApiError(submitError, "Не удалось настроить голос Suno"));
+
+      try {
+        const refreshed = await api.voiceSamples.getSunoVoiceStatus(sampleId);
+        setSample(refreshed);
+
+        if (refreshed.voiceCloneStatus === "failed") {
+          stopPolling();
+        }
+      } catch {
+        // status refresh is best-effort after submit failure
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -355,6 +372,11 @@ export function SunoVoiceVerifyFlow({
         }
 
         if (isProcessingStatus(next.voiceCloneStatus)) {
+          startPolling();
+          return;
+        }
+
+        if (next.voiceCloneStatus === "awaiting_verification") {
           startPolling();
         }
       })
@@ -393,7 +415,7 @@ export function SunoVoiceVerifyFlow({
     return renderShell(
       <div className={formClassName}>
         {!isInline ? <h1 className={titleClassName}>Создание вашего голоса</h1> : null}
-        <VoiceCloneWaitingPanel active label="Подготовка Suno Voice..." />
+        <VoiceCloneWaitingPanel active label="Подготовка AI-Voice..." />
       </div>,
     );
   }
@@ -403,22 +425,24 @@ export function SunoVoiceVerifyFlow({
   }
 
   const showRecorder =
-    sample?.voiceCloneStatus === "awaiting_verification" && !isSubmitting;
-  const isBusy = isSubmitting || isProcessingStatus(sample?.voiceCloneStatus ?? "pending");
+    resolvedSample?.voiceCloneStatus === "awaiting_verification" && !isSubmitting;
+  const isBusy =
+    isSubmitting || isProcessingStatus(resolvedSample?.voiceCloneStatus ?? "pending");
   const displayError =
     error ??
-    (sample?.voiceCloneStatus === "failed"
-      ? sample.voiceCloneError ?? "Не удалось создать голос Suno"
+    pollError ??
+    (resolvedSample?.voiceCloneStatus === "failed"
+      ? resolvedSample.voiceCloneError ?? "Не удалось создать голос Suno"
       : null);
   const showFailedActions = Boolean(displayError);
+  const showStuckActions = isWaitingForSuno && waitElapsedSec >= STUCK_WAIT_SEC;
+  const showRecoveryActions = showFailedActions || showStuckActions;
   const showVoiceMismatchHint = isVoiceMismatchMessage(displayError);
-  const showWaitingPanel =
-    isSubmitting ||
-    (isProcessingStatus(sample?.voiceCloneStatus ?? "pending") && !isBootstrapping);
+  const showWaitingPanel = isWaitingForSuno;
   const waitingLabel = isSubmitting
     ? "Отправляем запись верификации в Suno..."
-    : resolveStatusLabel(sample);
-  const isReady = sample ? isVoiceSampleReadyForGeneration(sample) : false;
+    : resolveStatusLabel(resolvedSample);
+  const isReady = resolvedSample ? isVoiceSampleReadyForGeneration(resolvedSample) : false;
 
   const shellContent = (
     <div className={formClassName}>
@@ -428,17 +452,23 @@ export function SunoVoiceVerifyFlow({
           <h1 className={titleClassName}>Создание вашего голоса</h1>
         )}
         {showWaitingPanel ? null : (
-          <p className={descriptionClassName}>{resolveStatusLabel(sample)}</p>
+          <p className={descriptionClassName}>{resolveStatusLabel(resolvedSample)}</p>
         )}
 
         {showWaitingPanel ? (
-          <VoiceCloneWaitingPanel active label={waitingLabel} />
+          <VoiceCloneWaitingPanel
+            active
+            label={waitingLabel}
+            onElapsedChange={handleWaitElapsedChange}
+          />
         ) : null}
 
-        {sample?.sunoValidatePhrase && !showWaitingPanel ? (
+        {resolvedSample?.sunoValidatePhrase &&
+        resolvedSample.voiceCloneStatus === "awaiting_verification" &&
+        !showWaitingPanel ? (
           <div className={voiceUi.consentContent}>
             <span className={voiceUi.consentTitle}>Фраза для записи</span>
-            <span className={voiceUi.consentPhrase}>{sample.sunoValidatePhrase}</span>
+            <span className={voiceUi.consentPhrase}>{resolvedSample.sunoValidatePhrase}</span>
           </div>
         ) : null}
 
@@ -495,7 +525,7 @@ export function SunoVoiceVerifyFlow({
           </div>
         ) : null}
 
-        {showFailedActions ? (
+        {showRecoveryActions ? (
           <>
             {showVoiceMismatchHint ? (
               <p className={descriptionClassName}>
@@ -513,16 +543,14 @@ export function SunoVoiceVerifyFlow({
               >
                 Повторить верификацию
               </button>
-              {showVoiceMismatchHint ? (
-                <button
-                  className={appShell.btnSecondaryOutline}
-                  disabled={isBootstrapping}
-                  type="button"
-                  onClick={handleRecordNewSample}
-                >
-                  Записать образец заново
-                </button>
-              ) : null}
+              <button
+                className={appShell.btnSecondaryOutline}
+                disabled={isBootstrapping}
+                type="button"
+                onClick={handleRecordNewSample}
+              >
+                Записать образец заново
+              </button>
             </div>
           </>
         ) : null}

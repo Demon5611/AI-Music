@@ -13,6 +13,7 @@ interface UsePollingQueryOptions<TData> {
   enabled?: boolean;
   isTerminal: (data: TData | undefined) => boolean;
   intervalMs: number;
+  resolveIntervalMs?: (data: TData | undefined) => number;
 }
 
 export function usePollingQuery<TData>({
@@ -21,17 +22,22 @@ export function usePollingQuery<TData>({
   enabled = true,
   isTerminal,
   intervalMs,
+  resolveIntervalMs,
 }: UsePollingQueryOptions<TData>): UseQueryResult<TData> {
   return useQuery({
     queryKey,
     queryFn,
     enabled,
     refetchInterval: (query) => {
+      if (query.state.status === "error") {
+        return false;
+      }
+
       if (isTerminal(query.state.data)) {
         return false;
       }
 
-      return intervalMs;
+      return resolveIntervalMs?.(query.state.data) ?? intervalMs;
     },
   } satisfies UseQueryOptions<TData>);
 }

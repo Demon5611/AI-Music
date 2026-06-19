@@ -19,9 +19,9 @@ import {
   resolveMusicPersonaForUser,
   type MusicGenerateLogger,
 } from "./music-persona.js";
-import { ForbiddenError } from "../../common/errors.js";
+import { ForbiddenError, BadRequestError } from "../../common/errors.js";
 import { prisma } from "@ai-music/db";
-import { buildGenderAwareLyricsPrompt, isVocalGender } from "@ai-music/shared";
+import { buildGenderAwareLyricsPrompt, isVocalGender, resolveLyricsBriefMaxLength, SUNO_LYRICS_PROMPT_MAX_LENGTH } from "@ai-music/shared";
 
 const musicService = createMusicService();
 
@@ -114,7 +114,26 @@ export async function generateLyricsForUser(userId: string, prompt: string) {
   });
   const vocalGender =
     user?.vocalGender && isVocalGender(user.vocalGender) ? user.vocalGender : null;
-  const genderAwarePrompt = buildGenderAwareLyricsPrompt(prompt, vocalGender);
+
+  const trimmedPrompt = prompt.trim();
+  const briefMaxLength = resolveLyricsBriefMaxLength(vocalGender);
+
+  if (trimmedPrompt.length > briefMaxLength) {
+    throw new BadRequestError(
+      vocalGender
+        ? `Описание слишком длинное — максимум ${briefMaxLength} символов (Suno учитывает подсказку про род глаголов).`
+        : `Описание слишком длинное — максимум ${SUNO_LYRICS_PROMPT_MAX_LENGTH} символов.`,
+    );
+  }
+
+  const genderAwarePrompt = buildGenderAwareLyricsPrompt(trimmedPrompt, vocalGender);
+
+  if (genderAwarePrompt.length > SUNO_LYRICS_PROMPT_MAX_LENGTH) {
+    throw new BadRequestError(
+      `Описание слишком длинное для Suno — максимум ${briefMaxLength} символов.`,
+    );
+  }
+
   const result = await musicService.generateLyrics({ prompt: genderAwarePrompt });
 
   return {

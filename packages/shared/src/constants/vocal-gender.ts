@@ -5,8 +5,31 @@ export const VOCAL_GENDER_LABELS: Record<VocalGender, string> = {
   f: "Жен",
 };
 
+/** Suno `/lyrics` prompt limit (characters). */
+export const SUNO_LYRICS_PROMPT_MAX_LENGTH = 200;
+
 export function isVocalGender(value: unknown): value is VocalGender {
   return value === "m" || value === "f";
+}
+
+export function buildGenderLyricsPromptSuffix(vocalGender: VocalGender): string {
+  const label = VOCAL_GENDER_LABELS[vocalGender].toLowerCase();
+  const rod = vocalGender === "f" ? "женском" : "мужском";
+  const examples = vocalGender === "f" ? "я пошла, я была" : "я пошёл, я был";
+
+  return `\n\nТекст от 1-го лица (${label}): глаголы в ${rod} роде (${examples}).`;
+}
+
+export function resolveLyricsBriefMaxLength(
+  vocalGender: VocalGender | null | undefined,
+): number {
+  if (!vocalGender) {
+    return SUNO_LYRICS_PROMPT_MAX_LENGTH;
+  }
+
+  const overhead = buildGenderLyricsPromptSuffix(vocalGender).length;
+
+  return Math.max(32, SUNO_LYRICS_PROMPT_MAX_LENGTH - overhead);
 }
 
 export function buildGenderAwareLyricsPrompt(
@@ -19,18 +42,7 @@ export function buildGenderAwareLyricsPrompt(
     return trimmedPrompt;
   }
 
-  const genderForms =
-    vocalGender === "f"
-      ? "я пошла, я сделала, я была, я хотела"
-      : "я пошёл, я сделал, я был, я хотел";
-
-  return [
-    trimmedPrompt,
-    "",
-    `Важно: текст от первого лица автора (${VOCAL_GENDER_LABELS[vocalGender].toLowerCase()}й род).`,
-    `Глаголы прошедшего времени — только в форме ${vocalGender === "f" ? "женского" : "мужского"} рода`,
-    `(например: ${genderForms}). Не используй формы противоположного рода.`,
-  ].join("\n");
+  return `${trimmedPrompt}${buildGenderLyricsPromptSuffix(vocalGender)}`;
 }
 
 export const VOICE_RECORDING_SCRIPT_GENERATION_PROMPT =

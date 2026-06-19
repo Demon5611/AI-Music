@@ -2,15 +2,17 @@
 
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import type { MusicLyricsStatusResponseDto } from "@ai-music/shared";
-import { useCallback, useEffect, useState } from "react";
+import { isVocalGender, resolveLyricsBriefMaxLength } from "@ai-music/shared";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { AiProcessingStatus } from "@/shared/ui/elevenlabs/ai-processing-status";
+import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { mc } from "@/features/music-create/music-create-classes";
 import { CharCounter } from "@/features/music-create/components/music-create-icons";
 import { cn } from "@/lib/utils";
 
-const LYRICS_BRIEF_MAX_LENGTH = 200;
 const LYRICS_POLL_INTERVAL_MS = 5_000;
 
 interface MusicLyricsFromPromptProps {
@@ -33,6 +35,17 @@ export function MusicLyricsFromPrompt({
   onApply,
 }: MusicLyricsFromPromptProps) {
   const api = useApi();
+  const authReady = useAuthReady();
+  const userQuery = useQuery({
+    queryKey: ["users", "me"],
+    queryFn: () => api.users.getMe(),
+    enabled: authReady,
+  });
+  const vocalGender = useMemo(() => {
+    const gender = userQuery.data?.vocalGender;
+    return gender && isVocalGender(gender) ? gender : null;
+  }, [userQuery.data?.vocalGender]);
+  const briefMaxLength = resolveLyricsBriefMaxLength(vocalGender);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [lyricsTaskId, setLyricsTaskId] = useState<string | null>(null);
@@ -126,15 +139,20 @@ export function MusicLyricsFromPrompt({
           <textarea
             className={cn(mc.textarea, "h-20", fieldDisabled && !isBusy && mc.fieldDisabled)}
             disabled={fieldDisabled}
-            maxLength={LYRICS_BRIEF_MAX_LENGTH}
+            maxLength={briefMaxLength}
             placeholder="Например: грустная баллада о расставании, первое лицо, русский язык"
             value={lyricsBrief}
             onChange={(event) => onLyricsBriefChange(event.target.value)}
           />
           <div className={mc.counterPos}>
-            <CharCounter current={lyricsBrief.length} max={LYRICS_BRIEF_MAX_LENGTH} />
+            <CharCounter current={lyricsBrief.length} max={briefMaxLength} />
           </div>
         </div>
+        {vocalGender ? (
+          <p className={cn(mc.meta, "mt-1")}>
+            Лимит уменьшен: Suno получает подсказку про род глаголов для вашего голоса.
+          </p>
+        ) : null}
       </label>
 
       {disabled && !isBusy ? (

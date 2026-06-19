@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { requireAuth } from "../../common/require-auth.js";
-import { sendAppError } from "../../common/errors.js";
+import { isAppError, sendAppError } from "../../common/errors.js";
 import { sendMusicError } from "./handle-music-error.js";
+import { SUNO_LYRICS_PROMPT_MAX_LENGTH } from "@ai-music/shared";
 import { getMusicGenerationTrackAudio } from "./music-record.service.js";
 import {
   extendMusic,
@@ -38,8 +39,6 @@ interface ExtendBody {
 interface LyricsBody {
   prompt: string;
 }
-
-const LYRICS_PROMPT_MAX_LENGTH = 200;
 
 interface DeleteHistoryBody {
   ids: string[];
@@ -183,9 +182,9 @@ export async function registerMusicRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "prompt is required" });
       }
 
-      if (prompt.length > LYRICS_PROMPT_MAX_LENGTH) {
+      if (prompt.length > SUNO_LYRICS_PROMPT_MAX_LENGTH) {
         return reply.status(400).send({
-          error: `prompt must be at most ${LYRICS_PROMPT_MAX_LENGTH} characters`,
+          error: `prompt must be at most ${SUNO_LYRICS_PROMPT_MAX_LENGTH} characters`,
         });
       }
 
@@ -194,6 +193,11 @@ export async function registerMusicRoutes(app: FastifyInstance) {
         return reply.send(result);
       } catch (error) {
         request.log.error(error);
+
+        if (isAppError(error)) {
+          return sendAppError(reply, error);
+        }
+
         return sendMusicError(reply, error);
       }
     },
