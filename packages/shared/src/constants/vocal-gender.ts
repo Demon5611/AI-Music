@@ -71,3 +71,8 @@ export const VOICE_RECORDING_SCRIPT_GENERATION_PROMPT =
 export function buildVoiceRecordingScriptPrompt(vocalGender: VocalGender): string {
   return buildGenderAwareLyricsPrompt(VOICE_RECORDING_SCRIPT_GENERATION_PROMPT, vocalGender);
 }
+
+/** Suno Voice `/voice/generate` metadata — задаёт пол persona при клонировании. */
+export function buildSunoVoiceCloneStyle(vocalGender: VocalGender): string {
+  return vocalGender === "f" ? "Female Vocal" : "Male Vocal";
+}

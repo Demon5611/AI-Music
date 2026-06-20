@@ -5,6 +5,9 @@ import {
   MAX_VOICE_SAMPLE_DURATION_SEC,
   MIN_VOICE_SAMPLE_DURATION_SEC,
   VOICE_CONSENT_PHRASE,
+  buildRecommendedVoiceSampleDurationLabel,
+  buildVoiceSampleDurationRangeLabel,
+  isRecommendedVoiceSampleDuration,
   type VocalGender,
 } from "@ai-music/shared";
 import { Mic } from "lucide-react";
@@ -17,6 +20,7 @@ import {
 import { VoiceGenderSelect } from "@/features/voice/voice-gender-select";
 import { useVoiceRecordingScript } from "@/features/voice/hooks/use-voice-recording-script";
 import { VoiceRecordingTipsPanel } from "@/features/voice/voice-recording-tips-panel";
+import { VOICE_SAMPLE_DURATION_RECOMMENDATION } from "@/features/voice/voice-recording-tips";
 import { voiceUi } from "@/features/voice/voice-classes";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { useAuthSession } from "@/shared/hooks/use-auth-ready";
@@ -139,7 +143,8 @@ export function VoiceUploadPanel({
 
   const styles = resolveVoiceUploadStyles(variant);
   const { isLanding, isPage } = styles;
-  const durationHint = `${MIN_VOICE_SAMPLE_DURATION_SEC}–${MAX_VOICE_SAMPLE_DURATION_SEC} сек`;
+  const durationHint = buildVoiceSampleDurationRangeLabel();
+  const recommendedDurationLabel = buildRecommendedVoiceSampleDurationLabel();
 
   useEffect(() => {
     if (!previewUrl) {
@@ -337,6 +342,10 @@ export function VoiceUploadPanel({
     previewDurationSec !== null ? formatRecordingTime(Math.round(previewDurationSec)) : null;
   const isPreviewTooShort =
     previewDurationSec !== null && previewDurationSec < MIN_VOICE_SAMPLE_DURATION_SEC;
+  const isPreviewBelowRecommended =
+    previewDurationSec !== null &&
+    previewDurationSec >= MIN_VOICE_SAMPLE_DURATION_SEC &&
+    !isRecommendedVoiceSampleDuration(previewDurationSec);
   const isPreviewTooLong =
     previewDurationSec !== null && previewDurationSec > MAX_VOICE_SAMPLE_DURATION_SEC;
   const consentRequired = !confirmed;
@@ -427,13 +436,14 @@ export function VoiceUploadPanel({
         <>
           <h1 className={appShell.formPageTitle}>Запись голоса</h1>
           <p className={appShell.formPageDescription}>
-            Выберите один способ: запись с микрофона или загрузка файла ({durationHint}). Затем
-            пройдите верификацию голоса AI Music.
+            Запишите или загрузите напев {recommendedDurationLabel} — на верификации фраза Suno
+            короткая, поэтому тембр задаётся здесь. Допустимо {durationHint}.
           </p>
         </>
       ) : (
         <p className={hintClassName}>
-          Выберите один способ: запись с микрофона или загрузка файла ({durationHint}).
+          Запишите или загрузите напев {recommendedDurationLabel} ({durationHint}). На верификации
+          фраза короткая — качество клона зависит от этой записи.
           {isLanding ? " Затем создайте трек с вашим вокалом." : null}
         </p>
       )}
@@ -560,6 +570,9 @@ export function VoiceUploadPanel({
                     </button>
                     <span className={upload.recordingLabel}>
                       Идёт запись {formatRecordingTime(elapsedSec)}
+                      {!isRecommendedVoiceSampleDuration(elapsedSec)
+                        ? ` · цель ${recommendedDurationLabel}`
+                        : " · длительность достаточная"}
                     </span>
                   </>
                 )}
@@ -633,6 +646,11 @@ export function VoiceUploadPanel({
             {isPreviewTooShort ? (
               <p className={errorClassName}>
                 Минимум {MIN_VOICE_SAMPLE_DURATION_SEC} сек — запишите или загрузите длиннее.
+              </p>
+            ) : null}
+            {isPreviewBelowRecommended ? (
+              <p className={upload.durationRecommendNotice}>
+                {VOICE_SAMPLE_DURATION_RECOMMENDATION}
               </p>
             ) : null}
             {isPreviewTooLong ? (

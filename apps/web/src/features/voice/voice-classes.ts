@@ -81,6 +81,8 @@ export const voiceUi = {
   authGateActions: "flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center",
   upload: {
     hint: `text-sm ${appShell.textMuted} mb-1`,
+    durationRecommendNotice:
+      "text-xs leading-snug text-amber-900 dark:text-amber-200",
     submit: `${appShell.btnPrimary} w-full`,
     error: "text-sm text-rose-400",
     modeSwitch: "flex gap-1.5",

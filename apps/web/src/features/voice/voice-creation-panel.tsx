@@ -1,6 +1,7 @@
 "use client";
 
 import type { VoiceSample } from "@ai-music/shared";
+import { buildRecommendedVoiceSampleDurationLabel } from "@ai-music/shared";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
@@ -96,13 +97,15 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
   const isReady = sample ? isVoiceSampleReadyForGeneration(sample) : false;
   const needsVerification = sample && !isReady;
 
+  const recommendedDurationLabel = buildRecommendedVoiceSampleDurationLabel();
+
   return (
     <section className={voiceUi.creationSection}>
       <div>
         <h2 className={voiceUi.creationSectionTitle}>Создание голоса</h2>
         <p className={voiceUi.creationSectionHint}>
-          Запишите или загрузите образец, затем пройдите верификацию AI Music — без неё вокал в треке
-          не будет вашим.
+          Запишите напев {recommendedDurationLabel} на главной — фраза верификации короткая и не
+          заменит короткий семпл. Затем пройдите верификацию AI Music.
         </p>
       </div>
 

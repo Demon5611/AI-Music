@@ -72,6 +72,24 @@ export class SunoVoiceClient {
     return this.checkVoiceAvailabilityByPayload({ voice_id: trimmed });
   }
 
+  /**
+   * Persona readiness: some Suno tasks return voiceId === taskId; check-voice
+   * may answer on task_id while voice_id-only check fails — try both.
+   */
+  async checkPersonaVoiceAvailability(id: string): Promise<boolean> {
+    const trimmed = id.trim();
+
+    if (!trimmed) {
+      return false;
+    }
+
+    if (await this.checkVoiceIdAvailability(trimmed)) {
+      return true;
+    }
+
+    return this.checkVoiceAvailability(trimmed);
+  }
+
   private checkVoiceAvailabilityByPayload(
     body: Record<string, string>,
   ): Promise<boolean> {

@@ -1,6 +1,10 @@
 "use client";
 
-import type { VoiceSample } from "@ai-music/shared";
+import {
+  buildRecommendedVoiceSampleDurationLabel,
+  isRecommendedVoiceSampleDuration,
+  type VoiceSample,
+} from "@ai-music/shared";
 import { isVoiceSampleReadyForGeneration, needsPersonaReverification } from "@/entities/voice-sample";
 import {
   buildVoiceSampleAudioUrl,
@@ -9,6 +13,7 @@ import {
   resolveVoiceSampleTitle,
 } from "@/entities/voice-sample/voice-sample-display";
 import { voiceUi } from "@/features/voice/voice-classes";
+import { VOICE_SAMPLE_DURATION_RECOMMENDATION } from "@/features/voice/voice-recording-tips";
 import { AudioPreviewPlayer } from "@/shared/ui/elevenlabs";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +47,7 @@ function resolveStatusBadgeClass(sample: VoiceSample): string {
 
 export function VoiceSampleCard({ sample }: VoiceSampleCardProps) {
   const isReady = isVoiceSampleReadyForGeneration(sample);
+  const isShortSample = !isRecommendedVoiceSampleDuration(sample.durationSec);
 
   return (
     <article className={voiceUi.sampleCard}>
@@ -68,6 +74,9 @@ export function VoiceSampleCard({ sample }: VoiceSampleCardProps) {
           />
         )}
       </div>
+      {isShortSample ? (
+        <p className={voiceUi.sampleCardMeta}>{VOICE_SAMPLE_DURATION_RECOMMENDATION}</p>
+      ) : null}
     </article>
   );
 }
