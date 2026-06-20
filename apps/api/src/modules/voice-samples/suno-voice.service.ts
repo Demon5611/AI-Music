@@ -18,8 +18,10 @@ import {
 } from "./persona-voice-id.service.js";
 import {
   canSyncSunoVoiceTask,
+  isVoiceCloneCancelled,
   isVoiceCloneTimedOut,
   resolveVoiceCloneStartedAt,
+  VOICE_CLONE_CANCELLED_MESSAGE,
   voiceCloneStartData,
 } from "./suno-voice-clone-state.js";
 import { normalizeVoiceSampleMime } from "./resolve-voice-sample-mime.js";
@@ -180,6 +182,38 @@ async function markCloneFailed(sample: VoiceSample, message: string) {
   });
 }
 
+async function claimVoiceClonePrepare(sampleId: string, userId: string): Promise<boolean> {
+  const result = await prisma.voiceSample.updateMany({
+    where: {
+      id: sampleId,
+      userId,
+      voiceCloneStatus: "pending",
+      sunoVoiceTaskId: null,
+    },
+    data: {
+      voiceCloneStatus: "preparing",
+      ...voiceCloneStartData(),
+    },
+  });
+
+  return result.count > 0;
+}
+
+async function releaseVoiceClonePrepareClaim(sampleId: string): Promise<void> {
+  await prisma.voiceSample.updateMany({
+    where: {
+      id: sampleId,
+      voiceCloneStatus: "preparing",
+      sunoVoiceTaskId: null,
+    },
+    data: {
+      voiceCloneStatus: "pending",
+      voiceCloneStartedAt: null,
+      voiceCloneError: null,
+    },
+  });
+}
+
 async function resetSunoVoiceTask(sample: VoiceSample) {
   return prisma.voiceSample.update({
     where: { id: sample.id },
@@ -332,7 +366,18 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
     validateInfo.errorMessage?.trim() ||
     null;
 
-  if (isSunoVoiceTaskFailed(validateStatus) || isSunoVoiceTaskFailed(recordStatus)) {
+  if (isSunoVoiceTaskFailed(recordStatus)) {
+    return markCloneFailed(sample, mapSunoVoiceFailMessage(errorMessage));
+  }
+
+  if (isSunoVoiceTaskFailed(validateStatus)) {
+    const recordStillPending =
+      isSunoVoiceTaskPending(recordStatus) || recordStatus === "wait_validating";
+
+    if (sample.voiceCloneStatus === "preparing" && recordStillPending) {
+      return sample;
+    }
+
     return markCloneFailed(sample, mapSunoVoiceFailMessage(errorMessage));
   }
 
@@ -523,9 +568,6 @@ export async function getSunoVoiceCloneStatus(userId: string, sampleId: string) 
   return toVoiceSampleDtoWithPersonaCheck(sample, resolvePersonaVoiceId);
 }
 
-const VOICE_CLONE_CANCELLED_MESSAGE =
-  "Процесс остановлен. Нажмите «Повторить верификацию», чтобы начать заново.";
-
 export async function cancelSunoVoiceClone(userId: string, sampleId: string) {
   const sample = await loadOwnedSample(userId, sampleId);
 
@@ -533,7 +575,19 @@ export async function cancelSunoVoiceClone(userId: string, sampleId: string) {
     return toVoiceSampleDto(sample);
   }
 
-  const cancelled = await markCloneFailed(sample, VOICE_CLONE_CANCELLED_MESSAGE);
+  const cancelled = await prisma.voiceSample.update({
+    where: { id: sample.id },
+    data: {
+      sunoVoiceTaskId: null,
+      sunoValidatePhrase: null,
+      sunoVoiceId: null,
+      voiceCloneStatus: "failed",
+      voiceCloneError: VOICE_CLONE_CANCELLED_MESSAGE,
+      voiceCloneStartedAt: null,
+      sunoValidateRegenCount: 0,
+    },
+  });
+
   return toVoiceSampleDto(cancelled);
 }
 
@@ -562,12 +616,26 @@ export async function prepareSunoVoiceClone(
     sample = await resetSunoVoiceTask(sample);
   }
 
-  if (sample.voiceCloneStatus === "failed" && sample.sunoVoiceTaskId) {
+  if (sample.voiceCloneStatus === "failed" && sample.sunoVoiceTaskId && !isVoiceCloneCancelled(sample)) {
     sample = await syncSunoVoiceTaskStatus(sample);
 
     if (sample.voiceCloneStatus !== "failed") {
       return toVoiceSampleDto(sample);
     }
+
+    if (!options.restart) {
+      return toVoiceSampleDto(sample);
+    }
+
+    sample = await resetSunoVoiceTask(sample);
+  }
+
+  if (sample.voiceCloneStatus === "failed") {
+    if (!options.restart) {
+      return toVoiceSampleDto(sample);
+    }
+
+    sample = await resetSunoVoiceTask(sample);
   }
 
   if (sample.voiceCloneStatus === "ready" && sample.sunoVoiceId) {
@@ -597,6 +665,28 @@ export async function prepareSunoVoiceClone(
     sample = await syncSunoVoiceTaskStatus(sample);
     return toVoiceSampleDto(sample);
   }
+
+  const claimed = await claimVoiceClonePrepare(sample.id, userId);
+
+  if (!claimed) {
+    sample = await loadOwnedSample(userId, sampleId);
+
+    if (
+      sample.sunoVoiceTaskId &&
+      (sample.voiceCloneStatus === "preparing" ||
+        sample.voiceCloneStatus === "cloning" ||
+        sample.voiceCloneStatus === "awaiting_verification")
+    ) {
+      sample = await syncSunoVoiceTaskStatus(sample);
+      return toVoiceSampleDto(sample);
+    }
+
+    throw new ForbiddenError(
+      "Верификация уже запускается. Подождите несколько секунд и обновите страницу.",
+    );
+  }
+
+  sample = await loadOwnedSample(userId, sampleId);
 
   const config = resolveSunoVoiceConfig();
 
@@ -635,6 +725,7 @@ export async function prepareSunoVoiceClone(
     const synced = await syncSunoVoiceTaskStatus(updated);
     return toVoiceSampleDto(synced);
   } catch (error) {
+    await releaseVoiceClonePrepareClaim(sample.id);
     return markPrepareFailed(sample.id, error);
   }
 }

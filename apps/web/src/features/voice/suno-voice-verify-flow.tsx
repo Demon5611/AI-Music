@@ -6,7 +6,8 @@ import { MIN_VOICE_VERIFY_DURATION_SEC } from "@ai-music/shared";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { isVoiceSampleReadyForGeneration, needsPersonaReverification } from "@/entities/voice-sample";
+import { useQueryClient } from "@tanstack/react-query";
+import { isVoiceSampleReadyForGeneration, isVoiceCloneCancelled, needsPersonaReverification } from "@/entities/voice-sample";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { SunoVoiceVerifyTipsPanel } from "@/features/voice/voice-recording-tips-panel";
 import { voiceUi } from "@/features/voice/voice-classes";
@@ -77,7 +78,7 @@ function resolveStatusLabel(sample: VoiceSample | null): string {
 }
 
 function shouldAutoPrepare(status: VoiceSample["voiceCloneStatus"]): boolean {
-  return status === "pending" || status === "preparing" || status === "cloning";
+  return status === "pending";
 }
 
 function isProcessingStatus(status: VoiceSample["voiceCloneStatus"]): boolean {
@@ -114,6 +115,7 @@ export function SunoVoiceVerifyFlow({
   onSampleChange,
 }: SunoVoiceVerifyFlowProps) {
   const api = useApi();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const authReady = useAuthReady();
   const isInline = variant === "inline";
@@ -121,6 +123,7 @@ export function SunoVoiceVerifyFlow({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isRetryingPrepare, setIsRetryingPrepare] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [pollRequested, setPollRequested] = useState(false);
   const [waitElapsedSec, setWaitElapsedSec] = useState(0);
@@ -197,6 +200,27 @@ export function SunoVoiceVerifyFlow({
     (isProcessingStatus(resolvedSample?.voiceCloneStatus ?? "pending") && !isBootstrapping);
 
   useEffect(() => {
+    if (!statusQuery.data) {
+      return;
+    }
+
+    setSample(statusQuery.data);
+
+    if (
+      statusQuery.data.voiceCloneStatus !== "failed" ||
+      isVoiceCloneCancelled(statusQuery.data)
+    ) {
+      if (statusQuery.data.voiceCloneStatus !== "failed") {
+        setError(null);
+      }
+    }
+
+    if (isVoiceCloneCancelled(statusQuery.data)) {
+      stopPolling();
+    }
+  }, [statusQuery.data, stopPolling]);
+
+  useEffect(() => {
     if (!resolvedSample) {
       return;
     }
@@ -243,6 +267,28 @@ export function SunoVoiceVerifyFlow({
         }
 
         if (current.voiceCloneStatus === "failed") {
+          if (isVoiceCloneCancelled(current)) {
+            bootstrappedSampleIdRef.current = sampleId;
+            return;
+          }
+
+          const isRecoverableExpiredPhrase =
+            current.voiceCloneError?.includes("Фраза верификации истекла") ?? false;
+
+          if (isRecoverableExpiredPhrase) {
+            startPolling();
+          }
+
+          bootstrappedSampleIdRef.current = sampleId;
+          return;
+        }
+
+        if (
+          current.voiceCloneStatus === "preparing" ||
+          current.voiceCloneStatus === "cloning"
+        ) {
+          setSample(current);
+          startPolling();
           bootstrappedSampleIdRef.current = sampleId;
           return;
         }
@@ -357,15 +403,18 @@ export function SunoVoiceVerifyFlow({
   }
 
   function handleRetryPrepare() {
-    if (!sampleId) {
+    if (!sampleId || isRetryingPrepare) {
       return;
     }
 
     setError(null);
     pollCountRef.current = 0;
     setIsBootstrapping(true);
+    setIsRetryingPrepare(true);
     stopPolling();
     bootstrappedSampleIdRef.current = null;
+
+    void queryClient.removeQueries({ queryKey: ["suno-voice-status", sampleId] });
 
     void apiRef.current.voiceSamples
       .prepareSunoVoice(sampleId, { restart: true })
@@ -389,6 +438,7 @@ export function SunoVoiceVerifyFlow({
       .catch((retryError) => setError(parseApiError(retryError, VOICE_SETUP_ERROR)))
       .finally(() => {
         setIsBootstrapping(false);
+        setIsRetryingPrepare(false);
         if (sampleId) {
           bootstrappedSampleIdRef.current = sampleId;
         }
@@ -396,7 +446,7 @@ export function SunoVoiceVerifyFlow({
   }
 
   function handleStopVerification() {
-    if (!sampleId) {
+    if (!sampleId || isCancelling) {
       return;
     }
 
@@ -405,10 +455,14 @@ export function SunoVoiceVerifyFlow({
     stopPolling();
     setIsSubmitting(false);
 
+    void queryClient.cancelQueries({ queryKey: ["suno-voice-status", sampleId] });
+    void queryClient.removeQueries({ queryKey: ["suno-voice-status", sampleId] });
+
     void apiRef.current.voiceSamples
       .cancelSunoVoice(sampleId)
       .then((cancelled) => {
         setSample(cancelled);
+        bootstrappedSampleIdRef.current = sampleId;
       })
       .catch((cancelError) => {
         setError(parseApiError(cancelError, VOICE_SETUP_ERROR));
@@ -583,15 +637,15 @@ export function SunoVoiceVerifyFlow({
             <div className={voiceUi.formActions}>
               <button
                 className={appShell.formSubmit}
-                disabled={isBootstrapping}
+                disabled={isBootstrapping || isRetryingPrepare}
                 type="button"
                 onClick={handleRetryPrepare}
               >
-                Повторить верификацию
+                {isRetryingPrepare ? "Запуск..." : "Повторить верификацию"}
               </button>
               <button
                 className={appShell.btnSecondaryOutline}
-                disabled={isBootstrapping}
+                disabled={isBootstrapping || isRetryingPrepare}
                 type="button"
                 onClick={handleRecordNewSample}
               >
