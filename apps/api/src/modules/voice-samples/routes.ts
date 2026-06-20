@@ -9,6 +9,7 @@ import {
   listVoiceSamples,
 } from "./service.js";
 import {
+  cancelSunoVoiceClone,
   getSunoVoiceCloneStatus,
   prepareSunoVoiceClone,
   submitSunoVoiceVerification,
@@ -131,6 +132,22 @@ export async function registerVoiceSampleRoutes(app: FastifyInstance) {
     async (request, reply) => {
       try {
         const sample = await getSunoVoiceCloneStatus(
+          request.userId!,
+          request.params.id,
+        );
+        return reply.send(sample);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/api/voice-samples/:id/suno-voice/cancel",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const sample = await cancelSunoVoiceClone(
           request.userId!,
           request.params.id,
         );

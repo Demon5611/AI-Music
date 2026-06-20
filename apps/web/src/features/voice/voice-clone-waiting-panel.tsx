@@ -42,11 +42,13 @@ export function VoiceCloneWaitingPanel({
     onElapsedChange?.(elapsedSec);
   }, [elapsedSec, onElapsedChange]);
 
-  const progress = Math.min(95, Math.round((elapsedSec / EXPECTED_WAIT_SEC) * 100));
-  const slowHint =
-    elapsedSec >= 120
-      ? "AI Music отвечает дольше обычного. Если прошло больше 5 минут — нажмите «Повторить верификацию»."
-      : WAIT_HINT;
+  const isSlowWait = elapsedSec >= EXPECTED_WAIT_SEC;
+  const progress = isSlowWait
+    ? undefined
+    : Math.round((elapsedSec / EXPECTED_WAIT_SEC) * 90);
+  const slowHint = isSlowWait
+    ? "AI Music отвечает дольше обычного. Можно нажать «Стоп» или «Повторить верификацию»."
+    : WAIT_HINT;
 
   return (
     <AiProcessingStatus

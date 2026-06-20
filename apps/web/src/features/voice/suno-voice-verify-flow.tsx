@@ -116,6 +116,7 @@ export function SunoVoiceVerifyFlow({
   const [sample, setSample] = useState<VoiceSample | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [pollRequested, setPollRequested] = useState(false);
   const [waitElapsedSec, setWaitElapsedSec] = useState(0);
@@ -390,6 +391,29 @@ export function SunoVoiceVerifyFlow({
       });
   }
 
+  function handleStopVerification() {
+    if (!sampleId) {
+      return;
+    }
+
+    setError(null);
+    setIsCancelling(true);
+    stopPolling();
+    setIsSubmitting(false);
+
+    void apiRef.current.voiceSamples
+      .cancelSunoVoice(sampleId)
+      .then((cancelled) => {
+        setSample(cancelled);
+      })
+      .catch((cancelError) => {
+        setError(parseApiError(cancelError, VOICE_SETUP_ERROR));
+      })
+      .finally(() => {
+        setIsCancelling(false);
+      });
+  }
+
   function handleRecordNewSample() {
     if (onRecordNewSampleRef.current) {
       onRecordNewSampleRef.current();
@@ -428,7 +452,9 @@ export function SunoVoiceVerifyFlow({
   const showRecorder =
     resolvedSample?.voiceCloneStatus === "awaiting_verification" && !isSubmitting;
   const isBusy =
-    isSubmitting || isProcessingStatus(resolvedSample?.voiceCloneStatus ?? "pending");
+    isSubmitting ||
+    isCancelling ||
+    isProcessingStatus(resolvedSample?.voiceCloneStatus ?? "pending");
   const displayError =
     error ??
     pollError ??
@@ -457,11 +483,23 @@ export function SunoVoiceVerifyFlow({
         )}
 
         {showWaitingPanel ? (
-          <VoiceCloneWaitingPanel
-            active
-            label={waitingLabel}
-            onElapsedChange={handleWaitElapsedChange}
-          />
+          <>
+            <VoiceCloneWaitingPanel
+              active
+              label={waitingLabel}
+              onElapsedChange={handleWaitElapsedChange}
+            />
+            <div className={voiceUi.formActions}>
+              <button
+                className={voiceUi.upload.toolButtonDestructive}
+                disabled={isCancelling || isBootstrapping}
+                type="button"
+                onClick={handleStopVerification}
+              >
+                {isCancelling ? "Остановка..." : "Стоп"}
+              </button>
+            </div>
+          </>
         ) : null}
 
         {resolvedSample?.sunoValidatePhrase &&

@@ -320,31 +320,14 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
   const voiceId = resolveRecordVoiceId(recordInfo);
 
   if (recordStatus === "success" && voiceId) {
-    const available = await voice.checkVoiceIdAvailability(voiceId);
-
-    if (available) {
-      return prisma.voiceSample.update({
-        where: { id: sample.id },
-        data: {
-          voiceCloneStatus: "ready",
-          sunoVoiceId: voiceId,
-          voiceCloneError: null,
-        },
-      });
-    }
-
-    if (sample.voiceCloneStatus !== "cloning") {
-      return prisma.voiceSample.update({
-        where: { id: sample.id },
-        data: {
-          voiceCloneStatus: "cloning",
-          sunoVoiceId: voiceId,
-          voiceCloneError: null,
-        },
-      });
-    }
-
-    return sample;
+    return prisma.voiceSample.update({
+      where: { id: sample.id },
+      data: {
+        voiceCloneStatus: "ready",
+        sunoVoiceId: voiceId,
+        voiceCloneError: null,
+      },
+    });
   }
 
   if (
@@ -515,6 +498,20 @@ export async function getSunoVoiceCloneStatus(userId: string, sampleId: string) 
   return toVoiceSampleDto(sample);
 }
 
+const VOICE_CLONE_CANCELLED_MESSAGE =
+  "Процесс остановлен. Нажмите «Повторить верификацию», чтобы начать заново.";
+
+export async function cancelSunoVoiceClone(userId: string, sampleId: string) {
+  const sample = await loadOwnedSample(userId, sampleId);
+
+  if (sample.voiceCloneStatus === "ready" && sample.sunoVoiceId) {
+    return toVoiceSampleDto(sample);
+  }
+
+  const cancelled = await markCloneFailed(sample, VOICE_CLONE_CANCELLED_MESSAGE);
+  return toVoiceSampleDto(cancelled);
+}
+
 export interface PrepareSunoVoiceCloneOptions {
   restart?: boolean;
 }
@@ -533,18 +530,9 @@ export async function prepareSunoVoiceClone(
       if (sample.voiceCloneStatus === "ready" && sample.sunoVoiceId) {
         return toVoiceSampleDto(sample);
       }
-
-      if (sample.voiceCloneStatus === "cloning") {
-        return toVoiceSampleDto(sample);
-      }
     }
 
-    if (
-      sample.voiceCloneStatus === "preparing" ||
-      sample.voiceCloneStatus === "failed" ||
-      sample.voiceCloneStatus === "awaiting_verification" ||
-      sample.voiceCloneStatus === "pending"
-    ) {
+    if (sample.voiceCloneStatus !== "ready") {
       sample = await resetSunoVoiceTask(sample);
     }
   }
