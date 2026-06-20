@@ -64,6 +64,7 @@ flowchart TD
 | Симптом в Network | Действие |
 | ----------------- | -------- |
 | `readyForMusicGeneration: false`, `voiceCloneStatus: ready` | **Только `/consent`** — «Повторить верификацию». Образец на главной **не** перезаписывать. |
+| `POST .../prepare { restart: true }` при stale persona | API сбрасывает task и заново вызывает Suno validate (новая фраза) |
 | `voiceCloneStatus: failed` | `/consent` → повторить; если снова fail — новый образец на главной |
 | `readyForMusicGeneration: true`, generate OK | Ничего |
 

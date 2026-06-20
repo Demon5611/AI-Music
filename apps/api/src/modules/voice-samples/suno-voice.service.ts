@@ -550,15 +550,15 @@ export async function prepareSunoVoiceClone(
   if (options.restart) {
     if (sample.sunoVoiceTaskId) {
       sample = await syncSunoVoiceTaskStatus(sample);
-
-      if (sample.voiceCloneStatus === "ready" && sample.sunoVoiceId) {
-        return toVoiceSampleDto(sample);
-      }
     }
 
-    if (sample.voiceCloneStatus !== "ready") {
-      sample = await resetSunoVoiceTask(sample);
+    const personaVoiceId = await resolvePersonaVoiceId(sample);
+
+    if (sample.voiceCloneStatus === "ready" && personaVoiceId) {
+      return toVoiceSampleDtoWithPersonaCheck(sample, resolvePersonaVoiceId);
     }
+
+    sample = await resetSunoVoiceTask(sample);
   }
 
   if (sample.voiceCloneStatus === "failed" && sample.sunoVoiceTaskId) {
@@ -570,7 +570,13 @@ export async function prepareSunoVoiceClone(
   }
 
   if (sample.voiceCloneStatus === "ready" && sample.sunoVoiceId) {
-    return toVoiceSampleDto(sample);
+    const personaVoiceId = await resolvePersonaVoiceId(sample, { persistCorrection: true });
+
+    if (personaVoiceId) {
+      return toVoiceSampleDtoWithPersonaCheck(sample, resolvePersonaVoiceId);
+    }
+
+    sample = await resetSunoVoiceTask(sample);
   }
 
   if (

@@ -15,3 +15,8 @@ export function isVoiceSampleReadyForGeneration(
 
   return isVoiceSampleReady(sample) && sample.voiceCloneStatus === "ready";
 }
+
+/** Suno clone marked ready, but live check-voice(voice_id) failed — need /consent restart. */
+export function needsPersonaReverification(sample: VoiceSample): boolean {
+  return sample.voiceCloneStatus === "ready" && sample.readyForMusicGeneration === false;
+}

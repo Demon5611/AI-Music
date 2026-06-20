@@ -6,7 +6,7 @@ import { MIN_VOICE_VERIFY_DURATION_SEC } from "@ai-music/shared";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
+import { isVoiceSampleReadyForGeneration, needsPersonaReverification } from "@/entities/voice-sample";
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { SunoVoiceVerifyTipsPanel } from "@/features/voice/voice-recording-tips-panel";
 import { voiceUi } from "@/features/voice/voice-classes";
@@ -64,6 +64,10 @@ function resolveStatusLabel(sample: VoiceSample | null): string {
     case "cloning":
       return "Создаём ваш голос в AI Music...";
     case "ready":
+      if (needsPersonaReverification(sample)) {
+        return "AI Music не подтвердил голос для генерации музыки. Нажмите «Повторить верификацию» — образец на главной сохранён.";
+      }
+
       return "Голос готов";
     case "failed":
       return sample.voiceCloneError ?? "Не удалось создать голос";
@@ -463,7 +467,10 @@ export function SunoVoiceVerifyFlow({
       : null);
   const showFailedActions = Boolean(displayError);
   const showStuckActions = isWaitingForSuno && waitElapsedSec >= STUCK_WAIT_SEC;
-  const showRecoveryActions = showFailedActions || showStuckActions;
+  const needsReverify = resolvedSample
+    ? needsPersonaReverification(resolvedSample)
+    : false;
+  const showRecoveryActions = showFailedActions || showStuckActions || needsReverify;
   const showVoiceMismatchHint = isVoiceMismatchMessage(displayError);
   const showWaitingPanel = isWaitingForSuno;
   const waitingLabel = isSubmitting

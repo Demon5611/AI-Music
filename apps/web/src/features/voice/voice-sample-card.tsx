@@ -1,7 +1,7 @@
 "use client";
 
 import type { VoiceSample } from "@ai-music/shared";
-import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
+import { isVoiceSampleReadyForGeneration, needsPersonaReverification } from "@/entities/voice-sample";
 import {
   buildVoiceSampleAudioUrl,
   formatVoiceSampleDuration,
@@ -19,6 +19,10 @@ interface VoiceSampleCardProps {
 function resolveStatusBadgeClass(sample: VoiceSample): string {
   if (isVoiceSampleReadyForGeneration(sample)) {
     return voiceUi.sampleCardBadgeReady;
+  }
+
+  if (needsPersonaReverification(sample)) {
+    return voiceUi.sampleCardBadgeVerification;
   }
 
   if (sample.voiceCloneStatus === "failed") {

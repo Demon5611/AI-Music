@@ -1,6 +1,6 @@
 import type { VoiceCloneStatus, VoiceSample } from "@ai-music/shared";
 import { env } from "@/shared/config/env";
-import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
+import { isVoiceSampleReadyForGeneration, needsPersonaReverification } from "@/entities/voice-sample";
 
 const CLONE_STATUS_LABELS: Record<VoiceCloneStatus, string> = {
   pending: "Загружен",
@@ -40,11 +40,8 @@ export function resolveVoiceSampleStatusLabel(sample: VoiceSample): string {
     return "Готов к генерации";
   }
 
-  if (
-    sample.voiceCloneStatus === "ready" &&
-    sample.readyForMusicGeneration === false
-  ) {
-    return "Нужна верификация";
+  if (needsPersonaReverification(sample)) {
+    return "Нужна повторная верификация";
   }
 
   return CLONE_STATUS_LABELS[sample.voiceCloneStatus];
