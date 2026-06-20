@@ -9,7 +9,9 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "postinstall": "node scripts/ensure-ffmpeg.mjs"
+    "postinstall": "node scripts/ensure-ffmpeg.mjs",
+    "grant-dev-credits": "tsx scripts/grant-dev-credits.ts",
+    "set-dev-plan": "tsx scripts/set-dev-plan.ts"
   },
   "dependencies": {
     "@ai-music/ai-providers": "workspace:*",

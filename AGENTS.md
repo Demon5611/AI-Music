@@ -33,6 +33,9 @@ Reference files (read on demand, not upfront):
 - `music-provider-integration/references/suno-voice-flow.md` — две записи, consent, Suno persona
 - `music-provider-integration/references/kits-ai.md`
 - `credits-billing/references/pricing-model.md`
+- `docs/suno-voice-persona-source-of-truth.md` — persona voice_id, readyForMusicGeneration, когда переверифицировать
+- `credits-billing/references/admin-dev-testing.md` — admin roles, plan override, QA credits (spec)
+- `docs/admin-dev-testing-flow.md` — полный план внедрения admin/QA tools
 - `backend-feature/references/project-architecture.md`
 - `frontend-feature/references/ui-patterns.md`
 

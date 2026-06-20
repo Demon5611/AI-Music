@@ -68,6 +68,13 @@ Current routes return 501 — implement server-only credit grants.
 - `GET /api/credits/balance` — authenticated, server-computed sum
 - Frontend displays balance from API; `@ai-music/api-client` `credits` module
 
+## Admin & QA (dev/testing)
+
+Plan override and credit grants for admins/testers — **not implemented yet**.
+Target flow: [references/admin-dev-testing.md](references/admin-dev-testing.md)
+Full spec: [docs/admin-dev-testing-flow.md](../../../docs/admin-dev-testing-flow.md)
+
 ## References
 
 - Pricing tiers and cost rationale: [references/pricing-model.md](references/pricing-model.md)
+- Admin/QA dev flow: [references/admin-dev-testing.md](references/admin-dev-testing.md)

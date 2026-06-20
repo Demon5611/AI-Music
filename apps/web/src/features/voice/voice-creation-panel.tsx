@@ -24,7 +24,7 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
   const api = useApi();
   const { isLoaded, isSignedIn, authReady } = useAuthSession();
   const [sample, setSample] = useState<VoiceSample | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showUploadForm, setShowUploadForm] = useState(true);
 
   const reloadSample = useCallback(async () => {

@@ -1,45 +1,10 @@
 import type { VoiceSample } from "@ai-music/db";
 import { createSunoVoiceClients } from "@ai-music/ai-providers";
 import { prisma } from "@ai-music/db";
-import { reconcileReadySunoVoiceSample } from "./suno-voice.service.js";
-
-async function refreshVoiceIdFromSunoRecord(sample: VoiceSample): Promise<string | null> {
-  const { voice } = createSunoVoiceClients();
-  const taskId = sample.sunoVoiceTaskId?.trim();
-  let voiceId = sample.sunoVoiceId?.trim() ?? "";
-
-  if (taskId) {
-    try {
-      const recordInfo = await voice.getVoiceRecordInfo(taskId);
-      const freshVoiceId = recordInfo.voiceId?.trim();
-
-      if (String(recordInfo.status) === "success" && freshVoiceId) {
-        voiceId = freshVoiceId;
-
-        if (freshVoiceId !== sample.sunoVoiceId?.trim()) {
-          await prisma.voiceSample.update({
-            where: { id: sample.id },
-            data: {
-              sunoVoiceId: freshVoiceId,
-              voiceCloneStatus: "ready",
-              voiceCloneError: null,
-            },
-          });
-        }
-      }
-    } catch {
-      // Fall back to stored voiceId below.
-    }
-  }
-
-  if (!voiceId) {
-    return null;
-  }
-
-  const available = await voice.checkVoiceIdAvailability(voiceId);
-
-  return available ? voiceId : null;
-}
+import {
+  PERSONA_VOICE_UNAVAILABLE_MESSAGE,
+  resolvePersonaVoiceId,
+} from "./persona-voice-id.service.js";
 
 export async function findReadySunoVoiceSample(userId: string, voiceSampleId?: string) {
   return prisma.voiceSample.findFirst({
@@ -55,20 +20,24 @@ export async function findReadySunoVoiceSample(userId: string, voiceSampleId?: s
   });
 }
 
-export async function resolveSunoVoicePersonaForUser(
-  userId: string,
-  voiceSampleId?: string,
-) {
+async function resolvePersonaForVoiceSample(userId: string, voiceSampleId?: string) {
   const found = await findReadySunoVoiceSample(userId, voiceSampleId);
 
   if (!found) {
     return null;
   }
 
-  const sample = await reconcileReadySunoVoiceSample(found);
-  const personaId = await refreshVoiceIdFromSunoRecord(sample);
+  const personaId = await resolvePersonaVoiceId(found, { persistCorrection: true });
 
-  if (sample.voiceCloneStatus !== "ready" || !personaId) {
+  if (!personaId) {
+    return null;
+  }
+
+  const sample = await prisma.voiceSample.findFirst({
+    where: { id: found.id, userId },
+  });
+
+  if (!sample || sample.voiceCloneStatus !== "ready") {
     return null;
   }
 
@@ -79,3 +48,23 @@ export async function resolveSunoVoicePersonaForUser(
     personaModel: "voice_persona" as const,
   };
 }
+
+export async function resolveSunoVoicePersonaForUser(
+  userId: string,
+  voiceSampleId?: string,
+) {
+  const persona = await resolvePersonaForVoiceSample(userId, voiceSampleId);
+
+  if (persona || !voiceSampleId) {
+    return persona;
+  }
+
+  return resolvePersonaForVoiceSample(userId);
+}
+
+export async function assertPersonaVoiceAvailable(personaId: string): Promise<boolean> {
+  const { voice } = createSunoVoiceClients();
+  return voice.checkVoiceIdAvailability(personaId);
+}
+
+export { PERSONA_VOICE_UNAVAILABLE_MESSAGE, resolvePersonaVoiceId };

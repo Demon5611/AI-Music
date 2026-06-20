@@ -10,7 +10,11 @@ import type { VoiceSample } from "@ai-music/db";
 import { MIN_VOICE_VERIFY_DURATION_SEC } from "@ai-music/shared";
 import { ForbiddenError, NotFoundError } from "../../common/errors.js";
 import { getStorageService } from "../storage/storage.service.js";
-import { toVoiceSampleDto } from "./mapper.js";
+import { toVoiceSampleDto, toVoiceSampleDtoWithPersonaCheck } from "./mapper.js";
+import {
+  PERSONA_VOICE_UNAVAILABLE_MESSAGE,
+  resolvePersonaVoiceId,
+} from "./persona-voice-id.service.js";
 import {
   canSyncSunoVoiceTask,
   isVoiceCloneTimedOut,
@@ -109,8 +113,7 @@ function resolveRecordVoiceId(recordInfo: {
   return voiceId || null;
 }
 
-const SUNO_VOICE_UNAVAILABLE_MESSAGE =
-  "Голос AI Music недоступен для генерации. Пройдите верификацию заново на /consent.";
+const SUNO_VOICE_UNAVAILABLE_MESSAGE = PERSONA_VOICE_UNAVAILABLE_MESSAGE;
 
 export async function reconcileReadySunoVoiceSample(
   sample: VoiceSample,
@@ -119,14 +122,29 @@ export async function reconcileReadySunoVoiceSample(
     return sample;
   }
 
-  const { voice } = createSunoVoiceClients();
-  const available = await voice.checkVoiceIdAvailability(sample.sunoVoiceId);
+  const personaVoiceId = await resolvePersonaVoiceId(sample, { persistCorrection: true });
 
-  if (available) {
-    return sample;
+  if (personaVoiceId) {
+    return prisma.voiceSample.findUniqueOrThrow({ where: { id: sample.id } });
   }
 
   return markCloneFailed(sample, SUNO_VOICE_UNAVAILABLE_MESSAGE);
+}
+
+export async function syncVoiceSampleListEntry(sample: VoiceSample): Promise<VoiceSample> {
+  if (!sample.sunoVoiceTaskId) {
+    return sample;
+  }
+
+  const shouldSync =
+    canSyncSunoVoiceTask(sample) ||
+    (sample.voiceCloneStatus === "ready" && !sample.sunoVoiceId?.trim());
+
+  if (!shouldSync) {
+    return sample;
+  }
+
+  return syncSunoVoiceTaskStatus(sample);
 }
 
 async function promoteValidatePhraseIfReady(
@@ -320,6 +338,12 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
   const voiceId = resolveRecordVoiceId(recordInfo);
 
   if (recordStatus === "success" && voiceId) {
+    const available = await voice.checkVoiceIdAvailability(voiceId);
+
+    if (!available) {
+      return markCloneFailed(sample, SUNO_VOICE_UNAVAILABLE_MESSAGE);
+    }
+
     return prisma.voiceSample.update({
       where: { id: sample.id },
       data: {
@@ -495,7 +519,7 @@ async function assertValidateTaskReady(
 export async function getSunoVoiceCloneStatus(userId: string, sampleId: string) {
   let sample = await loadOwnedSample(userId, sampleId);
   sample = await syncSunoVoiceTaskStatus(sample);
-  return toVoiceSampleDto(sample);
+  return toVoiceSampleDtoWithPersonaCheck(sample, resolvePersonaVoiceId);
 }
 
 const VOICE_CLONE_CANCELLED_MESSAGE =
@@ -719,5 +743,5 @@ export async function submitSunoVoiceVerification(
   });
 
   const synced = await syncSunoVoiceTaskStatus(updated);
-  return toVoiceSampleDto(synced);
+  return toVoiceSampleDtoWithPersonaCheck(synced, resolvePersonaVoiceId);
 }

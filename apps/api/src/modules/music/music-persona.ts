@@ -43,7 +43,7 @@ export async function resolveMusicPersonaForUser(
   if (!persona) {
     if (voiceSampleId) {
       throw new ForbiddenError(
-        "Выбранный образец голоса не готов. Пройдите верификацию на /consent или выберите другой.",
+        "Голос AI Music не прошёл проверку Suno. Откройте /consent и пройдите верификацию заново — перезагрузка образца не нужна, если запись на главной сохранена.",
       );
     }
 

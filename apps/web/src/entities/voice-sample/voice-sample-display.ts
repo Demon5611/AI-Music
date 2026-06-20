@@ -40,6 +40,13 @@ export function resolveVoiceSampleStatusLabel(sample: VoiceSample): string {
     return "Готов к генерации";
   }
 
+  if (
+    sample.voiceCloneStatus === "ready" &&
+    sample.readyForMusicGeneration === false
+  ) {
+    return "Нужна верификация";
+  }
+
   return CLONE_STATUS_LABELS[sample.voiceCloneStatus];
 }
 

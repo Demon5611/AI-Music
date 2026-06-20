@@ -45,6 +45,8 @@ export interface VoiceSample {
   sunoValidatePhrase: string | null;
   voiceCloneStatus: VoiceCloneStatus;
   voiceCloneError: string | null;
+  /** true только после live check-voice(voice_id) — см. persona-voice-id.service.ts */
+  readyForMusicGeneration: boolean;
   createdAt: string;
 }
 

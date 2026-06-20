@@ -1,7 +1,11 @@
 import type { VoiceSample as VoiceSampleDto } from "@ai-music/shared";
 import type { VoiceSample } from "@ai-music/db";
+import { isReadyForMusicGeneration } from "./persona-voice-id.service.js";
 
-export function toVoiceSampleDto(sample: VoiceSample): VoiceSampleDto {
+export function toVoiceSampleDto(
+  sample: VoiceSample,
+  personaVoiceId: string | null = null,
+): VoiceSampleDto {
   return {
     id: sample.id,
     userId: sample.userId,
@@ -11,6 +15,24 @@ export function toVoiceSampleDto(sample: VoiceSample): VoiceSampleDto {
     sunoValidatePhrase: sample.sunoValidatePhrase,
     voiceCloneStatus: sample.voiceCloneStatus as VoiceSampleDto["voiceCloneStatus"],
     voiceCloneError: sample.voiceCloneError,
+    readyForMusicGeneration: isReadyForMusicGeneration(sample, personaVoiceId),
     createdAt: sample.createdAt.toISOString(),
   };
+}
+
+export async function toVoiceSampleDtoWithPersonaCheck(
+  sample: VoiceSample,
+  resolvePersonaVoiceId: (
+    sample: VoiceSample,
+    options?: { persistCorrection?: boolean },
+  ) => Promise<string | null>,
+): Promise<VoiceSampleDto> {
+  const shouldCheck =
+    sample.voiceCloneStatus === "ready" || Boolean(sample.sunoVoiceId?.trim());
+
+  const personaVoiceId = shouldCheck
+    ? await resolvePersonaVoiceId(sample, { persistCorrection: true })
+    : null;
+
+  return toVoiceSampleDto(sample, personaVoiceId);
 }

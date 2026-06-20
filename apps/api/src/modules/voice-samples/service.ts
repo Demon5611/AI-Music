@@ -6,8 +6,10 @@ import {
   getStorageService,
   resolveVoiceSampleExtension,
 } from "../storage/storage.service.js";
-import { toVoiceSampleDto } from "./mapper.js";
+import { toVoiceSampleDto, toVoiceSampleDtoWithPersonaCheck } from "./mapper.js";
 import { normalizeVoiceSampleMime, resolveVoiceSampleContentType } from "./resolve-voice-sample-mime.js";
+import { resolvePersonaVoiceId } from "./persona-voice-id.service.js";
+import { syncVoiceSampleListEntry } from "./suno-voice.service.js";
 
 export interface CreateVoiceSampleInput {
   userId: string;
@@ -23,7 +25,11 @@ export async function listVoiceSamples(userId: string) {
     orderBy: { createdAt: "desc" },
   });
 
-  return samples.map(toVoiceSampleDto);
+  const synced = await Promise.all(samples.map((sample) => syncVoiceSampleListEntry(sample)));
+
+  return Promise.all(
+    synced.map((sample) => toVoiceSampleDtoWithPersonaCheck(sample, resolvePersonaVoiceId)),
+  );
 }
 
 export async function deleteVoiceSample(userId: string, sampleId: string) {

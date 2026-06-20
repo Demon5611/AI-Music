@@ -9,5 +9,9 @@ export function isVoiceSampleReady(sample: VoiceSample): boolean {
 export function isVoiceSampleReadyForGeneration(
   sample: VoiceSample,
 ): boolean {
+  if (sample.readyForMusicGeneration !== undefined) {
+    return sample.readyForMusicGeneration;
+  }
+
   return isVoiceSampleReady(sample) && sample.voiceCloneStatus === "ready";
 }
