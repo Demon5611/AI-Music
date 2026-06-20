@@ -45,6 +45,7 @@ export interface MusicLyricsGenerateResponseDto {
   provider: string;
   taskId: string;
   status: MusicGenerationRecordStatus;
+  lyricsDurationSec?: number;
 }
 
 export interface MusicLyricsStatusResponseDto {
@@ -54,6 +55,7 @@ export interface MusicLyricsStatusResponseDto {
   rawStatus?: string;
   lyrics?: Array<{ title: string; text: string }>;
   errorMessage?: string;
+  lyricsDurationSec?: number;
 }
 
 export interface MusicStatusResponseDto {

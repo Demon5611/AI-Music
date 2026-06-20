@@ -146,6 +146,7 @@ export function MusicCreatePanel() {
           {wizardStep === "lyrics" ? (
             <MusicCreateLyricsStep
               configured={configured}
+              durationSec={durationSec}
               isBusy={isBusy}
               lyricsBrief={lyricsBrief}
               prompt={prompt}

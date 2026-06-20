@@ -21,6 +21,7 @@ export interface GenerateSongBody {
 
 export interface GenerateLyricsBody {
   prompt: string;
+  durationSec?: number;
 }
 
 export function createMusicApi(client: ApiClient) {
@@ -32,8 +33,16 @@ export function createMusicApi(client: ApiClient) {
       client.post<MusicGenerateResponseDto>("/api/music/generate", body),
     generateLyrics: (body: GenerateLyricsBody) =>
       client.post<MusicLyricsGenerateResponseDto>("/api/music/lyrics", body),
-    lyricsStatus: (taskId: string) =>
-      client.get<MusicLyricsStatusResponseDto>(`/api/music/lyrics/status/${taskId}`),
+    lyricsStatus: (taskId: string, durationSec?: number) => {
+      const query =
+        durationSec && durationSec > 0
+          ? `?durationSec=${encodeURIComponent(String(durationSec))}`
+          : "";
+
+      return client.get<MusicLyricsStatusResponseDto>(
+        `/api/music/lyrics/status/${encodeURIComponent(taskId)}${query}`,
+      );
+    },
     status: (taskId: string) => client.get<MusicStatusResponseDto>(`/api/music/status/${taskId}`),
     deleteHistory: (ids: string[]) =>
       client.post<{ deletedCount: number }>("/api/music/history/delete", {

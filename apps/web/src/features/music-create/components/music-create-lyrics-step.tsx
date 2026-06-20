@@ -1,5 +1,6 @@
 "use client";
 
+import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
 import { mc } from "@/features/music-create/music-create-classes";
 import { MusicLyricsFromPrompt } from "@/features/music-create/music-lyrics-from-prompt";
 import {
@@ -7,10 +8,14 @@ import {
   IconChevronRight,
 } from "@/features/music-create/components/music-create-icons";
 import { cn } from "@/lib/utils";
-import { checkContentAllowed } from "@ai-music/shared";
+import {
+  checkContentAllowed,
+  FREE_TIER_DEFAULT_DURATION_SEC,
+  resolveLyricsDurationSecForPlan,
+  resolveManualLyricsMaxLength,
+} from "@ai-music/shared";
 import { DisabledTooltipWrap } from "@/shared/ui/tooltip";
 
-const LYRICS_MAX_LENGTH = 3000;
 const MANUAL_LYRICS_LOCKED_HINT =
   "Сначала очистите описание выше или нажмите «Сгенерировать текст» — готовый текст появится здесь.";
 const PROMPT_LYRICS_LOCKED_HINT =
@@ -18,6 +23,7 @@ const PROMPT_LYRICS_LOCKED_HINT =
 
 interface MusicCreateLyricsStepProps {
   configured: boolean | null;
+  durationSec: number;
   isBusy: boolean;
   lyricsBrief: string;
   prompt: string;
@@ -29,6 +35,7 @@ interface MusicCreateLyricsStepProps {
 
 export function MusicCreateLyricsStep({
   configured,
+  durationSec,
   isBusy,
   lyricsBrief,
   prompt,
@@ -37,16 +44,27 @@ export function MusicCreateLyricsStep({
   onApplyGeneratedLyrics,
   onContinue,
 }: MusicCreateLyricsStepProps) {
+  const subscriptionQuery = useSubscriptionQuery();
+  const planId = subscriptionQuery.data?.planId ?? "free";
+  const isSimplifiedGeneration =
+    subscriptionQuery.data?.entitlements.features.musicGeneration === "simplified";
+  const lyricsDurationSec = resolveLyricsDurationSecForPlan(planId, durationSec);
+  const manualLyricsMaxLength = resolveManualLyricsMaxLength(planId, durationSec);
   const hasLyricsBrief = lyricsBrief.trim().length > 0;
   const hasManualLyrics = prompt.trim().length > 0;
   const manualLyricsLocked = hasLyricsBrief && !hasManualLyrics;
   const manualLyricsModerationResult = checkContentAllowed(prompt);
   const manualLyricsModerationError =
     manualLyricsModerationResult.allowed ? null : manualLyricsModerationResult.reasonMessageRu;
-  const canContinue = hasManualLyrics && !manualLyricsModerationError;
+  const manualLyricsLengthError =
+    hasManualLyrics && prompt.trim().length > manualLyricsMaxLength
+      ? `Текст слишком длинный для ~${lyricsDurationSec} сек — максимум ${manualLyricsMaxLength} символов.`
+      : null;
+  const canContinue =
+    hasManualLyrics && !manualLyricsModerationError && !manualLyricsLengthError;
 
   function handleContinue() {
-    if (manualLyricsModerationError) {
+    if (manualLyricsModerationError || manualLyricsLengthError) {
       return;
     }
 
@@ -66,8 +84,10 @@ export function MusicCreateLyricsStep({
       <MusicLyricsFromPrompt
         configured={configured === true}
         disabled={isBusy || hasManualLyrics}
+        isSimplifiedGeneration={isSimplifiedGeneration}
         lockedHint={PROMPT_LYRICS_LOCKED_HINT}
         lyricsBrief={lyricsBrief}
+        lyricsDurationSec={lyricsDurationSec}
         onLyricsBriefChange={onLyricsBriefChange}
         onApply={onApplyGeneratedLyrics}
       />
@@ -85,12 +105,12 @@ export function MusicCreateLyricsStep({
                 aria-describedby="manual-lyrics-locked-hint"
                 className={cn(mc.textareaLarge, mc.fieldDisabled)}
                 disabled
-                maxLength={LYRICS_MAX_LENGTH}
+                maxLength={manualLyricsMaxLength}
                 placeholder="Напишите собственные тексты, или куплеты (8 строк) для лучшего результата"
                 value={prompt}
               />
               <div className={mc.counterPosLarge}>
-                <CharCounter current={prompt.length} max={LYRICS_MAX_LENGTH} />
+                <CharCounter current={prompt.length} max={manualLyricsMaxLength} />
               </div>
             </div>
           </DisabledTooltipWrap>
@@ -99,23 +119,35 @@ export function MusicCreateLyricsStep({
             <textarea
               className={cn(mc.textareaLarge, isBusy && mc.fieldDisabled)}
               disabled={isBusy}
-              maxLength={LYRICS_MAX_LENGTH}
+              maxLength={manualLyricsMaxLength}
               placeholder="Напишите собственные тексты, или куплеты (8 строк) для лучшего результата"
               value={prompt}
               onChange={(event) => onManualLyricsChange(event.target.value)}
             />
             <div className={mc.counterPosLarge}>
-              <CharCounter current={prompt.length} max={LYRICS_MAX_LENGTH} />
+              <CharCounter current={prompt.length} max={manualLyricsMaxLength} />
             </div>
           </div>
         )}
+        <p className={cn(mc.meta, "mt-2")}>
+          {isSimplifiedGeneration
+            ? `На Free — до ${manualLyricsMaxLength} символов (~${FREE_TIER_DEFAULT_DURATION_SEC} сек). На платных тарифах лимит растёт с длительностью трека.`
+            : `Лимит текста: ${manualLyricsMaxLength} символов (~${lyricsDurationSec} сек).`}
+        </p>
         {manualLyricsLocked ? (
-          <p className={cn(mc.meta, "mt-2")} id="manual-lyrics-locked-hint">
+          <p className={cn(mc.meta, "mt-1")} id="manual-lyrics-locked-hint">
             {MANUAL_LYRICS_LOCKED_HINT}
           </p>
         ) : null}
+        {manualLyricsLengthError ? (
+          <p className={cn(mc.errorInline, "mt-2")} role="alert">
+            {manualLyricsLengthError}
+          </p>
+        ) : null}
         {hasManualLyrics && manualLyricsModerationError ? (
-          <p className={cn(mc.errorInline, "mt-2")}>{manualLyricsModerationError}</p>
+          <p className={cn(mc.errorInline, "mt-2")} role="alert">
+            {manualLyricsModerationError}
+          </p>
         ) : null}
       </label>
 

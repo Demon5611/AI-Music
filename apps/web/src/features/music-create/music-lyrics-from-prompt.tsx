@@ -2,8 +2,15 @@
 
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import type { MusicLyricsStatusResponseDto } from "@ai-music/shared";
-import { checkContentAllowed, isVocalGender, resolveLyricsBriefMaxLength } from "@ai-music/shared";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  checkContentAllowed,
+  FREE_TIER_DEFAULT_DURATION_SEC,
+  isVocalGender,
+  resolveLyricsBriefMaxLength,
+  truncateLyricsForDuration,
+  VOCAL_GENDER_LABELS,
+} from "@ai-music/shared";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { AiProcessingStatus } from "@/shared/ui/elevenlabs/ai-processing-status";
@@ -19,21 +26,59 @@ const LYRICS_POLL_INTERVAL_MS = 5_000;
 interface MusicLyricsFromPromptProps {
   configured: boolean;
   disabled?: boolean;
+  isSimplifiedGeneration: boolean;
   lockedHint?: string;
   lyricsBrief: string;
+  lyricsDurationSec: number;
   onLyricsBriefChange: (value: string) => void;
   onApply: (text: string, suggestedTitle?: string) => void;
+}
+
+function resolveLyricsDurationHint(
+  isSimplifiedGeneration: boolean,
+  lyricsDurationSec: number,
+): string {
+  if (isSimplifiedGeneration) {
+    return `На тарифе Free AI создаёт короткий текст только под ~${FREE_TIER_DEFAULT_DURATION_SEC} сек. На платных тарифах длина зависит от выбранной длительности трека.`;
+  }
+
+  return `AI создаст текст под ~${lyricsDurationSec} сек — длительность, которую вы выберете на следующем шаге.`;
 }
 
 function isLyricsStatusTerminal(data: MusicLyricsStatusResponseDto | undefined): boolean {
   return !data || data.status === "completed" || data.status === "failed";
 }
 
+function resolvePollError(
+  queryError: Error | null,
+  data: MusicLyricsStatusResponseDto | undefined,
+): string | null {
+  if (queryError) {
+    return parseApiError(queryError, "Не удалось сгенерировать текст");
+  }
+
+  if (!data || data.status === "pending" || data.status === "processing") {
+    return null;
+  }
+
+  if (data.status === "failed") {
+    return data.errorMessage ?? "Генерация текста не удалась";
+  }
+
+  if ((data.lyrics ?? []).length === 0) {
+    return "AI не вернул текст песни";
+  }
+
+  return null;
+}
+
 export function MusicLyricsFromPrompt({
   configured,
   disabled = false,
+  isSimplifiedGeneration,
   lockedHint,
   lyricsBrief,
+  lyricsDurationSec,
   onLyricsBriefChange,
   onApply,
 }: MusicLyricsFromPromptProps) {
@@ -48,12 +93,12 @@ export function MusicLyricsFromPrompt({
     const gender = userQuery.data?.vocalGender;
     return gender && isVocalGender(gender) ? gender : null;
   }, [userQuery.data?.vocalGender]);
-  const briefMaxLength = resolveLyricsBriefMaxLength(vocalGender);
-  const [error, setError] = useState<string | null>(null);
+  const briefMaxLength = resolveLyricsBriefMaxLength(vocalGender, lyricsDurationSec);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [lyricsTaskId, setLyricsTaskId] = useState<string | null>(null);
-  const [variants, setVariants] = useState<Array<{ title: string; text: string }>>([]);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  const appliedCompletionRef = useRef<string | null>(null);
 
   const applyVariant = useCallback(
     (items: Array<{ title: string; text: string }>, index: number) => {
@@ -63,81 +108,105 @@ export function MusicLyricsFromPrompt({
       }
 
       setSelectedVariantIndex(index);
-      onApply(variant.text, variant.title);
+      onApply(
+        truncateLyricsForDuration(variant.text, lyricsDurationSec),
+        variant.title,
+      );
     },
-    [onApply],
+    [lyricsDurationSec, onApply],
   );
 
   const lyricsStatusQuery = usePollingQuery({
-    queryKey: ["music-lyrics-status", lyricsTaskId],
-    queryFn: () => api.music.lyricsStatus(lyricsTaskId!),
+    queryKey: ["music-lyrics-status", lyricsTaskId, lyricsDurationSec],
+    queryFn: () => api.music.lyricsStatus(lyricsTaskId!, lyricsDurationSec),
     enabled: Boolean(lyricsTaskId),
     isTerminal: isLyricsStatusTerminal,
     intervalMs: LYRICS_POLL_INTERVAL_MS,
   });
 
-  useEffect(() => {
-    if (lyricsStatusQuery.error) {
-      setError(parseApiError(lyricsStatusQuery.error, "Не удалось сгенерировать текст"));
-      setLyricsTaskId(null);
-      return;
-    }
+  const pollError = resolvePollError(
+    lyricsStatusQuery.error,
+    lyricsStatusQuery.data,
+  );
+  const displayError = submitError ?? pollError;
 
+  const variants = useMemo(() => {
     const body = lyricsStatusQuery.data;
-    if (!body || body.status === "pending" || body.status === "processing") {
-      return;
+    if (!lyricsTaskId || !body || body.status !== "completed") {
+      return [];
     }
 
-    setLyricsTaskId(null);
+    return body.lyrics ?? [];
+  }, [lyricsTaskId, lyricsStatusQuery.data]);
 
-    if (body.status === "failed") {
-      setError(body.errorMessage ?? "Генерация текста не удалась");
+  useEffect(() => {
+    const body = lyricsStatusQuery.data;
+    if (!lyricsTaskId || !body || body.status !== "completed") {
       return;
     }
 
     const items = body.lyrics ?? [];
     if (items.length === 0) {
-      setError("AI не вернул текст песни");
       return;
     }
 
-    setVariants(items);
-    applyVariant(items, 0);
-  }, [lyricsStatusQuery.data, lyricsStatusQuery.error, applyVariant]);
+    const completionKey = `${lyricsTaskId}:${body.taskId}`;
+    if (appliedCompletionRef.current === completionKey) {
+      return;
+    }
+
+    appliedCompletionRef.current = completionKey;
+    const firstVariant = items[0];
+    onApply(
+      truncateLyricsForDuration(firstVariant.text, lyricsDurationSec),
+      firstVariant.title,
+    );
+  }, [lyricsDurationSec, lyricsStatusQuery.data, lyricsTaskId, onApply]);
 
   async function handleGenerate() {
     const prompt = lyricsBrief.trim();
 
     if (!prompt) {
-      setError("Введите описание текста");
+      setSubmitError("Введите описание текста");
       return;
     }
 
     const moderationResult = checkContentAllowed(prompt);
     if (!moderationResult.allowed) {
-      setError(moderationResult.reasonMessageRu);
+      setSubmitError(moderationResult.reasonMessageRu);
       return;
     }
 
-    setError(null);
+    setSubmitError(null);
     setIsGenerating(true);
-    setVariants([]);
+    setSelectedVariantIndex(0);
+    appliedCompletionRef.current = null;
 
     try {
-      const body = await api.music.generateLyrics({ prompt });
+      const body = await api.music.generateLyrics({
+        prompt,
+        durationSec: lyricsDurationSec,
+      });
       setLyricsTaskId(body.taskId);
     } catch (generateError) {
-      setError(parseApiError(generateError, "Не удалось сгенерировать текст"));
+      setSubmitError(parseApiError(generateError, "Не удалось сгенерировать текст"));
     } finally {
       setIsGenerating(false);
     }
   }
 
-  const isPolling = Boolean(lyricsTaskId);
+  const isPolling =
+    Boolean(lyricsTaskId) &&
+    !lyricsStatusQuery.error &&
+    !isLyricsStatusTerminal(lyricsStatusQuery.data);
   const isBusy = isGenerating || isPolling;
   const lockedByManualLyrics = disabled && !isBusy;
   const fieldDisabled = isBusy || disabled;
   const canGenerate = configured && !fieldDisabled && lyricsBrief.trim().length > 0;
+  const durationHint = resolveLyricsDurationHint(isSimplifiedGeneration, lyricsDurationSec);
+  const genderHint = vocalGender
+    ? `Пол голоса: ${VOCAL_GENDER_LABELS[vocalGender]} — зафиксирован при записи образца и верификации. AI подбирает глаголы в ${vocalGender === "f" ? "женском" : "мужском"} роде.`
+    : "Пол голоса не указан — задайте его при записи образца на главной, чтобы AI подбирал род глаголов.";
 
   const briefTextarea = (
     <textarea
@@ -174,11 +243,8 @@ export function MusicLyricsFromPrompt({
             {lockedHint}
           </p>
         ) : null}
-        {vocalGender ? (
-          <p className={cn(mc.meta, "mt-1")}>
-            Лимит уменьшен: AI Music получает подсказку про род глаголов для вашего голоса.
-          </p>
-        ) : null}
+        <p className={cn(mc.meta, "mt-2")}>{durationHint}</p>
+        <p className={cn(mc.meta, "mt-1")}>{genderHint}</p>
       </label>
 
       <button
@@ -216,7 +282,7 @@ export function MusicLyricsFromPrompt({
         </div>
       ) : null}
 
-      {error ? <p className={cn(mc.errorInline, "mt-2")}>{error}</p> : null}
+      {displayError ? <p className={cn(mc.errorInline, "mt-2")}>{displayError}</p> : null}
     </div>
   );
 }

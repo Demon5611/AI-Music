@@ -20,18 +20,6 @@ export function buildGenderLyricsPromptSuffix(vocalGender: VocalGender): string 
   return `\n\nТекст от 1-го лица (${label}): глаголы в ${rod} роде (${examples}).`;
 }
 
-export function resolveLyricsBriefMaxLength(
-  vocalGender: VocalGender | null | undefined,
-): number {
-  if (!vocalGender) {
-    return SUNO_LYRICS_PROMPT_MAX_LENGTH;
-  }
-
-  const overhead = buildGenderLyricsPromptSuffix(vocalGender).length;
-
-  return Math.max(32, SUNO_LYRICS_PROMPT_MAX_LENGTH - overhead);
-}
-
 export function buildGenderAwareLyricsPrompt(
   prompt: string,
   vocalGender: VocalGender | null | undefined,

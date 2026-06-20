@@ -3,7 +3,6 @@ import { requireAuth } from "../../common/require-auth.js";
 import { RATE_LIMITS, userRateLimitRouteConfig } from "../../common/rate-limit.js";
 import { isAppError, sendAppError } from "../../common/errors.js";
 import { sendMusicError } from "./handle-music-error.js";
-import { SUNO_LYRICS_PROMPT_MAX_LENGTH } from "@ai-music/shared";
 import { getMusicGenerationTrackAudio } from "./music-record.service.js";
 import {
   extendMusic,
@@ -39,6 +38,11 @@ interface ExtendBody {
 
 interface LyricsBody {
   prompt: string;
+  durationSec?: number;
+}
+
+interface LyricsStatusQuery {
+  durationSec?: string;
 }
 
 interface DeleteHistoryBody {
@@ -194,14 +198,13 @@ export async function registerMusicRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "prompt is required" });
       }
 
-      if (prompt.length > SUNO_LYRICS_PROMPT_MAX_LENGTH) {
-        return reply.status(400).send({
-          error: `prompt must be at most ${SUNO_LYRICS_PROMPT_MAX_LENGTH} characters`,
-        });
-      }
+      const durationSec =
+        typeof request.body.durationSec === "number" && request.body.durationSec > 0
+          ? request.body.durationSec
+          : undefined;
 
       try {
-        const result = await generateLyricsForUser(request.userId!, prompt);
+        const result = await generateLyricsForUser(request.userId!, prompt, durationSec);
         return reply.send(result);
       } catch (error) {
         request.log.error(error);
@@ -215,7 +218,7 @@ export async function registerMusicRoutes(app: FastifyInstance) {
     },
   );
 
-  app.get<{ Params: { taskId: string } }>(
+  app.get<{ Params: { taskId: string }; Querystring: LyricsStatusQuery }>(
     "/api/music/lyrics/status/:taskId",
     { preHandler: requireAuth },
     async (request, reply) => {
@@ -225,8 +228,16 @@ export async function registerMusicRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "taskId is required" });
       }
 
+      const parsedDuration = Number(request.query.durationSec);
+      const durationSec =
+        Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : undefined;
+
       try {
-        const result = await getLyricsGenerationStatus(taskId);
+        const result = await getLyricsGenerationStatus(
+          taskId,
+          request.userId!,
+          durationSec,
+        );
         return reply.send(result);
       } catch (error) {
         request.log.error(error);

@@ -25,16 +25,21 @@ import {
   assertFeature,
   assertMaxDuration,
   assertMusicGenerationMode,
+  getUserEntitlements,
 } from "../billing/entitlements.service.js";
 import { prisma } from "@ai-music/db";
 import {
-  buildGenderAwareLyricsPrompt,
+  buildDurationAwareLyricsGenerationPrompt,
   checkContentAllowed,
   CONTENT_MODERATION_ERROR_RU,
+  FREE_TIER_DEFAULT_DURATION_SEC,
   GENERATION_CREDIT_COST,
   isVocalGender,
   resolveLyricsBriefMaxLength,
+  resolveLyricsDurationSecForPlan,
+  resolveManualLyricsMaxLength,
   SUNO_LYRICS_PROMPT_MAX_LENGTH,
+  truncateLyricsForDuration,
 } from "@ai-music/shared";
 
 const musicService = createMusicService();
@@ -89,6 +94,8 @@ export async function generateMusicForUser(
     style: input.style,
     durationSec: input.durationSec,
   });
+
+  await assertLyricsTextLengthForUser(userId, input.prompt, input.durationSec);
 
   const songInput = buildPersonaSongInput(input, persona);
 
@@ -161,7 +168,21 @@ export function extendMusic(input: {
   return musicService.extendSong(input);
 }
 
-export async function generateLyricsForUser(userId: string, prompt: string) {
+export async function generateLyricsForUser(
+  userId: string,
+  prompt: string,
+  durationSec?: number,
+) {
+  const entitlements = await getUserEntitlements(userId);
+  const lyricsDurationSec = resolveLyricsDurationSecForPlan(
+    entitlements.planId,
+    durationSec ?? FREE_TIER_DEFAULT_DURATION_SEC,
+  );
+
+  if (durationSec && durationSec > 0) {
+    await assertMaxDuration(userId, durationSec);
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { vocalGender: true },
@@ -170,38 +191,53 @@ export async function generateLyricsForUser(userId: string, prompt: string) {
     user?.vocalGender && isVocalGender(user.vocalGender) ? user.vocalGender : null;
 
   const trimmedPrompt = prompt.trim();
-  const briefMaxLength = resolveLyricsBriefMaxLength(vocalGender);
+  const briefMaxLength = resolveLyricsBriefMaxLength(vocalGender, lyricsDurationSec);
 
   if (trimmedPrompt.length > briefMaxLength) {
     throw new BadRequestError(
       vocalGender
-        ? `Описание слишком длинное — максимум ${briefMaxLength} символов (AI Music учитывает подсказку про род глаголов).`
-        : `Описание слишком длинное — максимум ${SUNO_LYRICS_PROMPT_MAX_LENGTH} символов.`,
+        ? `Описание слишком длинное — максимум ${briefMaxLength} символов (AI Music учитывает подсказки про длительность и род глаголов).`
+        : `Описание слишком длинное — максимум ${briefMaxLength} символов (AI Music учитывает подсказку про длительность).`,
     );
   }
 
   assertModerationForNonEmptyText(trimmedPrompt);
 
-  const genderAwarePrompt = buildGenderAwareLyricsPrompt(trimmedPrompt, vocalGender);
+  const providerPrompt = buildDurationAwareLyricsGenerationPrompt(
+    trimmedPrompt,
+    vocalGender,
+    lyricsDurationSec,
+  );
 
-  if (genderAwarePrompt.length > SUNO_LYRICS_PROMPT_MAX_LENGTH) {
+  if (providerPrompt.length > SUNO_LYRICS_PROMPT_MAX_LENGTH) {
     throw new BadRequestError(
       `Описание слишком длинное для AI Music — максимум ${briefMaxLength} символов.`,
     );
   }
 
-  assertModerationForNonEmptyText(genderAwarePrompt);
+  assertModerationForNonEmptyText(providerPrompt);
 
-  const result = await musicService.generateLyrics({ prompt: genderAwarePrompt });
+  const result = await musicService.generateLyrics({ prompt: providerPrompt });
 
   return {
     provider: result.provider,
     taskId: result.taskId,
     status: result.status,
+    lyricsDurationSec,
   };
 }
 
-export async function getLyricsGenerationStatus(taskId: string) {
+export async function getLyricsGenerationStatus(
+  taskId: string,
+  userId: string,
+  durationSec?: number,
+) {
+  const entitlements = await getUserEntitlements(userId);
+  const lyricsDurationSec = resolveLyricsDurationSecForPlan(
+    entitlements.planId,
+    durationSec ?? FREE_TIER_DEFAULT_DURATION_SEC,
+  );
+
   const status = await musicService.getLyricsGenerationStatus(taskId);
   const hasBlockedLyrics =
     status.status === "completed" &&
@@ -209,14 +245,45 @@ export async function getLyricsGenerationStatus(taskId: string) {
   const hasProviderSensitiveWordError = status.rawStatus === "SENSITIVE_WORD_ERROR";
   const moderationBlocked = hasBlockedLyrics || hasProviderSensitiveWordError;
 
+  const lyrics =
+    moderationBlocked || status.status !== "completed"
+      ? undefined
+      : (status.lyrics ?? []).map((item) => ({
+          ...item,
+          text: truncateLyricsForDuration(item.text, lyricsDurationSec),
+        }));
+
   return {
     taskId: status.taskId,
     status: moderationBlocked ? "failed" : status.status,
     provider: status.provider,
     rawStatus: moderationBlocked ? "CONTENT_MODERATION" : status.rawStatus,
-    lyrics: moderationBlocked ? undefined : status.lyrics,
+    lyrics,
     errorMessage: moderationBlocked ? CONTENT_MODERATION_ERROR_RU : status.errorMessage,
+    lyricsDurationSec,
   };
+}
+
+async function assertLyricsTextLengthForUser(
+  userId: string,
+  lyrics: string,
+  durationSec?: number,
+): Promise<void> {
+  const entitlements = await getUserEntitlements(userId);
+  const maxLength = resolveManualLyricsMaxLength(
+    entitlements.planId,
+    durationSec ?? FREE_TIER_DEFAULT_DURATION_SEC,
+  );
+  const effectiveDuration = resolveLyricsDurationSecForPlan(
+    entitlements.planId,
+    durationSec ?? FREE_TIER_DEFAULT_DURATION_SEC,
+  );
+
+  if (lyrics.trim().length > maxLength) {
+    throw new BadRequestError(
+      `Текст слишком длинный для ~${effectiveDuration} сек — максимум ${maxLength} символов.`,
+    );
+  }
 }
 
 export { toMusicGenerationRecordDto };
