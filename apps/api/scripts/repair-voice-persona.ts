@@ -38,6 +38,7 @@ async function main() {
         voiceCloneStatus: sample.voiceCloneStatus,
         sunoVoiceId: sample.sunoVoiceId,
         sunoVoiceTaskId: sample.sunoVoiceTaskId,
+        voiceCloneError: sample.voiceCloneError,
         personaId,
         readyForMusicGeneration: isReadyForMusicGeneration(sample, personaId),
       },

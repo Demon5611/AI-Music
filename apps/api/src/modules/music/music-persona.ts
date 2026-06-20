@@ -18,7 +18,7 @@ async function assertSunoPersonaAvailable(
 ): Promise<void> {
   const { voice } = createSunoVoiceClients();
 
-  if (await voice.checkPersonaVoiceAvailability(persona.personaId)) {
+  if (await voice.checkVoiceIdAvailability(persona.personaId)) {
     return;
   }
 

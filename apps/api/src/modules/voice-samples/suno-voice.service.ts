@@ -12,7 +12,7 @@ import { ForbiddenError, NotFoundError } from "../../common/errors.js";
 import { getStorageService } from "../storage/storage.service.js";
 import { toVoiceSampleDto, toVoiceSampleDtoWithPersonaCheck } from "./mapper.js";
 import {
-  checkPersonaAvailableWithRetry,
+  checkPersonaVoiceIdAvailableWithRetry,
   PERSONA_VOICE_UNAVAILABLE_MESSAGE,
   resolvePersonaVoiceId,
 } from "./persona-voice-id.service.js";
@@ -25,16 +25,52 @@ import {
   voiceCloneStartData,
 } from "./suno-voice-clone-state.js";
 import { normalizeVoiceSampleMime } from "./resolve-voice-sample-mime.js";
+import { resolveSunoRecordVoiceId } from "./resolve-suno-record-voice-id.js";
 
 const STUCK_PHRASE_REGEN_MS = 90_000;
 const MAX_STUCK_PHRASE_REGENS = 2;
+const EMPTY_WAIT_VALIDATING_FAIL_MS = 3 * 60 * 1000;
+const WAIT_VALIDATING_PHRASE_RETRIES = 6;
+const WAIT_VALIDATING_PHRASE_DELAY_MS = 2_000;
 
 const EXPIRED_PHRASE_MESSAGE =
   "Фраза верификации истекла. Нажмите «Повторить верификацию» — AI Music выдаст новую фразу.";
 
+const EMPTY_VALIDATE_PHRASE_MESSAGE =
+  "AI Music не вернул текст фразы для верификации. Нажмите «Повторить верификацию». " +
+  "Если ошибка повторится — запишите образец на главной заново.";
+
 function extractValidatePhrase(validateInfo: { validateInfo?: string | null }): string | null {
   const phrase = validateInfo.validateInfo?.trim();
   return phrase ? phrase : null;
+}
+
+function isValidatePhraseGenerating(status: string): boolean {
+  return status === "wait_processing" || status === "processing_validate";
+}
+
+function shouldFailEmptyWaitValidating(
+  sample: VoiceSample,
+  validateStatus: string,
+  validatePhrase: string | null,
+): boolean {
+  if (sample.voiceCloneStatus !== "preparing") {
+    return false;
+  }
+
+  if (validateStatus !== "wait_validating" || validatePhrase) {
+    return false;
+  }
+
+  return (
+    Date.now() - resolveVoiceCloneStartedAt(sample).getTime() > EMPTY_WAIT_VALIDATING_FAIL_MS
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function isExpiredVerificationPhraseMessage(message: string | null | undefined): boolean {
@@ -104,24 +140,15 @@ function resolveSampleMimeType(filename: string): string {
   return normalizeVoiceSampleMime(filename, "");
 }
 
-function resolveRecordVoiceId(recordInfo: {
-  status: string;
-  voiceId?: string | null;
-}): string | null {
-  if (String(recordInfo.status) !== "success") {
-    return null;
-  }
-
-  const voiceId = recordInfo.voiceId?.trim();
-  return voiceId || null;
-}
-
 const SUNO_VOICE_UNAVAILABLE_MESSAGE = PERSONA_VOICE_UNAVAILABLE_MESSAGE;
+
+const INVALID_SUNO_VOICE_ID_MESSAGE =
+  "Suno не выдал voice_id для persona. Нажмите «Повторить верификацию» на /consent — образец на главной сохранён.";
 
 export async function reconcileReadySunoVoiceSample(
   sample: VoiceSample,
 ): Promise<VoiceSample> {
-  if (sample.voiceCloneStatus !== "ready" || !sample.sunoVoiceId?.trim()) {
+  if (sample.voiceCloneStatus !== "ready") {
     return sample;
   }
 
@@ -131,10 +158,18 @@ export async function reconcileReadySunoVoiceSample(
     return prisma.voiceSample.findUniqueOrThrow({ where: { id: sample.id } });
   }
 
-  return markCloneFailed(sample, SUNO_VOICE_UNAVAILABLE_MESSAGE);
+  if (sample.sunoVoiceId?.trim()) {
+    return markInvalidPersonaVoice(sample, INVALID_SUNO_VOICE_ID_MESSAGE);
+  }
+
+  return sample;
 }
 
 export async function syncVoiceSampleListEntry(sample: VoiceSample): Promise<VoiceSample> {
+  if (sample.voiceCloneStatus === "ready") {
+    return reconcileReadySunoVoiceSample(sample);
+  }
+
   if (!sample.sunoVoiceTaskId) {
     return sample;
   }
@@ -177,6 +212,18 @@ async function markCloneFailed(sample: VoiceSample, message: string) {
     data: {
       voiceCloneStatus: "failed",
       voiceCloneError: message,
+      sunoValidatePhrase: null,
+    },
+  });
+}
+
+async function markInvalidPersonaVoice(sample: VoiceSample, message: string) {
+  return prisma.voiceSample.update({
+    where: { id: sample.id },
+    data: {
+      voiceCloneStatus: "failed",
+      voiceCloneError: message,
+      sunoVoiceId: null,
       sunoValidatePhrase: null,
     },
   });
@@ -232,9 +279,14 @@ async function resetSunoVoiceTask(sample: VoiceSample) {
 async function maybeRegenerateStuckPhrase(
   sample: VoiceSample,
   taskId: string,
+  validateStatus: string,
   voice: ReturnType<typeof createSunoVoiceClients>["voice"],
 ): Promise<VoiceSample | null> {
   if (sample.voiceCloneStatus !== "preparing") {
+    return null;
+  }
+
+  if (!isValidatePhraseGenerating(validateStatus)) {
     return null;
   }
 
@@ -271,11 +323,17 @@ async function resolveWaitValidatingPhrase(
   taskId: string,
   voice: ReturnType<typeof createSunoVoiceClients>["voice"],
 ): Promise<VoiceSample> {
-  const retryInfo = await voice.getValidationPhraseInfo(taskId);
-  const promoted = await promoteValidatePhraseIfReady(sample, retryInfo);
+  for (let attempt = 0; attempt < WAIT_VALIDATING_PHRASE_RETRIES; attempt += 1) {
+    const retryInfo = await voice.getValidationPhraseInfo(taskId);
+    const promoted = await promoteValidatePhraseIfReady(sample, retryInfo);
 
-  if (promoted) {
-    return promoted;
+    if (promoted) {
+      return promoted;
+    }
+
+    if (attempt < WAIT_VALIDATING_PHRASE_RETRIES - 1) {
+      await sleep(WAIT_VALIDATING_PHRASE_DELAY_MS);
+    }
   }
 
   return sample;
@@ -381,10 +439,10 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
     return markCloneFailed(sample, mapSunoVoiceFailMessage(errorMessage));
   }
 
-  const voiceId = resolveRecordVoiceId(recordInfo);
+  const voiceId = resolveSunoRecordVoiceId(recordInfo);
 
   if (recordStatus === "success" && voiceId) {
-    const available = await checkPersonaAvailableWithRetry(voiceId);
+    const available = await checkPersonaVoiceIdAvailableWithRetry(voiceId);
 
     if (!available) {
       return markCloneFailed(sample, SUNO_VOICE_UNAVAILABLE_MESSAGE);
@@ -425,13 +483,29 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
       }
     }
 
-    const regenerated = await maybeRegenerateStuckPhrase(sample, taskId, voice);
+    if (shouldFailEmptyWaitValidating(sample, validateStatus, validatePhrase)) {
+      return markCloneFailed(sample, EMPTY_VALIDATE_PHRASE_MESSAGE);
+    }
+
+    return resolveWaitValidatingPhrase(sample, taskId, voice);
+  }
+
+  if (
+    sample.voiceCloneStatus === "preparing" &&
+    isValidatePhraseGenerating(validateStatus)
+  ) {
+    const regenerated = await maybeRegenerateStuckPhrase(
+      sample,
+      taskId,
+      validateStatus,
+      voice,
+    );
 
     if (regenerated) {
       return syncSunoVoiceTaskStatus(regenerated);
     }
 
-    return resolveWaitValidatingPhrase(sample, taskId, voice);
+    return sample;
   }
 
   if (sample.voiceCloneStatus === "cloning") {
@@ -569,10 +643,18 @@ export async function getSunoVoiceCloneStatus(userId: string, sampleId: string) 
 }
 
 export async function cancelSunoVoiceClone(userId: string, sampleId: string) {
-  const sample = await loadOwnedSample(userId, sampleId);
+  let sample = await loadOwnedSample(userId, sampleId);
 
   if (sample.voiceCloneStatus === "ready" && sample.sunoVoiceId) {
     return toVoiceSampleDto(sample);
+  }
+
+  if (sample.sunoVoiceTaskId) {
+    sample = await syncSunoVoiceTaskStatus(sample);
+
+    if (sample.voiceCloneStatus === "ready") {
+      return toVoiceSampleDtoWithPersonaCheck(sample, resolvePersonaVoiceId);
+    }
   }
 
   const cancelled = await prisma.voiceSample.update({

@@ -77,6 +77,21 @@ function resolveStatusLabel(sample: VoiceSample | null): string {
   }
 }
 
+function isRecoverableVoiceCloneFailure(sample: VoiceSample): boolean {
+  if (sample.voiceCloneStatus !== "failed" || isVoiceCloneCancelled(sample)) {
+    return false;
+  }
+
+  const message = sample.voiceCloneError ?? "";
+
+  return (
+    message.includes("Фраза верификации истекла") ||
+    message.includes("не вернул текст фразы") ||
+    message.includes("не выдал фразу") ||
+    message.includes("Повторить верификацию")
+  );
+}
+
 function shouldAutoPrepare(status: VoiceSample["voiceCloneStatus"]): boolean {
   return status === "pending";
 }
@@ -272,10 +287,7 @@ export function SunoVoiceVerifyFlow({
             return;
           }
 
-          const isRecoverableExpiredPhrase =
-            current.voiceCloneError?.includes("Фраза верификации истекла") ?? false;
-
-          if (isRecoverableExpiredPhrase) {
+          if (isRecoverableVoiceCloneFailure(current)) {
             startPolling();
           }
 
@@ -494,11 +506,11 @@ export function SunoVoiceVerifyFlow({
     return <div className={shellClassName}>{content}</div>;
   }
 
-  if (!authReady || isBootstrapping) {
+  if (!authReady) {
     return renderShell(
       <div className={formClassName}>
         {!isInline ? <h1 className={titleClassName}>Создание вашего голоса</h1> : null}
-        <VoiceCloneWaitingPanel active label="Подготовка AI-Voice..." />
+        <VoiceCloneWaitingPanel active label="Загрузка..." />
       </div>,
     );
   }
@@ -524,12 +536,18 @@ export function SunoVoiceVerifyFlow({
   const needsReverify = resolvedSample
     ? needsPersonaReverification(resolvedSample)
     : false;
-  const showRecoveryActions = showFailedActions || showStuckActions || needsReverify;
+  const showRecoveryActions =
+    showFailedActions ||
+    showStuckActions ||
+    needsReverify ||
+    (resolvedSample ? isRecoverableVoiceCloneFailure(resolvedSample) : false);
   const showVoiceMismatchHint = isVoiceMismatchMessage(displayError);
-  const showWaitingPanel = isWaitingForSuno;
-  const waitingLabel = isSubmitting
-    ? "Отправляем запись верификации в AI Music..."
-    : resolveStatusLabel(resolvedSample);
+  const showWaitingPanel = isBootstrapping || isWaitingForSuno;
+  const waitingLabel = isBootstrapping
+    ? "Подготовка AI-Voice..."
+    : isSubmitting
+      ? "Отправляем запись верификации в AI Music..."
+      : resolveStatusLabel(resolvedSample);
   const isReady = resolvedSample ? isVoiceSampleReadyForGeneration(resolvedSample) : false;
 
   const shellContent = (
@@ -546,7 +564,7 @@ export function SunoVoiceVerifyFlow({
         {showWaitingPanel ? (
           <>
             <VoiceCloneWaitingPanel
-              active
+              active={showWaitingPanel}
               label={waitingLabel}
               onElapsedChange={handleWaitElapsedChange}
             />

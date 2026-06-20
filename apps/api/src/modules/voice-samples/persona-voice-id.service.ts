@@ -1,6 +1,7 @@
 import type { VoiceSample } from "@ai-music/db";
 import { createSunoVoiceClients } from "@ai-music/ai-providers";
 import { prisma } from "@ai-music/db";
+import { resolveSunoRecordVoiceId } from "./resolve-suno-record-voice-id.js";
 
 const PERSONA_VOICE_UNAVAILABLE_MESSAGE =
   "Голос AI Music недоступен для генерации. Пройдите верификацию заново на /consent.";
@@ -18,16 +19,20 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-function resolveRecordVoiceId(recordInfo: {
-  status: string;
-  voiceId?: string | null;
-}): string | null {
-  if (String(recordInfo.status) !== "success") {
-    return null;
+async function checkPersonaVoiceIdAvailableWithRetry(personaVoiceId: string): Promise<boolean> {
+  const { voice } = createSunoVoiceClients();
+
+  for (let attempt = 0; attempt < PERSONA_CHECK_RETRIES; attempt += 1) {
+    if (await voice.checkVoiceIdAvailability(personaVoiceId)) {
+      return true;
+    }
+
+    if (attempt < PERSONA_CHECK_RETRIES - 1) {
+      await sleep(PERSONA_CHECK_DELAY_MS);
+    }
   }
 
-  const voiceId = recordInfo.voiceId?.trim();
-  return voiceId || null;
+  return false;
 }
 
 async function checkPersonaAvailableWithRetry(personaVoiceId: string): Promise<boolean> {
@@ -64,7 +69,7 @@ async function persistPersonaVoiceId(
  * Single source of truth for Suno persona id used in music generate.
  *
  * - sunoVoiceTaskId → task_id (validate/generate pipeline), record-info polling
- * - sunoVoiceId     → persona id from record-info (may equal task_id on Suno)
+ * - sunoVoiceId     → persona id from record-info voiceId (never task_id)
  */
 export async function resolvePersonaVoiceId(
   sample: VoiceSample,
@@ -77,21 +82,36 @@ export async function resolvePersonaVoiceId(
   if (taskId) {
     try {
       const recordInfo = await voice.getVoiceRecordInfo(taskId);
-      const recordVoiceId = resolveRecordVoiceId(recordInfo);
+      const recordVoiceId = resolveSunoRecordVoiceId(recordInfo);
 
       if (recordVoiceId) {
         personaVoiceId = recordVoiceId;
+      } else if (String(recordInfo.status) === "success") {
+        personaVoiceId = "";
       }
     } catch {
       // Fall back to stored sunoVoiceId below.
     }
   }
 
+  const storedVoiceId = sample.sunoVoiceId?.trim() ?? "";
+
+  if (
+    !personaVoiceId &&
+    storedVoiceId &&
+    taskId &&
+    storedVoiceId === taskId
+  ) {
+    personaVoiceId = "";
+  } else if (!personaVoiceId && storedVoiceId) {
+    personaVoiceId = storedVoiceId;
+  }
+
   if (!personaVoiceId) {
     return null;
   }
 
-  const available = await checkPersonaAvailableWithRetry(personaVoiceId);
+  const available = await checkPersonaVoiceIdAvailableWithRetry(personaVoiceId);
 
   if (!available) {
     return null;
@@ -124,4 +144,4 @@ export function isReadyForMusicGeneration(
   );
 }
 
-export { PERSONA_VOICE_UNAVAILABLE_MESSAGE, checkPersonaAvailableWithRetry };
+export { PERSONA_VOICE_UNAVAILABLE_MESSAGE, checkPersonaAvailableWithRetry, checkPersonaVoiceIdAvailableWithRetry };
