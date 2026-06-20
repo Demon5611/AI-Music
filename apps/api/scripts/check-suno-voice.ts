@@ -8,10 +8,25 @@ const voiceId = process.argv[2] ?? "de2972fff33f008ea03a058b21bc6fdb";
 
 async function main() {
   const { voice } = createSunoVoiceClients();
-  const available = await voice.checkVoiceAvailability(voiceId);
+  const byVoiceId = await voice.checkVoiceIdAvailability(voiceId);
+  const byTaskOrVoice = await voice.checkVoiceAvailability(voiceId);
+  const personaReady = await voice.checkPersonaVoiceAvailability(voiceId);
   const record = await voice.getVoiceRecordInfo(voiceId);
 
-  console.log(JSON.stringify({ voiceId, available, record }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        voiceId,
+        checkVoiceIdAvailability: byVoiceId,
+        checkVoiceAvailability: byTaskOrVoice,
+        checkPersonaVoiceAvailability: personaReady,
+        record,
+        voiceIdEqualsTaskId: record.voiceId === record.taskId,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 main().catch((error) => {

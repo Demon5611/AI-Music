@@ -5,8 +5,17 @@ import { prisma } from "@ai-music/db";
 const PERSONA_VOICE_UNAVAILABLE_MESSAGE =
   "Голос AI Music недоступен для генерации. Пройдите верификацию заново на /consent.";
 
+const PERSONA_CHECK_RETRIES = 3;
+const PERSONA_CHECK_DELAY_MS = 2_000;
+
 export interface ResolvePersonaVoiceIdOptions {
   persistCorrection?: boolean;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function resolveRecordVoiceId(recordInfo: {
@@ -21,9 +30,20 @@ function resolveRecordVoiceId(recordInfo: {
   return voiceId || null;
 }
 
-function isTaskIdStoredAsVoiceId(sample: VoiceSample, voiceId: string): boolean {
-  const taskId = sample.sunoVoiceTaskId?.trim();
-  return Boolean(taskId && voiceId === taskId);
+async function checkPersonaAvailableWithRetry(personaVoiceId: string): Promise<boolean> {
+  const { voice } = createSunoVoiceClients();
+
+  for (let attempt = 0; attempt < PERSONA_CHECK_RETRIES; attempt += 1) {
+    if (await voice.checkPersonaVoiceAvailability(personaVoiceId)) {
+      return true;
+    }
+
+    if (attempt < PERSONA_CHECK_RETRIES - 1) {
+      await sleep(PERSONA_CHECK_DELAY_MS);
+    }
+  }
+
+  return false;
 }
 
 async function persistPersonaVoiceId(
@@ -41,11 +61,10 @@ async function persistPersonaVoiceId(
 }
 
 /**
- * Single source of truth for Suno persona voice_id used in music generate.
+ * Single source of truth for Suno persona id used in music generate.
  *
- * - sunoVoiceTaskId → task_id (validate/generate pipeline), used only for record-info
- * - sunoVoiceId     → voice_id (personaId), never task_id
- * - ready only when check-voice accepts voice_id
+ * - sunoVoiceTaskId → task_id (validate/generate pipeline), record-info polling
+ * - sunoVoiceId     → persona id from record-info (may equal task_id on Suno)
  */
 export async function resolvePersonaVoiceId(
   sample: VoiceSample,
@@ -68,11 +87,11 @@ export async function resolvePersonaVoiceId(
     }
   }
 
-  if (!personaVoiceId || isTaskIdStoredAsVoiceId(sample, personaVoiceId)) {
+  if (!personaVoiceId) {
     return null;
   }
 
-  const available = await voice.checkVoiceIdAvailability(personaVoiceId);
+  const available = await checkPersonaAvailableWithRetry(personaVoiceId);
 
   if (!available) {
     return null;
@@ -81,6 +100,11 @@ export async function resolvePersonaVoiceId(
   if (
     options.persistCorrection &&
     personaVoiceId !== sample.sunoVoiceId?.trim()
+  ) {
+    await persistPersonaVoiceId(sample.id, personaVoiceId);
+  } else if (
+    options.persistCorrection &&
+    sample.voiceCloneStatus !== "ready"
   ) {
     await persistPersonaVoiceId(sample.id, personaVoiceId);
   }
@@ -100,4 +124,4 @@ export function isReadyForMusicGeneration(
   );
 }
 
-export { PERSONA_VOICE_UNAVAILABLE_MESSAGE };
+export { PERSONA_VOICE_UNAVAILABLE_MESSAGE, checkPersonaAvailableWithRetry };
