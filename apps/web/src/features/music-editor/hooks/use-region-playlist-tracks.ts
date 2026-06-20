@@ -144,13 +144,16 @@ function buildMixPreviewSignature(mixPreview?: RegionMixPreviewOverlay): string 
     return "";
   }
 
-  return (["vocal", "instrumental"] as const)
-    .map((trackId) => {
-      const state = mixPreview.previewTracks[trackId];
+  return [
+    mixPreview.selectedRegionId,
+    (["vocal", "instrumental"] as const)
+      .map((trackId) => {
+        const state = mixPreview.previewTracks[trackId];
 
-      return [trackId, state.muted, state.solo].join(":");
-    })
-    .join("|");
+        return [trackId, state.gainDb, state.muted, state.solo].join(":");
+      })
+      .join("|"),
+  ].join("::");
 }
 
 export function useRegionPlaylistTracks(
@@ -192,7 +195,7 @@ export function useRegionPlaylistTracks(
 
     lastStableTracksRef.current = nextTracks;
     return nextTracks;
-  }, [buffersBySourceId, mixPreview, mixPreviewSignature, operations, ready, regions, sources]);
+  }, [buffersBySourceId, mixPreviewSignature, operations, ready, regions, sources]);
 
   return {
     tracks,

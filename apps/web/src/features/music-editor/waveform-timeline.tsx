@@ -28,6 +28,7 @@ import {
   clampTimeToPlaybackLoopBounds,
   computeTimelineLayoutDurationSec,
   dbToGain,
+  buildPendingTimelineOperationKey,
   mirrorRegionClipEdits,
   resolvePlaybackLoopBounds,
   resolvePlaylistTrackForEditorTrack,
@@ -385,6 +386,8 @@ export function WaveformTimeline({
   const playlistShellRef = useRef<HTMLDivElement>(null);
   const pendingOperationRef = useRef<PendingTimelineOperation | null>(null);
   const persistTimerRef = useRef<number | null>(null);
+  const suppressTracksChangeRef = useRef(false);
+  const lastPersistedOperationKeyRef = useRef<string | null>(null);
   const providerTracks = isStructuralSync ? tracks : playlistTracks;
 
   const effectiveTimelineWidthPx =
@@ -430,6 +433,7 @@ export function WaveformTimeline({
   useEffect(() => {
     setIsStructuralSync(true);
     pendingOperationRef.current = null;
+    lastPersistedOperationKeyRef.current = null;
 
     if (persistTimerRef.current !== null) {
       window.clearTimeout(persistTimerRef.current);
@@ -507,6 +511,9 @@ export function WaveformTimeline({
       return;
     }
 
+    const operationKey = buildPendingTimelineOperationKey(operation);
+    lastPersistedOperationKeyRef.current = operationKey;
+
     if (operation.type === "resize") {
       if ("trackId" in operation) {
         onResizeTrackRegion(
@@ -535,7 +542,14 @@ export function WaveformTimeline({
         return;
       }
 
+      if (suppressTracksChangeRef.current) {
+        suppressTracksChangeRef.current = false;
+        return;
+      }
+
       const nextPlaylistTracks = linkedTracks ? mirrorRegionClipEdits(nextTracks) : nextTracks;
+
+      suppressTracksChangeRef.current = true;
       setPlaylistTracks(nextPlaylistTracks);
 
       const operation = resolveTimelineOperation(
@@ -546,6 +560,12 @@ export function WaveformTimeline({
       );
 
       if (!operation || disabled) {
+        return;
+      }
+
+      const operationKey = buildPendingTimelineOperationKey(operation);
+
+      if (operationKey === lastPersistedOperationKeyRef.current) {
         return;
       }
 
@@ -623,7 +643,6 @@ export function WaveformTimeline({
                 containerRef={playlistShellRef}
                 regionsLayoutKey={regionsLayoutKey}
                 selectedRegionId={selectedRegionId}
-                onSelectRegion={onSelectRegion}
               />
               <ClipInteractionProvider touchOptimized>
                 <Waveform

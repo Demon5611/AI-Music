@@ -1,9 +1,10 @@
 "use client";
 
+import { usePlaylistData } from "@waveform-playlist/browser";
 import type { EditorTrackId } from "@ai-music/shared";
 import { useEffect, type RefObject } from "react";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
-import { parseTimelineClipId } from "@/features/music-editor/utils/waveform-playlist-utils";
+import { resolveClipContainersForRegion } from "@/features/music-editor/utils/timeline-clip-dom-utils";
 
 interface PlaylistSelectedRegionHighlightProps {
   selectedRegionId: string | null;
@@ -22,7 +23,12 @@ function clearSelectedRegionMarkers(container: HTMLElement): void {
 function resolveHighlightTrackIds(
   linkedTracks: boolean,
   selectedTrackId: EditorTrackId | null,
+  selectedRegionId: string | null,
 ): EditorTrackId[] | null {
+  if (!selectedRegionId) {
+    return null;
+  }
+
   if (linkedTracks) {
     return ["vocal", "instrumental"];
   }
@@ -31,56 +37,32 @@ function resolveHighlightTrackIds(
     return [selectedTrackId];
   }
 
-  return null;
-}
-
-function markSelectedRegionClips(
-  container: HTMLElement,
-  selectedRegionId: string,
-  trackIds: EditorTrackId[] | null,
-): void {
-  container.querySelectorAll("[data-clip-id]").forEach((element) => {
-    if (!(element instanceof HTMLElement)) {
-      return;
-    }
-
-    const clipId = element.getAttribute("data-clip-id");
-
-    if (!clipId) {
-      return;
-    }
-
-    const parsed = parseTimelineClipId(clipId);
-
-    if (!parsed || parsed.regionId !== selectedRegionId) {
-      return;
-    }
-
-    if (trackIds && !trackIds.includes(parsed.trackId)) {
-      return;
-    }
-
-    const clipContainer = element.closest("[data-clip-container]");
-
-    if (clipContainer instanceof HTMLElement) {
-      clipContainer.setAttribute("data-editor-region-selected", "true");
-    }
-  });
+  return ["vocal", "instrumental"];
 }
 
 function applySelectedRegionHighlight(
   container: HTMLElement,
+  tracks: ReturnType<typeof usePlaylistData>["tracks"],
   selectedRegionId: string | null,
 ): void {
   clearSelectedRegionMarkers(container);
 
-  if (!selectedRegionId) {
+  if (!selectedRegionId || tracks.length === 0) {
     return;
   }
 
   const { linkedTracks, selectedTrackId } = useAudioEditorStore.getState();
-  const trackIds = resolveHighlightTrackIds(linkedTracks, selectedTrackId);
-  markSelectedRegionClips(container, selectedRegionId, trackIds);
+  const trackIds = resolveHighlightTrackIds(linkedTracks, selectedTrackId, selectedRegionId);
+  const clipContainers = resolveClipContainersForRegion(
+    container,
+    tracks,
+    selectedRegionId,
+    trackIds,
+  );
+
+  clipContainers.forEach((clipContainer) => {
+    clipContainer.setAttribute("data-editor-region-selected", "true");
+  });
 }
 
 export function PlaylistSelectedRegionHighlight({
@@ -88,6 +70,7 @@ export function PlaylistSelectedRegionHighlight({
   regionsLayoutKey,
   containerRef,
 }: PlaylistSelectedRegionHighlightProps) {
+  const { tracks } = usePlaylistData();
   const linkedTracks = useAudioEditorStore((state) => state.linkedTracks);
   const selectedTrackId = useAudioEditorStore((state) => state.selectedTrackId);
 
@@ -107,7 +90,7 @@ export function PlaylistSelectedRegionHighlight({
 
       rafId = window.requestAnimationFrame(() => {
         rafId = null;
-        applySelectedRegionHighlight(container, selectedRegionId);
+        applySelectedRegionHighlight(container, tracks, selectedRegionId);
       });
     };
 
@@ -134,6 +117,7 @@ export function PlaylistSelectedRegionHighlight({
     regionsLayoutKey,
     selectedRegionId,
     selectedTrackId,
+    tracks,
   ]);
 
   return null;

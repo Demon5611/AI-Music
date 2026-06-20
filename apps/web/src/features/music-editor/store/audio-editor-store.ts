@@ -71,6 +71,7 @@ interface AudioEditorState {
   setSelectedTrack: (id: EditorTrackId | null) => void;
   selectTrackFromPanel: (id: EditorTrackId) => void;
   selectTrackFromTimeline: (id: EditorTrackId) => void;
+  selectTimelineTarget: (regionId: string, trackId: EditorTrackId) => void;
   setLinkedTracks: (value: boolean) => void;
   setOperations: (operations: EditOperation[]) => void;
   setBusy: (value: boolean) => void;
@@ -262,6 +263,13 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
       selectedTrackId: id,
       trackSelectionSource: "timeline",
     }),
+  selectTimelineTarget: (regionId, trackId) =>
+    set((state) => ({
+      selectedRegionId: regionId,
+      selectedTrackId: trackId,
+      trackSelectionSource: "timeline",
+      previewTracks: resolvePreviewTracks(state.operations, regionId),
+    })),
   setLinkedTracks: (value) => set({ linkedTracks: value }),
   setOperations: (operations) => set({ operations, undoneOperations: [] }),
   setBusy: (value) => set({ isBusy: value }),

@@ -23,8 +23,10 @@ import {
 } from "@/shared/providers/hints-visibility-provider";
 import { me } from "@/features/music-editor/music-editor-classes";
 import { cn } from "@/lib/utils";
+import { useEditorRegionShortcuts } from "./hooks/use-editor-region-shortcuts";
 import { useEditorTransportShortcuts } from "./hooks/use-editor-transport-shortcuts";
 import { useEditorInitialLoad } from "./hooks/use-editor-initial-load";
+import { useEditorVolumeShortcuts } from "./hooks/use-editor-volume-shortcuts";
 import dynamic from "next/dynamic";
 
 const WaveformTimeline = dynamic(
@@ -190,6 +192,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
 
   const {
     setVolume,
+    adjustVolume,
     muteTrack,
     soloTrack,
     splitRegion,
@@ -255,9 +258,11 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const editorReady = songStatus === "ready" && !isProcessing;
   const stemsReady = editorReady && Boolean(vocalTrack?.audioUrl || instrumentalTrack?.audioUrl);
   const controlsDisabled = isBusy || !editorReady;
-  useEditorTransportShortcuts(controlsDisabled);
   const trackControlsDisabled = controlsDisabled || !stemsReady;
   const trackMixControlsDisabled = !editorReady || !stemsReady;
+  useEditorTransportShortcuts(controlsDisabled);
+  useEditorVolumeShortcuts(controlsDisabled || trackMixControlsDisabled, adjustVolume);
+  useEditorRegionShortcuts(controlsDisabled, deleteRegion);
 
   const statusMessage = (() => {
     if (songStatus === "separating_stems" || songStatus === "pending_stems") {
@@ -329,7 +334,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
                   key={track.id}
                   disabled={trackControlsDisabled}
                   mixControlsDisabled={trackMixControlsDisabled}
-                  regionSelected={regions.length > 0}
+                  regionSelected={Boolean(selectedRegionId)}
                   track={track}
                   onMuteToggle={muteTrack}
                   onSoloToggle={soloTrack}

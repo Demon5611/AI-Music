@@ -7,6 +7,11 @@ import { Tooltip } from "@/shared/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
 import { seekTimeline } from "@/features/music-editor/utils/timeline-sync";
+import {
+  clampTrackVolumeDb,
+  TRACK_VOLUME_MAX_DB,
+  TRACK_VOLUME_MIN_DB,
+} from "@/features/music-editor/utils/volume-utils";
 import { me } from "@/features/music-editor/music-editor-classes";
 import trackLaneStyles from "@/features/music-editor/styles/track-lane.module.css";
 
@@ -74,10 +79,12 @@ export function TrackLane({
   const preview = useAudioEditorStore((state) => state.previewTracks[track.id]);
   const setPreviewGain = useAudioEditorStore((state) => state.setPreviewGain);
   const pendingGainDbRef = useRef(preview.gainDb);
+  const lastCommittedGainDbRef = useRef(preview.gainDb);
   const controlsDisabled = mixControlsDisabled || !regionSelected;
 
   useEffect(() => {
     pendingGainDbRef.current = preview.gainDb;
+    lastCommittedGainDbRef.current = preview.gainDb;
   }, [preview.gainDb]);
 
   function handleSelect() {
@@ -95,14 +102,41 @@ export function TrackLane({
   }
 
   function commitVolume() {
+    const nextGainDb = clampTrackVolumeDb(pendingGainDbRef.current);
+
+    if (nextGainDb === lastCommittedGainDbRef.current) {
+      return;
+    }
+
+    lastCommittedGainDbRef.current = nextGainDb;
     selectTrackForControls();
-    onVolumeCommit(track.id, pendingGainDbRef.current);
+    onVolumeCommit(track.id, nextGainDb);
+  }
+
+  function handleVolumeChange(nextGainDb: number) {
+    const clampedGainDb = clampTrackVolumeDb(nextGainDb);
+    pendingGainDbRef.current = clampedGainDb;
+    setPreviewGain(track.id, clampedGainDb);
+  }
+
+  function handleRowPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (disabled || event.button !== 0) {
+      return;
+    }
+
+    const target = event.target;
+
+    if (target instanceof Element && target.closest("[data-track-controls]")) {
+      return;
+    }
+
+    handleSelect();
   }
 
   return (
     <div
       className={selected ? me.trackLaneRowSelected : me.trackLaneRow}
-      onClick={handleSelect}
+      onPointerDown={handleRowPointerDown}
       onKeyDown={(event) => {
         if (disabled || (event.key !== "Enter" && event.key !== " ")) {
           return;
@@ -120,6 +154,7 @@ export function TrackLane({
 
       <div
         className={me.trackLaneControls}
+        data-track-controls=""
         onClick={stopRowSelection}
         onPointerDown={stopRowSelection}
       >
@@ -160,17 +195,14 @@ export function TrackLane({
             <input
               className={me.trackVolumeSlider}
               disabled={controlsDisabled}
-              max={12}
-              min={-12}
+              max={TRACK_VOLUME_MAX_DB}
+              min={TRACK_VOLUME_MIN_DB}
               step={1}
               type="range"
               value={preview.gainDb}
               onChange={(event) => {
-                const gainDb = Number(event.target.value);
-                pendingGainDbRef.current = gainDb;
-                setPreviewGain(track.id, gainDb);
+                handleVolumeChange(Number(event.target.value));
               }}
-              onKeyUp={commitVolume}
               onPointerUp={commitVolume}
             />
             <span>{preview.gainDb} dB</span>

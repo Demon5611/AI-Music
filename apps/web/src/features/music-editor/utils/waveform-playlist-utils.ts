@@ -27,6 +27,20 @@ export type PendingTimelineOperation =
   | { type: "move"; regionId: string; targetIndex: number }
   | { type: "move"; trackId: EditorTrackId; regionId: string; targetIndex: number };
 
+export function buildPendingTimelineOperationKey(
+  operation: PendingTimelineOperation,
+): string {
+  if (operation.type === "resize") {
+    return "trackId" in operation
+      ? `resize:${operation.trackId}:${operation.regionId}:${operation.startMs}:${operation.endMs}`
+      : `resize:${operation.regionId}:${operation.startMs}:${operation.endMs}`;
+  }
+
+  return "trackId" in operation
+    ? `move:${operation.trackId}:${operation.regionId}:${operation.targetIndex}`
+    : `move:${operation.regionId}:${operation.targetIndex}`;
+}
+
 export const AUDIO_CONTEXT_OPTIONS = { sampleRate: 48_000 };
 export const TRACK_WAVE_HEIGHT = 72;
 export const PLAYLIST_TRACK_CONTROL_WIDTH = 104;
@@ -309,15 +323,18 @@ export function buildRegionTrack(
     };
   });
 
-  return createTrack({
-    name: source.label,
-    clips,
-    muted: false,
-    soloed: false,
-    volume: 1,
-    color: source.color,
-    height: TRACK_WAVE_HEIGHT,
-  });
+  return {
+    ...createTrack({
+      name: source.label,
+      clips,
+      muted: false,
+      soloed: false,
+      volume: 1,
+      color: source.color,
+      height: TRACK_WAVE_HEIGHT,
+    }),
+    id: source.id,
+  };
 }
 
 function bakeRegionFadeIntoBuffer(
@@ -374,6 +391,19 @@ function scoreClipSelectionOverlap(
   return overlapSec > 0 ? overlapSec : 0.001;
 }
 
+function resolveClipLayoutBounds(
+  clip: ClipTrack["clips"][number],
+  fallbackSampleRate: number,
+): { layoutStartSec: number; layoutEndSec: number; sampleRate: number } {
+  const clipSampleRate = clip.sampleRate ?? fallbackSampleRate;
+
+  return {
+    sampleRate: clipSampleRate,
+    layoutStartSec: clip.startSample / clipSampleRate,
+    layoutEndSec: (clip.startSample + clip.durationSamples) / clipSampleRate,
+  };
+}
+
 export function resolveTimelineSelectionMatch(
   tracks: ClipTrack[],
   sampleRate: number,
@@ -408,8 +438,7 @@ export function resolveTimelineSelectionMatch(
           continue;
         }
 
-        const layoutStartSec = clip.startSample / sampleRate;
-        const layoutEndSec = (clip.startSample + clip.durationSamples) / sampleRate;
+        const { layoutStartSec, layoutEndSec } = resolveClipLayoutBounds(clip, sampleRate);
         const score = scoreClipSelectionOverlap(
           selectionMinSec,
           selectionMaxSec,
@@ -440,8 +469,7 @@ export function resolveTimelineSelectionMatch(
         continue;
       }
 
-      const layoutStartSec = clip.startSample / sampleRate;
-      const layoutEndSec = (clip.startSample + clip.durationSamples) / sampleRate;
+      const { layoutStartSec, layoutEndSec } = resolveClipLayoutBounds(clip, sampleRate);
       const score = scoreClipSelectionOverlap(
         selectionMinSec,
         selectionMaxSec,
@@ -466,11 +494,54 @@ export function resolveTimelineSelectionMatch(
     }
   }
 
+  if (!bestMatch && selectionMinSec === selectionMaxSec) {
+    return resolveNearestTimelineClipMatch(tracksToSearch, sampleRate, centerSec);
+  }
+
   if (!bestMatch) {
     return null;
   }
 
   const { score: _score, ...match } = bestMatch;
+  return match;
+}
+
+function resolveNearestTimelineClipMatch(
+  tracks: ClipTrack[],
+  sampleRate: number,
+  timeSec: number,
+): TimelineSelectionMatch | null {
+  let nearestMatch: (TimelineSelectionMatch & { distanceSec: number }) | null = null;
+
+  for (const track of tracks) {
+    for (const clip of track.clips) {
+      const parsed = parseTimelineClipId(clip.id);
+
+      if (!parsed) {
+        continue;
+      }
+
+      const { layoutStartSec, layoutEndSec } = resolveClipLayoutBounds(clip, sampleRate);
+      const centerSec = (layoutStartSec + layoutEndSec) / 2;
+      const distanceSec = Math.abs(timeSec - centerSec);
+
+      if (!nearestMatch || distanceSec < nearestMatch.distanceSec) {
+        nearestMatch = {
+          regionId: parsed.regionId,
+          trackId: parsed.trackId,
+          layoutStartSec,
+          layoutEndSec,
+          distanceSec,
+        };
+      }
+    }
+  }
+
+  if (!nearestMatch) {
+    return null;
+  }
+
+  const { distanceSec: _distanceSec, ...match } = nearestMatch;
   return match;
 }
 
@@ -501,13 +572,15 @@ export function resolveRegionLayoutBounds(
     for (const clip of track.clips) {
       const parsed = parseTimelineClipId(clip.id);
 
+      const { layoutStartSec, layoutEndSec } = resolveClipLayoutBounds(clip, sampleRate);
+
       if (!parsed || parsed.regionId !== regionId) {
         continue;
       }
 
       return {
-        startSec: clip.startSample / sampleRate,
-        endSec: (clip.startSample + clip.durationSamples) / sampleRate,
+        startSec: layoutStartSec,
+        endSec: layoutEndSec,
       };
     }
   }
@@ -575,6 +648,12 @@ export function resolvePlaylistTrackForEditorTrack(
   trackId: EditorTrackId,
   sources: TimelineStemSource[] = [],
 ): ClipTrack | null {
+  const directTrack = tracks.find((track) => track.id === trackId);
+
+  if (directTrack) {
+    return directTrack;
+  }
+
   const sourceIndex = sources.findIndex((source) => source.id === trackId);
 
   if (sourceIndex >= 0 && tracks[sourceIndex]) {

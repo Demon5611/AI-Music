@@ -10,7 +10,6 @@ export function PlaylistTimelineSelectionBridge() {
   const { selectionStart, selectionEnd, selectedTrackId: playlistTrackId } =
     usePlaylistState();
   const { tracks, sampleRate } = usePlaylistData();
-  const selectedRegionId = useAudioEditorStore((state) => state.selectedRegionId);
   const setTimelineSelection = useAudioEditorStore(
     (state) => state.setTimelineSelection,
   );
@@ -32,7 +31,7 @@ export function PlaylistTimelineSelectionBridge() {
           selectionEnd,
           {
             playlistTrackId,
-            preferredRegionId: selectedRegionId,
+            preferredRegionId: null,
           },
         )
       : null;
@@ -50,7 +49,6 @@ export function PlaylistTimelineSelectionBridge() {
   }, [
     playlistTrackId,
     sampleRate,
-    selectedRegionId,
     selectionEnd,
     selectionStart,
     setTimelineSelection,

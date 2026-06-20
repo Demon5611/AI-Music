@@ -12,6 +12,7 @@ import {
   resolveSplitAtMsForEditor,
 } from "@ai-music/shared";
 import { useCallback } from "react";
+import { clampTrackVolumeDb, resolveVolumeTrackId } from "@/features/music-editor/utils/volume-utils";
 import { useApi } from "@/shared/providers/api-provider";
 import {
   selectSelectedRegion,
@@ -120,6 +121,7 @@ export function useEditorOperations() {
   const setError = useAudioEditorStore((state) => state.setError);
   const setPreviewMute = useAudioEditorStore((state) => state.setPreviewMute);
   const setPreviewSolo = useAudioEditorStore((state) => state.setPreviewSolo);
+  const setPreviewGain = useAudioEditorStore((state) => state.setPreviewGain);
   const syncPreviewTracksFromOperations = useAudioEditorStore(
     (state) => state.syncPreviewTracksFromOperations,
   );
@@ -187,19 +189,47 @@ export function useEditorOperations() {
 
   const setVolume = useCallback(
     (trackId: EditorTrackId, gainDb: number) => {
-      if (!selectedRegionId) {
+      const regionId = ensureSelectedRegionId();
+
+      if (!regionId) {
         setError("Выберите регион на timeline");
         return;
       }
 
+      const nextGainDb = clampTrackVolumeDb(gainDb);
+      const state = useAudioEditorStore.getState();
+      const currentGainDb = state.previewTracks[trackId].gainDb;
+
+      if (nextGainDb === currentGainDb) {
+        return;
+      }
+
+      setPreviewGain(trackId, nextGainDb);
+
       void applyOperation({
         type: "SET_VOLUME",
         trackId,
-        regionId: selectedRegionId,
-        gainDb,
+        regionId,
+        gainDb: nextGainDb,
       });
     },
-    [applyOperation, selectedRegionId, setError],
+    [applyOperation, setError, setPreviewGain],
+  );
+
+  const adjustVolume = useCallback(
+    (deltaDb: number) => {
+      const state = useAudioEditorStore.getState();
+      const trackId = resolveVolumeTrackId(state.selectedTrackId);
+      const regionId = ensureSelectedRegionId();
+
+      if (!regionId) {
+        setError("Выберите регион на timeline");
+        return;
+      }
+
+      setVolume(trackId, state.previewTracks[trackId].gainDb + deltaDb);
+    },
+    [setError, setVolume],
   );
 
   const muteTrack = useCallback(
@@ -508,6 +538,7 @@ export function useEditorOperations() {
     undo,
     redo,
     setVolume,
+    adjustVolume,
     muteTrack,
     soloTrack,
     splitRegion,

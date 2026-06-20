@@ -1,9 +1,10 @@
 "use client";
 
+import { usePlaylistData } from "@waveform-playlist/browser";
 import type { SongRegionDto } from "@ai-music/shared";
 import { useEffect, type RefObject } from "react";
 import { selectRegionLabel } from "@/features/music-editor/store/audio-editor-store";
-import { parseTimelineClipId } from "@/features/music-editor/utils/waveform-playlist-utils";
+import { applyClipRegionLabels } from "@/features/music-editor/utils/timeline-clip-dom-utils";
 
 interface PlaylistClipLabelBridgeProps {
   regions: SongRegionDto[];
@@ -11,50 +12,13 @@ interface PlaylistClipLabelBridgeProps {
   containerRef: RefObject<HTMLElement | null>;
 }
 
-function applyClipRegionLabels(container: HTMLElement, labelByRegionId: Map<string, string>): void {
-  container.querySelectorAll("[data-clip-id]").forEach((element) => {
-    if (!(element instanceof HTMLElement)) {
-      return;
-    }
-
-    const clipId = element.getAttribute("data-clip-id");
-
-    if (!clipId) {
-      return;
-    }
-
-    const parsed = parseTimelineClipId(clipId);
-
-    if (!parsed) {
-      return;
-    }
-
-    const label = labelByRegionId.get(parsed.regionId);
-
-    if (!label) {
-      return;
-    }
-
-    const textTarget = element.querySelector("span");
-
-    if (!(textTarget instanceof HTMLElement)) {
-      return;
-    }
-
-    if (textTarget.textContent === label) {
-      return;
-    }
-
-    textTarget.textContent = label;
-    element.setAttribute("title", label);
-  });
-}
-
 export function PlaylistClipLabelBridge({
   regions,
   regionsLayoutKey,
   containerRef,
 }: PlaylistClipLabelBridgeProps) {
+  const { tracks } = usePlaylistData();
+
   useEffect(() => {
     const container = containerRef.current;
 
@@ -67,7 +31,7 @@ export function PlaylistClipLabelBridge({
     );
 
     const syncLabels = () => {
-      applyClipRegionLabels(container, labelByRegionId);
+      applyClipRegionLabels(container, tracks, labelByRegionId);
     };
 
     syncLabels();
@@ -82,7 +46,7 @@ export function PlaylistClipLabelBridge({
     return () => {
       observer.disconnect();
     };
-  }, [containerRef, regions, regionsLayoutKey]);
+  }, [containerRef, regions, regionsLayoutKey, tracks]);
 
   return null;
 }
