@@ -139,7 +139,7 @@ function resolveDefaultTrackId(
   return tracks[0]?.id ?? null;
 }
 
-function resolvePreviewTracks(
+export function resolvePreviewTracks(
   operations: EditOperation[],
   selectedRegionId: string | null,
 ): Record<EditorTrackId, PreviewTrackState> {

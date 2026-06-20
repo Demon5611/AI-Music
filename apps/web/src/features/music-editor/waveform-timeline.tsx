@@ -120,14 +120,6 @@ function PlaylistTrackStateBridge({ sources }: { sources: TimelineStemSource[] }
   const controls = usePlaylistControls();
   const { isReady, tracks } = usePlaylistData();
   const controlsRef = useRef(controls);
-  const previewTracks = useAudioEditorStore((state) => state.previewTracks);
-  const previewSignature = sources
-    .map((source) => {
-      const trackState = previewTracks[source.id];
-
-      return [source.id, trackState.gainDb].join(":");
-    })
-    .join("|");
 
   useEffect(() => {
     controlsRef.current = controls;
@@ -143,13 +135,11 @@ function PlaylistTrackStateBridge({ sources }: { sources: TimelineStemSource[] }
         return;
       }
 
-      const trackState = previewTracks[source.id];
-
       controlsRef.current.setTrackMute(index, false);
       controlsRef.current.setTrackSolo(index, false);
-      controlsRef.current.setTrackVolume(index, dbToGain(trackState.gainDb));
+      controlsRef.current.setTrackVolume(index, dbToGain(0));
     });
-  }, [isReady, previewSignature, previewTracks, sources, tracks]);
+  }, [isReady, sources, tracks]);
 
   return null;
 }

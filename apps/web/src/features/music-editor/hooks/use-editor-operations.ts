@@ -17,6 +17,7 @@ import { useApi } from "@/shared/providers/api-provider";
 import {
   selectSelectedRegion,
   useAudioEditorStore,
+  resolvePreviewTracks,
 } from "@/features/music-editor/store/audio-editor-store";
 
 function buildSelectionPayload(operation: EditOperation) {
@@ -198,9 +199,13 @@ export function useEditorOperations() {
 
       const nextGainDb = clampTrackVolumeDb(gainDb);
       const state = useAudioEditorStore.getState();
-      const currentGainDb = state.previewTracks[trackId].gainDb;
+      const persistedGainDb = resolvePreviewTracks(state.operations, regionId)[trackId].gainDb;
 
-      if (nextGainDb === currentGainDb) {
+      if (nextGainDb === persistedGainDb) {
+        if (state.previewTracks[trackId].gainDb !== nextGainDb) {
+          setPreviewGain(trackId, nextGainDb);
+        }
+
         return;
       }
 

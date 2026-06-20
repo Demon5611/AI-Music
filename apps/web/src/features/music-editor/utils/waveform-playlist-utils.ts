@@ -255,7 +255,7 @@ export function resolveRegionPlaybackGainDb(
       return SILENT_GAIN_DB;
     }
 
-    return 0;
+    return previewState.gainDb;
   }
 
   let gainDb = 0;

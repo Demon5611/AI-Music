@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent, PointerEvent } from "react";
+import type { KeyboardEvent, MouseEvent, PointerEvent } from "react";
 import type { AudioTrackDto, EditorTrackId } from "@ai-music/shared";
 import { useRef, useEffect, useLayoutEffect } from "react";
 import { Tooltip } from "@/shared/ui/tooltip";
@@ -9,6 +9,7 @@ import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-
 import { seekTimeline } from "@/features/music-editor/utils/timeline-sync";
 import {
   clampTrackVolumeDb,
+  TRACK_VOLUME_COMMIT_KEYS,
   TRACK_VOLUME_MAX_DB,
   TRACK_VOLUME_MIN_DB,
 } from "@/features/music-editor/utils/volume-utils";
@@ -79,12 +80,10 @@ export function TrackLane({
   const preview = useAudioEditorStore((state) => state.previewTracks[track.id]);
   const setPreviewGain = useAudioEditorStore((state) => state.setPreviewGain);
   const pendingGainDbRef = useRef(preview.gainDb);
-  const lastCommittedGainDbRef = useRef(preview.gainDb);
   const controlsDisabled = mixControlsDisabled || !regionSelected;
 
   useEffect(() => {
     pendingGainDbRef.current = preview.gainDb;
-    lastCommittedGainDbRef.current = preview.gainDb;
   }, [preview.gainDb]);
 
   function handleSelect() {
@@ -104,11 +103,6 @@ export function TrackLane({
   function commitVolume() {
     const nextGainDb = clampTrackVolumeDb(pendingGainDbRef.current);
 
-    if (nextGainDb === lastCommittedGainDbRef.current) {
-      return;
-    }
-
-    lastCommittedGainDbRef.current = nextGainDb;
     selectTrackForControls();
     onVolumeCommit(track.id, nextGainDb);
   }
@@ -117,6 +111,14 @@ export function TrackLane({
     const clampedGainDb = clampTrackVolumeDb(nextGainDb);
     pendingGainDbRef.current = clampedGainDb;
     setPreviewGain(track.id, clampedGainDb);
+  }
+
+  function handleVolumeKeyUp(event: KeyboardEvent<HTMLInputElement>) {
+    if (!TRACK_VOLUME_COMMIT_KEYS.has(event.key)) {
+      return;
+    }
+
+    commitVolume();
   }
 
   function handleRowPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -203,6 +205,8 @@ export function TrackLane({
               onChange={(event) => {
                 handleVolumeChange(Number(event.target.value));
               }}
+              onBlur={commitVolume}
+              onKeyUp={handleVolumeKeyUp}
               onPointerUp={commitVolume}
             />
             <span>{preview.gainDb} dB</span>
