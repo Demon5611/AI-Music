@@ -30,12 +30,18 @@ export function VoiceAuthGate({ variant = "landing" }: VoiceAuthGateProps) {
       </p>
       <div className={voiceUi.authGateActions}>
         <SignInButton mode="modal">
-          <button className={appShell.siteHeaderAuthButton} type="button">
+          <button
+            className={`${appShell.siteHeaderAuthButton} w-full sm:w-auto`}
+            type="button"
+          >
             Войти
           </button>
         </SignInButton>
         <SignUpButton mode="modal">
-          <button className={appShell.siteHeaderAuthButtonPrimary} type="button">
+          <button
+            className={`${appShell.siteHeaderAuthButtonPrimary} w-full sm:w-auto`}
+            type="button"
+          >
             Регистрация
           </button>
         </SignUpButton>

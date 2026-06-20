@@ -27,11 +27,11 @@ export const appShell = {
   borderDefault: "border-[var(--app-border-default)]",
   page: "flex-1 w-full bg-[var(--app-bg-page)] text-[var(--app-text)]",
   pageHeader:
-    "sticky top-0 z-10 flex items-center justify-between border-b border-[var(--app-border-subtle)] bg-[var(--app-bg-page)]/80 px-6 py-3 backdrop-blur",
+    "sticky top-0 z-10 flex items-center justify-between border-b border-[var(--app-border-subtle)] bg-[var(--app-bg-page)]/80 px-4 py-3 backdrop-blur sm:px-6",
   pageHeaderLogo:
     "flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white",
   sectionCard:
-    "rounded-2xl border border-[var(--app-border-subtle)] bg-[var(--app-bg-surface)] p-6",
+    "rounded-2xl border border-[var(--app-border-subtle)] bg-[var(--app-bg-surface)] p-4 sm:p-6",
   surfaceCard:
     "rounded-xl border border-[var(--app-border-subtle)] bg-[var(--app-bg-surface)]",
   promptCard: [
@@ -68,13 +68,14 @@ export const appShell = {
   charCounterLimit: "text-xs tabular-nums text-rose-400",
   accentCheckbox: "h-4 w-4 cursor-pointer accent-violet-600",
   heroGlow:
-    "pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 w-[700px] h-[500px] rounded-full opacity-30 blur-[120px] bg-[var(--app-hero-glow)]",
+    "pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/4 h-[280px] w-[min(100vw,700px)] rounded-full opacity-30 blur-[80px] bg-[var(--app-hero-glow)] sm:h-[400px] sm:blur-[100px] md:h-[500px] md:blur-[120px]",
   iconButton:
     "p-2 rounded-lg text-[var(--app-text-subtle)] hover:text-[var(--app-text)] hover:bg-[var(--app-hover-overlay)] transition-all",
   hoverRow: "hover:bg-[var(--app-hover-overlay)] transition-colors",
   formPage:
-    "mx-auto flex max-w-xl flex-1 flex-col gap-4 px-6 py-8 pb-12",
-  formPageTitle: "text-[1.75rem] font-semibold text-[var(--app-text)]",
+    "mx-auto flex max-w-xl flex-1 flex-col gap-4 px-4 py-6 pb-10 sm:px-6 sm:py-8 sm:pb-12",
+  formPageTitle:
+    "text-2xl font-semibold text-[var(--app-text)] sm:text-[1.75rem]",
   formPageDescription: "leading-relaxed text-[var(--app-text-muted)]",
   formPageForm: "flex flex-col gap-4",
   formField: "flex flex-col gap-1.5",
@@ -88,7 +89,7 @@ export const appShell = {
     "file:px-3 file:py-1 file:text-sm file:text-[var(--app-text)]",
   ].join(" "),
   formSubmit:
-    "inline-flex self-start items-center rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white no-underline transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60",
+    "inline-flex w-full items-center justify-center self-stretch rounded-full bg-violet-600 px-5 py-2.5 text-sm font-medium text-white no-underline transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:self-start",
   formStatus: "text-sm text-[var(--app-text-muted)]",
   formMeta: "text-sm text-[var(--app-text-muted)]",
   formHint:
@@ -103,22 +104,31 @@ export const appShell = {
   formModelOptionSelected:
     "flex w-full cursor-pointer items-center gap-2 rounded-lg border border-violet-500 bg-violet-600/10 px-3 py-2 text-left text-sm text-[var(--app-text)]",
   siteHeader:
-    "flex items-center justify-between border-b border-[var(--app-border-subtle)] bg-[var(--app-bg-page)] px-6 py-4",
-  siteHeaderLogo: "text-lg font-semibold text-[var(--app-text)] no-underline",
-  siteHeaderNav: "flex gap-4",
+    "border-b border-[var(--app-border-subtle)] bg-[var(--app-bg-page)]",
+  siteHeaderBar:
+    "flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4",
+  siteHeaderLogo:
+    "max-w-[45vw] truncate text-base font-semibold text-[var(--app-text)] no-underline sm:max-w-none sm:text-lg",
+  siteHeaderNav: "hidden items-center gap-4 md:flex",
+  siteHeaderNavMobile:
+    "flex flex-col gap-0.5 border-t border-[var(--app-border-subtle)] px-4 py-3 md:hidden",
   siteHeaderNavLink:
-    "text-sm text-[var(--app-text-muted)] no-underline transition-colors hover:text-[var(--app-text)]",
-  siteHeaderActions: "flex items-center gap-3",
-  siteHeaderAuthActions: "flex items-center gap-2",
+    "rounded-md px-2 py-2 text-sm text-[var(--app-text-muted)] no-underline transition-colors hover:bg-[var(--app-hover-overlay)] hover:text-[var(--app-text)] md:p-0 md:hover:bg-transparent",
+  siteHeaderActions: "flex shrink-0 items-center gap-2 sm:gap-3",
+  siteHeaderAuthActions: "flex items-center gap-1.5 sm:gap-2",
+  siteHeaderMenuButton:
+    "inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--app-text-subtle)] transition-colors hover:bg-[var(--app-hover-overlay)] hover:text-[var(--app-text)] md:hidden",
+  siteHeaderMenuIcon: "h-5 w-5",
   siteHeaderAuthButton:
-    "cursor-pointer rounded-md border border-[var(--app-border-strong)] bg-transparent px-3 py-1.5 text-sm text-[var(--app-text)]",
+    "cursor-pointer rounded-md border border-[var(--app-border-strong)] bg-transparent px-2.5 py-1.5 text-xs text-[var(--app-text)] sm:px-3 sm:text-sm",
   siteHeaderAuthButtonPrimary:
-    "cursor-pointer rounded-md border border-violet-600 bg-violet-600 px-3 py-1.5 text-sm text-white transition-colors hover:border-violet-500 hover:bg-violet-500",
+    "cursor-pointer rounded-md border border-violet-600 bg-violet-600 px-2.5 py-1.5 text-xs text-white transition-colors hover:border-violet-500 hover:bg-violet-500 sm:px-3 sm:text-sm",
   siteHeaderDevBadge:
     "rounded-md border border-dashed border-[var(--app-border-strong)] px-2 py-1 text-xs text-[var(--app-text-subtle)]",
   placeholderPage:
-    "mx-auto flex max-w-xl flex-1 flex-col items-start justify-center gap-4 px-6 py-12",
-  placeholderPageTitle: "text-3xl font-semibold text-[var(--app-text)]",
+    "mx-auto flex max-w-xl flex-1 flex-col items-start justify-center gap-4 px-4 py-10 sm:px-6 sm:py-12",
+  placeholderPageTitle:
+    "text-2xl font-semibold text-[var(--app-text)] sm:text-3xl",
   placeholderPageDescription: "text-base leading-relaxed text-[var(--app-text-muted)]",
   authPage: "flex flex-1 items-center justify-center px-4 py-8",
   deleteIconButton:

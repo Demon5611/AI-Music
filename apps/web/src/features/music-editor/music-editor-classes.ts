@@ -6,9 +6,9 @@ const btnBase =
 /** Music editor UI — Tailwind only, theme via CSS variables in globals.css. */
 export const me = {
   section:
-    "flex flex-1 flex-col gap-5 bg-[var(--app-bg-page)] px-[50px] pb-8 pt-6 text-[var(--app-text)] max-md:px-4",
+    "flex flex-1 flex-col gap-4 bg-[var(--app-bg-page)] px-4 pb-6 pt-4 text-[var(--app-text)] sm:gap-5 sm:px-6 sm:pb-8 sm:pt-6 md:px-[50px]",
   sectionHintsHidden: "[&_.panel-hint]:hidden",
-  title: "text-[1.75rem] font-bold tracking-tight text-[var(--app-text)]",
+  title: "text-2xl font-bold tracking-tight text-[var(--app-text)] sm:text-[1.75rem]",
   editorHeader: "flex flex-wrap items-center justify-between gap-4",
   hintsToggle: "group inline-flex cursor-pointer select-none items-center gap-2.5",
   hintsToggleLabel: "text-sm font-medium text-[var(--app-text-muted)]",
@@ -17,10 +17,11 @@ export const me = {
     "relative h-[1.375rem] w-10 rounded-full bg-[var(--app-border-default)] transition-colors group-has-[:checked]:bg-violet-600 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-violet-500/50",
   hintsToggleThumb:
     "absolute left-0.5 top-0.5 h-[1.125rem] w-[1.125rem] rounded-full bg-white shadow-sm transition-transform group-has-[:checked]:translate-x-[1.125rem]",
-  layout: "grid items-start gap-4 max-[960px]:grid-cols-1 grid-cols-[minmax(0,1.65fr)_minmax(280px,1fr)]",
+  layout:
+    "grid items-start gap-4 grid-cols-1 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,1fr)]",
   mainColumn: "flex min-w-0 flex-col gap-4",
   sideColumn: "flex min-w-0 flex-col gap-4",
-  panel: `${appShell.surfaceCard} p-4`,
+  panel: `${appShell.surfaceCard} p-3 sm:p-4`,
   panelTitle: "mb-3 text-[0.95rem] font-semibold text-[var(--app-text)]",
   panelHint: "panel-hint text-sm text-[var(--app-text-muted)]",
   statusCard:
@@ -43,7 +44,7 @@ export const me = {
   stemNoticeMessage: "mt-2 text-sm leading-relaxed text-[var(--app-text)]",
   stemNoticeHint: "mt-2 text-[0.8125rem] leading-relaxed text-[var(--app-text-muted)]",
   stemNoticeActions: "mt-3 flex flex-wrap gap-2",
-  timelineBlock: `${appShell.surfaceCard} w-full p-4`,
+  timelineBlock: `${appShell.surfaceCard} w-full p-3 sm:p-4`,
   timelineHeader:
     "mb-3 flex flex-wrap items-center justify-between gap-3",
   timelineTitleRow: "flex items-center gap-2",
@@ -71,9 +72,9 @@ export const me = {
     "flex flex-wrap gap-x-5 gap-y-3 text-sm text-violet-900 dark:text-violet-200",
   trackList: "flex flex-col gap-3",
   trackLaneRow:
-    "grid cursor-pointer grid-cols-[minmax(120px,160px)_auto_minmax(0,1fr)] items-center gap-3 rounded-[0.625rem] border border-[var(--app-border-subtle)] bg-[var(--app-bg-elevated)] p-2.5",
+    "grid cursor-pointer grid-cols-1 items-center gap-2 rounded-[0.625rem] border border-[var(--app-border-subtle)] bg-[var(--app-bg-elevated)] p-2.5 sm:grid-cols-[minmax(120px,160px)_auto_minmax(0,1fr)] sm:gap-3",
   trackLaneRowSelected:
-    "grid cursor-pointer grid-cols-[minmax(120px,160px)_auto_minmax(0,1fr)] items-center gap-3 rounded-[0.625rem] border border-violet-500 bg-violet-600/10 p-2.5",
+    "grid cursor-pointer grid-cols-1 items-center gap-2 rounded-[0.625rem] border border-violet-500 bg-violet-600/10 p-2.5 sm:grid-cols-[minmax(120px,160px)_auto_minmax(0,1fr)] sm:gap-3",
   trackLaneLabel: "font-semibold text-[var(--app-text)]",
   trackLaneControls: "flex items-center gap-1.5",
   laneToggle:

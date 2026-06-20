@@ -12,7 +12,7 @@ export const voiceUi = {
   ].join(" "),
   consentContent: "flex min-w-0 flex-col gap-1",
   consentTitle: "text-sm font-medium leading-snug text-[var(--app-text)]",
-  consentPhrase: "text-xl leading-snug text-[var(--app-text-muted)]",
+  consentPhrase: "text-base sm:text-xl leading-snug text-[var(--app-text-muted)]",
   recordingTips:
     "rounded-lg border border-violet-500/20 bg-violet-600/5 p-3",
   recordingTipsTitle: "m-0 mb-2 text-sm font-medium text-[var(--app-text)]",
@@ -36,7 +36,7 @@ export const voiceUi = {
   ].join(" "),
   scriptPopoverHint: "m-0 mb-2 text-xs text-[var(--app-text-muted)]",
   scriptPopoverText: "m-0 text-sm leading-relaxed text-[var(--app-text)]",
-  genderSelect: "inline-flex flex-wrap items-center gap-2",
+  genderSelect: "flex flex-col items-stretch gap-2 sm:inline-flex sm:flex-row sm:flex-wrap sm:items-center",
   genderLabel: "text-sm font-medium text-[var(--app-text-muted)]",
   genderButtons: "inline-flex gap-1",
   genderButton: [
@@ -48,14 +48,14 @@ export const voiceUi = {
   genderButtonActive:
     "rounded-lg border border-violet-600 bg-violet-600 px-3 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50",
   verifyInlineShell:
-    "rounded-lg border border-violet-500/20 bg-violet-600/5 p-4",
+    "rounded-lg border border-violet-500/20 bg-violet-600/5 p-3 sm:p-4",
   verifyInlineForm: "flex flex-col gap-3",
   verifyInlineTitle: "m-0 text-sm font-semibold text-[var(--app-text)]",
   verifyInlineDescription: "m-0 text-sm leading-relaxed text-[var(--app-text-muted)]",
   verifyReadyActions: "flex flex-col gap-3",
   sampleCard:
     "flex flex-col gap-3 rounded-lg border border-[var(--app-border-subtle)] bg-[var(--app-bg-elevated)] p-3",
-  sampleCardHeader: "flex items-start gap-3",
+  sampleCardHeader: "flex flex-col gap-3 sm:flex-row sm:items-start",
   sampleCardBody: "min-w-0 flex-1",
   sampleCardTitle: "text-sm font-medium text-[var(--app-text)]",
   sampleCardMeta: `flex flex-wrap items-center gap-2 text-xs ${appShell.textMuted}`,
@@ -78,7 +78,7 @@ export const voiceUi = {
   authGate: "flex flex-col gap-3",
   authGateTitle: "text-sm font-semibold text-[var(--app-text)]",
   authGateHint: `text-sm leading-relaxed ${appShell.textMuted}`,
-  authGateActions: "flex flex-wrap items-center gap-2",
+  authGateActions: "flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center",
   upload: {
     hint: `text-sm ${appShell.textMuted} mb-1`,
     submit: `${appShell.btnPrimary} w-full`,
@@ -89,19 +89,19 @@ export const voiceUi = {
     replaceWarning:
       "flex flex-col gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3",
     replaceWarningText: "m-0 text-sm text-amber-900 dark:text-amber-200",
-    replaceWarningActions: "flex flex-wrap gap-2",
+    replaceWarningActions: "flex flex-col gap-2 sm:flex-row sm:flex-wrap",
     consentRow: "flex cursor-pointer items-start gap-2.5",
     consentNotice: "text-xs leading-snug text-amber-900 dark:text-amber-200",
     fileInput: appShell.formVoiceFileInput,
     form: "flex flex-col gap-3",
     field: "flex flex-col gap-1.5",
-    recordRow: "flex flex-wrap items-center gap-2",
-    recordButton: `${btnBase} inline-flex items-center gap-2 border-violet-600 bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:border-violet-500 hover:bg-violet-500 disabled:border-violet-600/30 disabled:bg-violet-600/30 disabled:text-white/50`,
+    recordRow: "flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center",
+    recordButton: `${btnBase} inline-flex w-full items-center justify-center gap-2 border-violet-600 bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:border-violet-500 hover:bg-violet-500 disabled:border-violet-600/30 disabled:bg-violet-600/30 disabled:text-white/50 sm:w-auto`,
     recordButtonIcon: "h-4 w-4 shrink-0",
     recordingLabel: "text-[0.8125rem] text-[var(--app-text-muted)]",
     preview:
       "flex flex-col gap-2 rounded-lg border border-[var(--app-border-subtle)] bg-[var(--app-bg-elevated)] p-3",
-    previewHeader: "flex items-center justify-between gap-2",
+    previewHeader: "flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between",
     previewPlayer: "h-10 w-full",
     fieldLabel: "mb-3 flex flex-col gap-1.5 text-sm text-[var(--app-text)]",
     toolButton: `${btnBase} border-[var(--app-border-default)] bg-[var(--app-bg-surface)] text-[var(--app-text)] hover:bg-[var(--app-hover-overlay)]`,

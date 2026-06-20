@@ -2,7 +2,7 @@ import { appShell } from "@/shared/theme/app-theme";
 
 /** Shared Tailwind classes for Music Create form UI. */
 export const mc = {
-  cardHeader: "mb-5 flex items-center justify-between gap-4",
+  cardHeader: "mb-5 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
   cardHeaderTitle: "text-base font-semibold",
   cardHeaderSubtitle: `mt-0.5 text-xs ${appShell.textMuted}`,
   historyCardHeader: "mb-5 flex items-center gap-2",
@@ -60,7 +60,7 @@ export const mc = {
   wizardStepHeader: "flex flex-col gap-1.5",
   wizardStepBadge:
     "w-fit rounded-full bg-violet-600/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-violet-400",
-  wizardStepTitle: "text-lg font-semibold text-[var(--app-text)]",
+  wizardStepTitle: "text-base font-semibold text-[var(--app-text)] sm:text-lg",
   wizardStepHint: `text-sm ${appShell.textMuted}`,
   wizardLyricsPreview:
     "rounded-lg border border-[var(--app-border-subtle)] bg-[var(--app-bg-elevated)] p-3",

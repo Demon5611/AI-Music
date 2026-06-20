@@ -8,7 +8,7 @@ export const mp = {
   pageHeaderLogo: appShell.pageHeaderLogo,
   pageHeaderTitle: "text-sm font-semibold tracking-tight",
   pageHeaderMeta: `text-xs ${appShell.textMuted}`,
-  pageMain: "mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-8",
+  pageMain: "mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-6 sm:gap-5 sm:py-8",
   authLoading: `flex flex-1 items-center justify-center ${appShell.bgPage} py-24`,
   authLoadingInner: `flex items-center gap-3 text-sm ${appShell.textMuted}`,
   spinner: appShell.spinner,
