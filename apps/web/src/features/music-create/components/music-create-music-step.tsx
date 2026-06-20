@@ -12,8 +12,22 @@ import {
   IconWand,
 } from "@/features/music-create/components/music-create-icons";
 import { cn } from "@/lib/utils";
-import { getAllowedDurationOptions } from "@ai-music/shared";
-import { useEffect } from "react";
+import Link from "next/link";
+import {
+  ALL_DURATION_OPTIONS,
+  FREE_TIER_DEFAULT_COMBO_STYLE,
+  FREE_TIER_DEFAULT_DURATION_SEC,
+  GENERATION_CREDIT_COST,
+  getDurationOptionsForPlan,
+  isComboStylePreset,
+  isDurationAllowedForPlan,
+  isVocalGender,
+  VOCAL_GENDER_LABELS,
+} from "@ai-music/shared";
+import { useQuery } from "@tanstack/react-query";
+import { useApi } from "@/shared/providers/api-provider";
+import { useAuthReady } from "@/shared/hooks/use-auth-ready";
+import { useEffect, useState } from "react";
 
 const STYLE_MAX_LENGTH = 200;
 const TITLE_MAX_LENGTH = 100;
@@ -26,6 +40,8 @@ const DURATION_LABELS: Record<number, string> = {
   180: "~3 мин",
 };
 
+const PAID_PLAN_HINT = "Starter+";
+
 interface MusicCreateMusicStepProps {
   configured: boolean | null;
   canGenerateWithVoice: boolean;
@@ -35,6 +51,7 @@ interface MusicCreateMusicStepProps {
   style: string;
   prompt: string;
   durationSec: number;
+  voiceSampleId: string | null;
   onTitleChange: (value: string) => void;
   onStyleChange: (value: string) => void;
   onDurationChange: (value: number) => void;
@@ -51,21 +68,63 @@ export function MusicCreateMusicStep({
   style,
   prompt,
   durationSec,
+  voiceSampleId,
   onTitleChange,
   onStyleChange,
   onDurationChange,
   onBack,
   onGenerate,
 }: MusicCreateMusicStepProps) {
+  const api = useApi();
+  const authReady = useAuthReady();
+  const userQuery = useQuery({
+    queryKey: ["users", "me"],
+    queryFn: () => api.users.getMe(),
+    enabled: authReady,
+  });
+  const vocalGender =
+    userQuery.data?.vocalGender && isVocalGender(userQuery.data.vocalGender)
+      ? userQuery.data.vocalGender
+      : null;
   const subscriptionQuery = useSubscriptionQuery();
-  const maxTrackDurationSec = subscriptionQuery.data?.entitlements.maxTrackDurationSec ?? 60;
-  const durationOptions = getAllowedDurationOptions(maxTrackDurationSec);
+  const planId = subscriptionQuery.data?.planId ?? "free";
+  const isSimplifiedGeneration =
+    subscriptionQuery.data?.entitlements.features.musicGeneration === "simplified";
+  const allowedDurationOptions = getDurationOptionsForPlan(planId);
+  const creditsBalance = subscriptionQuery.data?.creditsBalance ?? 0;
+  const hasEnoughCredits = creditsBalance >= GENERATION_CREDIT_COST;
+  const [durationNotice, setDurationNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    if (durationSec > 0 && durationSec > maxTrackDurationSec) {
-      onDurationChange(maxTrackDurationSec);
+    if (!isSimplifiedGeneration) {
+      return;
     }
-  }, [durationSec, maxTrackDurationSec, onDurationChange]);
+
+    if (!isDurationAllowedForPlan(planId, durationSec)) {
+      onDurationChange(FREE_TIER_DEFAULT_DURATION_SEC);
+    }
+  }, [durationSec, isSimplifiedGeneration, onDurationChange, planId]);
+
+  useEffect(() => {
+    if (!isSimplifiedGeneration) {
+      return;
+    }
+
+    if (!isComboStylePreset(style)) {
+      onStyleChange(FREE_TIER_DEFAULT_COMBO_STYLE);
+    }
+  }, [isSimplifiedGeneration, onStyleChange, style]);
+
+  function handleDurationChange(nextValue: number) {
+    if (!isDurationAllowedForPlan(planId, nextValue)) {
+      setDurationNotice("Другие длительности доступны на платных тарифах.");
+      onDurationChange(FREE_TIER_DEFAULT_DURATION_SEC);
+      return;
+    }
+
+    setDurationNotice(null);
+    onDurationChange(nextValue);
+  }
 
   return (
     <div className={mc.fieldStack}>
@@ -73,7 +132,8 @@ export function MusicCreateMusicStep({
         <span className={mc.wizardStepBadge}>Шаг 2 из 2</span>
         <h2 className={mc.wizardStepTitle}>Создание музыки</h2>
         <p className={mc.wizardStepHint}>
-          Выберите стиль, название и длительность — вокал будет вашим AI Music Voice.
+          Выберите стиль, название и длительность — вокал будет вашим AI Music Voice
+          {vocalGender ? ` (${VOCAL_GENDER_LABELS[vocalGender].toLowerCase()}).` : "."}
         </p>
       </div>
 
@@ -98,6 +158,7 @@ export function MusicCreateMusicStep({
           Стиль музыки
         </span>
         <MusicStyleChips
+          allowCustomStyles={!isSimplifiedGeneration}
           maxLength={STYLE_MAX_LENGTH}
           showLabel={false}
           value={style}
@@ -106,9 +167,15 @@ export function MusicCreateMusicStep({
         <div className="relative mt-2">
           <textarea
             aria-labelledby="music-style-label"
-            className={cn(mc.textarea, mc.textareaStyle)}
+            className={cn(
+              mc.textarea,
+              mc.textareaStyle,
+              isSimplifiedGeneration && mc.styleReadonly,
+            )}
+            disabled={isSimplifiedGeneration}
             maxLength={STYLE_MAX_LENGTH}
             placeholder="pop, hyperpop, upbeat, 120 BPM"
+            readOnly={isSimplifiedGeneration}
             value={style}
             onChange={(event) => onStyleChange(event.target.value)}
           />
@@ -129,19 +196,49 @@ export function MusicCreateMusicStep({
           <select
             className={mc.select}
             value={durationSec}
-            onChange={(event) => onDurationChange(Number(event.target.value))}
+            onChange={(event) => handleDurationChange(Number(event.target.value))}
           >
-            {durationOptions.map((value) => (
-              <option key={value} value={value}>
-                {DURATION_LABELS[value] ?? `${value} сек`}
-              </option>
-            ))}
+            {ALL_DURATION_OPTIONS.map((value) => {
+              const isAllowed = allowedDurationOptions.includes(value);
+              const label = DURATION_LABELS[value] ?? `${value} сек`;
+
+              return (
+                <option key={value} disabled={!isAllowed} value={value}>
+                  {isAllowed ? label : `${label} (${PAID_PLAN_HINT})`}
+                </option>
+              );
+            })}
           </select>
           <span aria-hidden="true" className={mc.durationChevron}>
             <IconChevronDown />
           </span>
         </div>
+        {isSimplifiedGeneration ? (
+          <p className={cn(mc.styleHint, "mt-2")}>
+            На Free доступна только 30 сек. Другие длительности — на платных тарифах.
+          </p>
+        ) : null}
+        {durationNotice ? (
+          <p className={cn(mc.planNotice, "mt-2")} role="status">
+            {durationNotice}{" "}
+            <Link className={mc.planNoticeLink} href="/pricing">
+              Тарифы
+            </Link>
+          </p>
+        ) : null}
       </label>
+
+      <p className={mc.generationCostHint}>
+        Стоимость генерации: {GENERATION_CREDIT_COST} credits. Баланс: {creditsBalance}.
+        {!hasEnoughCredits ? (
+          <>
+            {" "}
+            <Link className={mc.planNoticeLink} href="/pricing">
+              Пополнить на странице тарифов
+            </Link>
+          </>
+        ) : null}
+      </p>
 
       <div className={mc.wizardActions}>
         <button
@@ -155,7 +252,13 @@ export function MusicCreateMusicStep({
         </button>
         <button
           className={cn(mc.submit, "inline-flex items-center justify-center gap-2")}
-          disabled={isBusy || configured !== true || !canGenerateWithVoice || !prompt.trim()}
+          disabled={
+            isBusy ||
+            configured !== true ||
+            !canGenerateWithVoice ||
+            !prompt.trim() ||
+            !hasEnoughCredits
+          }
           type="button"
           onClick={() =>
             void onGenerate({
@@ -163,7 +266,7 @@ export function MusicCreateMusicStep({
               style,
               title,
               durationSec,
-              voiceSampleId: null,
+              voiceSampleId,
             })
           }
         >

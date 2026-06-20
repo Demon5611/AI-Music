@@ -45,6 +45,38 @@ export function buildGenderAwareLyricsPrompt(
   return `${trimmedPrompt}${buildGenderLyricsPromptSuffix(vocalGender)}`;
 }
 
+/** Prefix keeps lyric gender when Suno truncates short tracks. No vocal tags — they override persona. */
+export function buildGenderAwareMusicPrompt(
+  prompt: string,
+  vocalGender: VocalGender | null | undefined,
+): string {
+  const trimmedPrompt = prompt.trim();
+
+  if (!vocalGender || !trimmedPrompt) {
+    return trimmedPrompt;
+  }
+
+  const rod = vocalGender === "f" ? "женском" : "мужском";
+  const examples = vocalGender === "f" ? "я пошла, я была" : "я пошёл, я был";
+
+  return `[глаголы от 1-го лица в ${rod} роде: ${examples}]\n\n${trimmedPrompt}`;
+}
+
+export function stripPersonaConflictingStyleTags(style: string | undefined): string | undefined {
+  const trimmedStyle = style?.trim();
+
+  if (!trimmedStyle) {
+    return trimmedStyle;
+  }
+
+  const filtered = trimmedStyle
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0 && !/\bvocal\b/i.test(part));
+
+  return filtered.length > 0 ? filtered.join(", ") : trimmedStyle;
+}
+
 export const VOICE_RECORDING_SCRIPT_GENERATION_PROMPT =
   "Короткий связный текст (~15 секунд чтения вслух) для напева голоса: про создание музыки своим голосом, вдохновляющий тон, русский язык.";
 

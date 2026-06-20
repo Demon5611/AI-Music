@@ -1,5 +1,10 @@
 import type { GenerateSongInput } from "@ai-music/ai-providers";
 import { createSunoVoiceClients } from "@ai-music/ai-providers";
+import {
+  buildGenderAwareMusicPrompt,
+  stripPersonaConflictingStyleTags,
+  type VocalGender,
+} from "@ai-music/shared";
 import { ForbiddenError } from "../../common/errors.js";
 import { resolveSunoVoicePersonaForUser } from "../voice-samples/resolve-suno-voice-persona.js";
 
@@ -74,11 +79,14 @@ export async function resolveMusicPersonaForUser(
 export function buildPersonaSongInput(
   input: GenerateSongInput,
   persona: NonNullable<Awaited<ReturnType<typeof resolveSunoVoicePersonaForUser>>>,
+  vocalGender: VocalGender | null = null,
 ): GenerateSongInput {
   const { vocalGender: _ignored, ...rest } = input;
 
   return {
     ...rest,
+    prompt: buildGenderAwareMusicPrompt(rest.prompt, vocalGender),
+    style: stripPersonaConflictingStyleTags(rest.style),
     personaId: persona.personaId,
     personaModel: persona.personaModel,
   };

@@ -1,5 +1,23 @@
+import type { VoiceSample } from "@ai-music/db";
+import { createSunoVoiceClients } from "@ai-music/ai-providers";
 import { prisma } from "@ai-music/db";
 import { reconcileReadySunoVoiceSample } from "./suno-voice.service.js";
+
+async function resolvePreferredPersonaId(sample: VoiceSample): Promise<string | null> {
+  const voiceId = sample.sunoVoiceId?.trim();
+  const taskId = sample.sunoVoiceTaskId?.trim();
+  const { voice } = createSunoVoiceClients();
+
+  if (voiceId && (await voice.checkVoiceAvailability(voiceId))) {
+    return voiceId;
+  }
+
+  if (taskId && (await voice.checkVoiceAvailability(taskId))) {
+    return taskId;
+  }
+
+  return null;
+}
 
 export async function findReadySunoVoiceSample(userId: string, voiceSampleId?: string) {
   return prisma.voiceSample.findFirst({
@@ -26,7 +44,7 @@ export async function resolveSunoVoicePersonaForUser(
   }
 
   const sample = await reconcileReadySunoVoiceSample(found);
-  const personaId = sample.sunoVoiceId?.trim();
+  const personaId = await resolvePreferredPersonaId(sample);
 
   if (sample.voiceCloneStatus !== "ready" || !personaId) {
     return null;

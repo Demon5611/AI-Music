@@ -31,6 +31,7 @@ export const CREDIT_PACKAGES = {
 } as const;
 
 export * from "./plans.js";
+export * from "./music-combo-styles.js";
 
 export const VOICE_CONSENT_PHRASE =
   "Я подтверждаю, что использую свой голос для создания музыкального трека.";

@@ -12,8 +12,11 @@ import { useVoiceSampleSelection } from "@/features/music-create/hooks/use-voice
 import { mc } from "@/features/music-create/music-create-classes";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { mp } from "@/shared/theme/music-page-classes";
+import {
+  FREE_TIER_DEFAULT_COMBO_STYLE,
+  FREE_TIER_DEFAULT_DURATION_SEC,
+} from "@ai-music/shared";
 
-const DEFAULT_STYLE = "lo-fi chill, dreamy, soft, warm textures, relaxed";
 const DEFAULT_TITLE = "Summer Friends";
 
 type WizardStep = "lyrics" | "music";
@@ -21,12 +24,12 @@ type WizardStep = "lyrics" | "music";
 export function MusicCreatePanel() {
   const authReady = useAuthReady();
   const [wizardStep, setWizardStep] = useState<WizardStep>("lyrics");
-  const [durationSec, setDurationSec] = useState(0);
+  const [durationSec, setDurationSec] = useState(FREE_TIER_DEFAULT_DURATION_SEC);
   const [lyricsBrief, setLyricsBrief] = useState(
     () => consumeMusicCreateLyricsBriefDraft() ?? "",
   );
   const [prompt, setPrompt] = useState("");
-  const [style, setStyle] = useState(DEFAULT_STYLE);
+  const [style, setStyle] = useState(FREE_TIER_DEFAULT_COMBO_STYLE);
   const [title, setTitle] = useState(DEFAULT_TITLE);
 
   const {
@@ -52,6 +55,7 @@ export function MusicCreatePanel() {
     canGenerateWithVoice,
     isLoading: isVoiceSamplesLoading,
     loadError: voiceSamplesLoadError,
+    selectedId: selectedVoiceSampleId,
   } = useVoiceSampleSelection(authReady);
 
   const handleLyricsBriefChange = useCallback((value: string) => {
@@ -160,6 +164,7 @@ export function MusicCreatePanel() {
               prompt={prompt}
               style={style}
               title={title}
+              voiceSampleId={selectedVoiceSampleId}
               onBack={() => setWizardStep("lyrics")}
               onDurationChange={setDurationSec}
               onGenerate={(input) => void generate(input)}

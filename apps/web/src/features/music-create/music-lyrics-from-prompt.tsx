@@ -11,6 +11,7 @@ import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { mc } from "@/features/music-create/music-create-classes";
 import { CharCounter } from "@/features/music-create/components/music-create-icons";
+import { DisabledTooltipWrap } from "@/shared/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const LYRICS_POLL_INTERVAL_MS = 5_000;
@@ -18,6 +19,7 @@ const LYRICS_POLL_INTERVAL_MS = 5_000;
 interface MusicLyricsFromPromptProps {
   configured: boolean;
   disabled?: boolean;
+  lockedHint?: string;
   lyricsBrief: string;
   onLyricsBriefChange: (value: string) => void;
   onApply: (text: string, suggestedTitle?: string) => void;
@@ -30,6 +32,7 @@ function isLyricsStatusTerminal(data: MusicLyricsStatusResponseDto | undefined):
 export function MusicLyricsFromPrompt({
   configured,
   disabled = false,
+  lockedHint,
   lyricsBrief,
   onLyricsBriefChange,
   onApply,
@@ -132,8 +135,21 @@ export function MusicLyricsFromPrompt({
 
   const isPolling = Boolean(lyricsTaskId);
   const isBusy = isGenerating || isPolling;
+  const lockedByManualLyrics = disabled && !isBusy;
   const fieldDisabled = isBusy || disabled;
   const canGenerate = configured && !fieldDisabled && lyricsBrief.trim().length > 0;
+
+  const briefTextarea = (
+    <textarea
+      aria-describedby={lockedByManualLyrics && lockedHint ? "prompt-lyrics-locked-hint" : undefined}
+      className={cn(mc.textarea, "h-20", fieldDisabled && !isBusy && mc.fieldDisabled)}
+      disabled={fieldDisabled}
+      maxLength={briefMaxLength}
+      placeholder="Например: грустная баллада о расставании, первое лицо, русский язык"
+      value={lyricsBrief}
+      onChange={(event) => onLyricsBriefChange(event.target.value)}
+    />
+  );
 
   return (
     <div className={mc.lyricsBlock}>
@@ -142,28 +158,28 @@ export function MusicLyricsFromPrompt({
           Введите примерное описание текста и AI на базе промта создаст текст песни
         </span>
         <div className="relative mt-2">
-          <textarea
-            className={cn(mc.textarea, "h-20", fieldDisabled && !isBusy && mc.fieldDisabled)}
-            disabled={fieldDisabled}
-            maxLength={briefMaxLength}
-            placeholder="Например: грустная баллада о расставании, первое лицо, русский язык"
-            value={lyricsBrief}
-            onChange={(event) => onLyricsBriefChange(event.target.value)}
-          />
+          {lockedByManualLyrics && lockedHint ? (
+            <DisabledTooltipWrap content={lockedHint} wide>
+              <div>{briefTextarea}</div>
+            </DisabledTooltipWrap>
+          ) : (
+            briefTextarea
+          )}
           <div className={mc.counterPos}>
             <CharCounter current={lyricsBrief.length} max={briefMaxLength} />
           </div>
         </div>
+        {lockedByManualLyrics && lockedHint ? (
+          <p className={cn(mc.meta, "mt-2")} id="prompt-lyrics-locked-hint">
+            {lockedHint}
+          </p>
+        ) : null}
         {vocalGender ? (
           <p className={cn(mc.meta, "mt-1")}>
             Лимит уменьшен: AI Music получает подсказку про род глаголов для вашего голоса.
           </p>
         ) : null}
       </label>
-
-      {disabled && !isBusy ? (
-        <p className={mc.meta}>Очистите текст песни ниже, чтобы описать идею для AI.</p>
-      ) : null}
 
       <button
         className={cn(mc.secondaryButton, "mt-3")}

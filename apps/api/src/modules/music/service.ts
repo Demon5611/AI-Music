@@ -86,17 +86,27 @@ export async function generateMusicForUser(
   await assertMusicGenerationMode(userId, {
     customMode: input.customMode,
     instrumental: input.instrumental,
+    style: input.style,
+    durationSec: input.durationSec,
   });
 
-  const songInput = buildPersonaSongInput(input, persona);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { vocalGender: true },
+  });
+  const vocalGender =
+    user?.vocalGender && isVocalGender(user.vocalGender) ? user.vocalGender : null;
+
+  const songInput = buildPersonaSongInput(input, persona, vocalGender);
 
   log?.info(
     {
       userId,
       voiceSampleId: persona.voiceSampleId,
       personaId: persona.personaId,
+      sunoVoiceTaskId: persona.sunoVoiceTaskId,
       personaModel: persona.personaModel,
-      vocalGender: songInput.vocalGender ?? null,
+      vocalGender,
       customMode: songInput.customMode ?? null,
       style: songInput.style ?? null,
       title: songInput.title ?? null,

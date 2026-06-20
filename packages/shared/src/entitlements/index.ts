@@ -7,6 +7,10 @@ import {
   type PlanFeatures,
   type PlanId,
 } from "../constants/plans.js";
+import {
+  FREE_TIER_DEFAULT_DURATION_SEC,
+  isComboStylePreset,
+} from "../constants/music-combo-styles.js";
 
 export type FeatureKey = keyof PlanFeatures;
 
@@ -128,7 +132,7 @@ export function checkMaxDuration(planId: PlanId, durationSec: number): Entitleme
 
 export function checkMusicGenerationMode(
   planId: PlanId,
-  options: { customMode?: boolean; instrumental?: boolean },
+  options: { customMode?: boolean; instrumental?: boolean; style?: string; durationSec?: number },
 ): EntitlementCheckResult {
   const entitlements = resolveEntitlements(planId);
 
@@ -136,11 +140,33 @@ export function checkMusicGenerationMode(
     return { ok: true };
   }
 
-  if (options.customMode || options.instrumental) {
+  if (options.instrumental) {
     return {
       ok: false,
       code: "SIMPLIFIED_GENERATION_ONLY",
-      message: "Расширенные параметры генерации доступны на платных тарифах",
+      message: "Инструментальная генерация доступна на платных тарифах",
+      requiredPlan: "starter",
+    };
+  }
+
+  const durationSec = options.durationSec ?? 0;
+
+  if (durationSec !== FREE_TIER_DEFAULT_DURATION_SEC) {
+    return {
+      ok: false,
+      code: "SIMPLIFIED_GENERATION_ONLY",
+      message: "На Free доступна генерация только 30 секунд",
+      requiredPlan: "starter",
+    };
+  }
+
+  const style = options.style?.trim() ?? "";
+
+  if (!isComboStylePreset(style)) {
+    return {
+      ok: false,
+      code: "SIMPLIFIED_GENERATION_ONLY",
+      message: "На Free доступен только комбо-стиль. Расширенные параметры — на платных тарифах",
       requiredPlan: "starter",
     };
   }
@@ -204,6 +230,20 @@ export function isEditorOperationAllowed(
 export function getAllowedDurationOptions(maxTrackDurationSec: number): number[] {
   const options = [0, 30, 60, 120, 180];
   return options.filter((value) => value === 0 || value <= maxTrackDurationSec);
+}
+
+export const ALL_DURATION_OPTIONS = [0, 30, 60, 120, 180] as const;
+
+export function isDurationAllowedForPlan(planId: PlanId, durationSec: number): boolean {
+  return getDurationOptionsForPlan(planId).includes(durationSec);
+}
+
+export function getDurationOptionsForPlan(planId: PlanId): number[] {
+  if (PLANS[planId].features.musicGeneration === "simplified") {
+    return [FREE_TIER_DEFAULT_DURATION_SEC];
+  }
+
+  return getAllowedDurationOptions(PLANS[planId].maxTrackDurationSec);
 }
 
 function findMinimumPlanForBooleanFeature(feature: FeatureKey): PlanId {

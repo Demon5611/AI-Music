@@ -14,6 +14,7 @@ import {
   FeatureNotAvailableError,
 } from "../../common/errors.js";
 import { getCreditsBalance } from "../credits/service.js";
+import { ensureFreeTierCredits } from "./free-tier-credits.service.js";
 import { getOrCreateSubscription, resolveSubscriptionPlanId } from "./subscription.service.js";
 
 function throwIfViolation(result: EntitlementCheckResult): void {
@@ -41,6 +42,7 @@ export async function getUserEntitlements(userId: string): Promise<ResolvedEntit
 
 export async function getUserSubscriptionSummary(userId: string) {
   const subscription = await getOrCreateSubscription(userId);
+  await ensureFreeTierCredits(userId);
   const planId = resolveSubscriptionPlanId(subscription.planId);
   const entitlements = resolveEntitlements(planId);
   const creditsBalance = await getCreditsBalance(userId);
@@ -69,7 +71,12 @@ export async function assertMaxDuration(userId: string, durationSec: number): Pr
 
 export async function assertMusicGenerationMode(
   userId: string,
-  options: { customMode?: boolean; instrumental?: boolean },
+  options: {
+    customMode?: boolean;
+    instrumental?: boolean;
+    style?: string;
+    durationSec?: number;
+  },
 ): Promise<void> {
   const subscription = await getOrCreateSubscription(userId);
   const planId = resolveSubscriptionPlanId(subscription.planId);
