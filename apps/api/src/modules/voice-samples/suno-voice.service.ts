@@ -7,7 +7,7 @@ import {
   resolveSunoVoiceConfig,
 } from "@ai-music/ai-providers";
 import type { VoiceSample } from "@ai-music/db";
-import { MIN_VOICE_VERIFY_DURATION_SEC } from "@ai-music/shared";
+import { MIN_VOICE_VERIFY_DURATION_SEC, buildSunoVoiceCloneStyle, isVocalGender } from "@ai-music/shared";
 import { ForbiddenError, NotFoundError } from "../../common/errors.js";
 import { getStorageService } from "../storage/storage.service.js";
 import { toVoiceSampleDto, toVoiceSampleDtoWithPersonaCheck } from "./mapper.js";
@@ -707,6 +707,11 @@ export async function submitSunoVoiceVerification(
 
   const config = resolveSunoVoiceConfig();
   const { voice, fileUpload } = createSunoVoiceClients(config);
+  const user = await prisma.user.findUnique({
+    where: { id: input.userId },
+    select: { vocalGender: true },
+  });
+  const vocalGender = isVocalGender(user?.vocalGender) ? user.vocalGender : null;
   const uploaded = await fileUpload.uploadAudio(
     input.fileBuffer,
     input.filename,
@@ -721,7 +726,8 @@ export async function submitSunoVoiceVerification(
       verifyUrl: uploaded.downloadUrl,
       voiceName: `voice-${sample.id}`,
       description: "AI Music user voice",
-      singerSkillLevel: "beginner",
+      singerSkillLevel: "intermediate",
+      ...(vocalGender ? { style: buildSunoVoiceCloneStyle(vocalGender) } : {}),
       callBackUrl: config.callbackUrl,
     });
   } catch (error) {
