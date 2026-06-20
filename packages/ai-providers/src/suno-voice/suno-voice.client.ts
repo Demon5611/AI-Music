@@ -61,6 +61,17 @@ export class SunoVoiceClient {
     });
   }
 
+  /** For music generation personaId — only Suno Voice `voice_id`, not task_id. */
+  checkVoiceIdAvailability(voiceId: string): Promise<boolean> {
+    const trimmed = voiceId.trim();
+
+    if (!trimmed) {
+      return Promise.resolve(false);
+    }
+
+    return this.checkVoiceAvailabilityByPayload({ voice_id: trimmed });
+  }
+
   private checkVoiceAvailabilityByPayload(
     body: Record<string, string>,
   ): Promise<boolean> {

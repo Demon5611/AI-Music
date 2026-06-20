@@ -120,7 +120,7 @@ export async function reconcileReadySunoVoiceSample(
   }
 
   const { voice } = createSunoVoiceClients();
-  const available = await voice.checkVoiceAvailability(sample.sunoVoiceId);
+  const available = await voice.checkVoiceIdAvailability(sample.sunoVoiceId);
 
   if (available) {
     return sample;
@@ -320,7 +320,7 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
   const voiceId = resolveRecordVoiceId(recordInfo);
 
   if (recordStatus === "success" && voiceId) {
-    const available = await voice.checkVoiceAvailability(voiceId);
+    const available = await voice.checkVoiceIdAvailability(voiceId);
 
     if (available) {
       return prisma.voiceSample.update({

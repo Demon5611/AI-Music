@@ -21,6 +21,7 @@ import type {
   SunoUploadCoverRequest,
 } from "./suno-api.types.js";
 import { applySunoDurationHints } from "./suno-duration-hints.js";
+import { stripPersonaConflictingStyleTags } from "./suno-persona-style.js";
 import { mapSunoVocalRemovalTaskToStemResult } from "./suno-vocal-removal.mapper.js";
 
 const PROVIDER_ID = "sunoapi" as const;
@@ -145,13 +146,16 @@ export class SunoApiProvider implements MusicProvider {
     const model = useVoicePersona
       ? toSunoModelId(this.config.sunoVoiceModel)
       : toSunoModelId(this.config.sunoModel);
+    const resolvedStyle = useVoicePersona
+      ? stripPersonaConflictingStyleTags(withDuration.style ?? "Pop")
+      : withDuration.style ?? "Pop";
 
     if (customMode) {
       return {
         customMode: true,
         instrumental,
         prompt: instrumental ? undefined : withDuration.prompt,
-        style: withDuration.style ?? "Pop",
+        style: resolvedStyle,
         title: input.title ?? "Untitled",
         model,
         callBackUrl: this.config.sunoCallbackUrl,

@@ -3,20 +3,42 @@ import { createSunoVoiceClients } from "@ai-music/ai-providers";
 import { prisma } from "@ai-music/db";
 import { reconcileReadySunoVoiceSample } from "./suno-voice.service.js";
 
-async function resolvePreferredPersonaId(sample: VoiceSample): Promise<string | null> {
-  const voiceId = sample.sunoVoiceId?.trim();
-  const taskId = sample.sunoVoiceTaskId?.trim();
+async function refreshVoiceIdFromSunoRecord(sample: VoiceSample): Promise<string | null> {
   const { voice } = createSunoVoiceClients();
+  const taskId = sample.sunoVoiceTaskId?.trim();
+  let voiceId = sample.sunoVoiceId?.trim() ?? "";
 
-  if (voiceId && (await voice.checkVoiceAvailability(voiceId))) {
-    return voiceId;
+  if (taskId) {
+    try {
+      const recordInfo = await voice.getVoiceRecordInfo(taskId);
+      const freshVoiceId = recordInfo.voiceId?.trim();
+
+      if (String(recordInfo.status) === "success" && freshVoiceId) {
+        voiceId = freshVoiceId;
+
+        if (freshVoiceId !== sample.sunoVoiceId?.trim()) {
+          await prisma.voiceSample.update({
+            where: { id: sample.id },
+            data: {
+              sunoVoiceId: freshVoiceId,
+              voiceCloneStatus: "ready",
+              voiceCloneError: null,
+            },
+          });
+        }
+      }
+    } catch {
+      // Fall back to stored voiceId below.
+    }
   }
 
-  if (taskId && (await voice.checkVoiceAvailability(taskId))) {
-    return taskId;
+  if (!voiceId) {
+    return null;
   }
 
-  return null;
+  const available = await voice.checkVoiceIdAvailability(voiceId);
+
+  return available ? voiceId : null;
 }
 
 export async function findReadySunoVoiceSample(userId: string, voiceSampleId?: string) {
@@ -44,7 +66,7 @@ export async function resolveSunoVoicePersonaForUser(
   }
 
   const sample = await reconcileReadySunoVoiceSample(found);
-  const personaId = await resolvePreferredPersonaId(sample);
+  const personaId = await refreshVoiceIdFromSunoRecord(sample);
 
   if (sample.voiceCloneStatus !== "ready" || !personaId) {
     return null;

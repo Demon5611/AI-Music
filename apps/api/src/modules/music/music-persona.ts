@@ -1,10 +1,6 @@
 import type { GenerateSongInput } from "@ai-music/ai-providers";
 import { createSunoVoiceClients } from "@ai-music/ai-providers";
-import {
-  buildGenderAwareMusicPrompt,
-  stripPersonaConflictingStyleTags,
-  type VocalGender,
-} from "@ai-music/shared";
+import { stripPersonaConflictingStyleTags } from "@ai-music/shared";
 import { ForbiddenError } from "../../common/errors.js";
 import { resolveSunoVoicePersonaForUser } from "../voice-samples/resolve-suno-voice-persona.js";
 
@@ -21,23 +17,17 @@ async function assertSunoPersonaAvailable(
   log?: MusicGenerateLogger,
 ): Promise<void> {
   const { voice } = createSunoVoiceClients();
-  const candidateIds = [persona.sunoVoiceTaskId, persona.personaId].filter(
-    (id): id is string => Boolean(id?.trim()),
-  );
 
-  for (const id of candidateIds) {
-    if (await voice.checkVoiceAvailability(id)) {
-      return;
-    }
+  if (await voice.checkVoiceIdAvailability(persona.personaId)) {
+    return;
   }
 
   log?.warn(
     {
       personaId: persona.personaId,
       sunoVoiceTaskId: persona.sunoVoiceTaskId,
-      candidateIds,
     },
-    "Suno check-voice returned unavailable; blocking music generation",
+    "Suno voice_id check returned unavailable; blocking music generation",
   );
 
   throw new ForbiddenError(SUNO_VOICE_UNAVAILABLE_MESSAGE);
@@ -79,13 +69,12 @@ export async function resolveMusicPersonaForUser(
 export function buildPersonaSongInput(
   input: GenerateSongInput,
   persona: NonNullable<Awaited<ReturnType<typeof resolveSunoVoicePersonaForUser>>>,
-  vocalGender: VocalGender | null = null,
 ): GenerateSongInput {
   const { vocalGender: _ignored, ...rest } = input;
 
   return {
     ...rest,
-    prompt: buildGenderAwareMusicPrompt(rest.prompt, vocalGender),
+    prompt: rest.prompt.trim(),
     style: stripPersonaConflictingStyleTags(rest.style),
     personaId: persona.personaId,
     personaModel: persona.personaModel,
