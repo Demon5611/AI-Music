@@ -138,7 +138,7 @@ export function MusicCreatePanel() {
 
         {hasReadyVoice ? (
           <p className={mc.cardHeaderSubtitle}>
-            Используется ваш последний верифицированный образец AI Music Voice (модель V5).
+            Используется ваш последний верифицированный образец AI Music Voice.
           </p>
         ) : null}
 

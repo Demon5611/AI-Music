@@ -57,6 +57,7 @@ interface DisabledTooltipButtonProps {
   side?: TooltipSide;
   align?: TooltipAlign;
   wide?: boolean;
+  block?: boolean;
   size?: TooltipSize;
   children: ReactElement;
 }
@@ -66,6 +67,7 @@ export function DisabledTooltipWrap({
   side = "top",
   align = "center",
   wide = false,
+  block = false,
   size = "default",
   children,
 }: DisabledTooltipButtonProps) {
@@ -75,9 +77,12 @@ export function DisabledTooltipWrap({
     return children;
   }
 
+  const TriggerTag = block ? "div" : "span";
+  const triggerClass = block ? tt.triggerBlock : tt.trigger;
+
   return (
-    <Tooltip align={align} content={content} side={side} size={size} wide={wide}>
-      <span className={tt.trigger}>{children}</span>
+    <Tooltip align={align} block={block} content={content} side={side} size={size} wide={wide}>
+      <TriggerTag className={triggerClass}>{children}</TriggerTag>
     </Tooltip>
   );
 }

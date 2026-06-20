@@ -159,8 +159,8 @@ export function MusicLyricsFromPrompt({
         </span>
         <div className="relative mt-2">
           {lockedByManualLyrics && lockedHint ? (
-            <DisabledTooltipWrap content={lockedHint} wide>
-              <div>{briefTextarea}</div>
+            <DisabledTooltipWrap block content={lockedHint} wide>
+              <div className="w-full">{briefTextarea}</div>
             </DisabledTooltipWrap>
           ) : (
             briefTextarea

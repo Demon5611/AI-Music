@@ -79,8 +79,8 @@ export function MusicCreateLyricsStep({
       <label className="block">
         <span className={mc.fieldLabel}>Введи текст песни и его споет AI</span>
         {manualLyricsLocked ? (
-          <DisabledTooltipWrap content={MANUAL_LYRICS_LOCKED_HINT} wide>
-            <div className="relative">
+          <DisabledTooltipWrap block content={MANUAL_LYRICS_LOCKED_HINT} wide>
+            <div className="relative w-full">
               <textarea
                 aria-describedby="manual-lyrics-locked-hint"
                 className={cn(mc.textareaLarge, mc.fieldDisabled)}
@@ -95,7 +95,7 @@ export function MusicCreateLyricsStep({
             </div>
           </DisabledTooltipWrap>
         ) : (
-          <div className="relative">
+          <div className="relative w-full">
             <textarea
               className={cn(mc.textareaLarge, isBusy && mc.fieldDisabled)}
               disabled={isBusy}
