@@ -1,6 +1,7 @@
 import type { EditOperation, EditorTrackId } from "@ai-music/shared";
 import { prisma, Prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
+import { assertEditorOperation } from "../billing/entitlements.service.js";
 import {
   countActiveOperations,
   findLastActiveOperation,
@@ -530,6 +531,8 @@ export async function applyOperation(
   operation: EditOperation,
   context: SelectionContext,
 ) {
+  await assertEditorOperation(userId, operation.type);
+
   validateOperationSelection(operation, context);
 
   const song = await getSongForUser(userId, songId);

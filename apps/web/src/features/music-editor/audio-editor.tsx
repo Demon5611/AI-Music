@@ -11,6 +11,7 @@ import { EditorHeader } from "@/features/music-editor/editor-header";
 import { useEditorOperations } from "@/features/music-editor/hooks/use-editor-operations";
 import { useEditorPolling } from "@/features/music-editor/hooks/use-editor-polling";
 import { RegionToolbar } from "@/features/music-editor/region-toolbar";
+import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
 import { RenderButton } from "@/features/music-editor/render-button";
 import { SelectedContextPanel } from "@/features/music-editor/selected-context-panel";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
@@ -176,6 +177,9 @@ export function AudioEditor({ songId }: AudioEditorProps) {
 
 function AudioEditorContent({ songId }: AudioEditorProps) {
   const api = useApi();
+  const subscriptionQuery = useSubscriptionQuery();
+  const editorLevel = subscriptionQuery.data?.entitlements.features.editor ?? false;
+  const lockedAdvancedOps = editorLevel === "basic";
   const { hintsVisible } = useHintsVisibility();
   const hydrate = useAudioEditorStore((state) => state.hydrate);
   const setError = useAudioEditorStore((state) => state.setError);
@@ -348,6 +352,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
 
           <RegionToolbar
             disabled={controlsDisabled}
+            lockedAdvancedOps={lockedAdvancedOps}
             regionSelected={Boolean(selectedRegionId)}
             onDelete={deleteRegion}
             onDuplicate={duplicateRegion}

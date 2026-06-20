@@ -25,8 +25,12 @@ export function getGenerationQueue(): Queue<GenerationJobPayload> {
   return queue;
 }
 
-export async function enqueueGenerationJob(payload: GenerationJobPayload) {
+export async function enqueueGenerationJob(
+  payload: GenerationJobPayload,
+  priority = 1,
+) {
   await getGenerationQueue().add("generate", payload, {
+    priority,
     attempts: 3,
     backoff: { type: "exponential", delay: 5000 },
     removeOnComplete: 100,

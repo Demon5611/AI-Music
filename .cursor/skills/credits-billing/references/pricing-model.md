@@ -10,7 +10,7 @@ Defined in `packages/shared/src/constants/index.ts`:
 | `creator`  | 200     | Creator |
 | `pro`      | 1000    | Pro     | -->
 
-Free tier: `FREE_DEMO_CREDITS = 3` on first auth sync (`sync-auth-user.ts`).
+Free tier: `FREE_DEMO_CREDITS = 30` on first auth sync (`sync-auth-user.ts`).
 
 ## Operation costs
 

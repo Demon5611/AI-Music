@@ -4,6 +4,7 @@ import {
   type CreateGenerationInput,
 } from "@ai-music/shared";
 import { ForbiddenError, NotFoundError } from "../../common/errors.js";
+import { assertMaxDuration, getQueuePriorityForUser } from "../billing/entitlements.service.js";
 import { spendCredits, refundCredits } from "../credits/service.js";
 import { enqueueGenerationJob } from "../queue/generation-queue.js";
 import { toGenerationJobDto } from "./mapper.js";
@@ -28,6 +29,8 @@ export async function createGenerationJob(
     throw new ForbiddenError("Голос AI Music не готов");
   }
 
+  await assertMaxDuration(userId, input.duration);
+
   await spendCredits(userId, GENERATION_CREDIT_COST, "generation_start");
 
   const job = await prisma.generationJob.create({
@@ -43,11 +46,15 @@ export async function createGenerationJob(
   });
 
   try {
-    await enqueueGenerationJob({
-      jobId: job.id,
-      userId,
-      voiceSampleId: voiceSample.id,
-    });
+    const priority = await getQueuePriorityForUser(userId);
+    await enqueueGenerationJob(
+      {
+        jobId: job.id,
+        userId,
+        voiceSampleId: voiceSample.id,
+      },
+      priority,
+    );
   } catch (error) {
     await prisma.generationJob.update({
       where: { id: job.id },

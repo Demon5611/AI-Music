@@ -21,6 +21,7 @@ model User {
   musicGenerations   MusicGeneration[]
   creditTransactions CreditTransaction[]
   songs              Song[]
+  subscription       Subscription?
 
   @@map("users")
 }
@@ -250,5 +251,22 @@ model CreditTransaction {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([stripePaymentId])
   @@map("credit_transactions")
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique @map("user_id")
+  planId               String    @default("free") @map("plan_id")
+  stripeCustomerId     String?   @map("stripe_customer_id")
+  stripeSubscriptionId String?   @unique @map("stripe_subscription_id")
+  status               String    @default("active")
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
 }

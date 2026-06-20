@@ -11,12 +11,14 @@ export type {
   SongRegion,
   SongStem,
   SongVersion,
+  Subscription,
   Track,
   User,
   VoiceSample,
 } from "@prisma/client";
 export {
   getCreditsBalance,
+  grantCredits,
   InsufficientCreditsLedgerError,
   refundCredits,
   spendCredits,

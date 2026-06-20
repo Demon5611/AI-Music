@@ -21,6 +21,11 @@ import {
 } from "./music-persona.js";
 import { ForbiddenError, BadRequestError } from "../../common/errors.js";
 import { refundCredits, spendCredits } from "../credits/service.js";
+import {
+  assertFeature,
+  assertMaxDuration,
+  assertMusicGenerationMode,
+} from "../billing/entitlements.service.js";
 import { prisma } from "@ai-music/db";
 import {
   buildGenderAwareLyricsPrompt,
@@ -73,6 +78,15 @@ export async function generateMusicForUser(
       "Голос AI Music не готов. Запишите голос на главной и пройдите верификацию на /consent.",
     );
   }
+
+  if (input.durationSec) {
+    await assertMaxDuration(userId, input.durationSec);
+  }
+
+  await assertMusicGenerationMode(userId, {
+    customMode: input.customMode,
+    instrumental: input.instrumental,
+  });
 
   const songInput = buildPersonaSongInput(input, persona);
 

@@ -7,6 +7,7 @@ import { join } from "node:path";
 import type { EditOperation, EditorTrackId } from "@ai-music/shared";
 import { prisma, Prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
+import { assertFeature } from "../billing/entitlements.service.js";
 import { isFfmpegMissingError, resolveFfmpegPath } from "../../common/resolve-ffmpeg-path.js";
 import { buildSongRenderKey, getStorageService } from "../storage/storage.service.js";
 import { parseOperations } from "./song-editor.mapper.js";
@@ -296,6 +297,7 @@ async function assertFfmpegAvailable(): Promise<void> {
 }
 
 export async function renderSongVersion(userId: string, songId: string) {
+  await assertFeature(userId, "editor");
   await assertFfmpegAvailable();
 
   const song = await getSongForUser(userId, songId);

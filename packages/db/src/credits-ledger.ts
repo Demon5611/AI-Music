@@ -57,3 +57,32 @@ export async function refundCredits(
     },
   });
 }
+
+export async function grantCredits(
+  userId: string,
+  amount: number,
+  reason: string,
+  stripePaymentId?: string,
+): Promise<boolean> {
+  if (stripePaymentId) {
+    const existing = await prisma.creditTransaction.findFirst({
+      where: { stripePaymentId },
+    });
+
+    if (existing) {
+      return false;
+    }
+  }
+
+  await prisma.creditTransaction.create({
+    data: {
+      userId,
+      type: "purchase",
+      amount,
+      reason,
+      stripePaymentId: stripePaymentId ?? null,
+    },
+  });
+
+  return true;
+}

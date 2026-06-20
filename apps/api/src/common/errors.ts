@@ -39,6 +39,27 @@ export class BadRequestError extends AppError {
   }
 }
 
+export class FeatureNotAvailableError extends AppError {
+  constructor(
+    message: string,
+    public readonly requiredPlan?: string,
+  ) {
+    super(message, 403, "FEATURE_NOT_AVAILABLE");
+  }
+}
+
+export class DurationLimitExceededError extends AppError {
+  constructor(message: string, public readonly limitSec?: number) {
+    super(message, 403, "DURATION_LIMIT_EXCEEDED");
+  }
+}
+
+export class EditorOperationNotAllowedError extends AppError {
+  constructor(message: string, public readonly requiredPlan?: string) {
+    super(message, 403, "EDITOR_OPERATION_NOT_ALLOWED");
+  }
+}
+
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }

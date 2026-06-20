@@ -1,16 +1,15 @@
 import type {
   CreateCheckoutSessionInput,
-  CreditsBalance,
+  SubscriptionDto,
 } from "@ai-music/shared";
 import type { ApiClient } from "./client.js";
 
 export function createBillingApi(client: ApiClient) {
   return {
-    getBalance: () => client.get<CreditsBalance>("/api/credits/balance"),
+    getSubscription: () => client.get<SubscriptionDto>("/api/billing/subscription"),
     createCheckoutSession: (input: CreateCheckoutSessionInput) =>
-      client.post<{ url: string }>(
-        "/api/billing/create-checkout-session",
-        input,
-      ),
+      client.post<{ url: string }>("/api/billing/create-checkout-session", input),
+    createPortalSession: () =>
+      client.post<{ url: string }>("/api/billing/create-portal-session", {}),
   };
 }

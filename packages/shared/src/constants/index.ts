@@ -17,13 +17,20 @@ export const VOICE_CLONE_PREPARE_CREDIT_COST = 0;
 /** Онбординг голоса — бесплатно. */
 export const VOICE_CLONE_VERIFY_CREDIT_COST = 0;
 
-export const FREE_DEMO_CREDITS = 3;
+export const FREE_DEMO_CREDITS = 30;
 
+export const STEM_SEPARATION_CREDIT_COST = 5;
+
+export const WAV_EXPORT_CREDIT_COST = 3;
+
+/** @deprecated Use PLANS from ./plans.js for subscription tiers. */
 export const CREDIT_PACKAGES = {
   starter: { credits: 50, label: "Starter" },
   creator: { credits: 200, label: "Creator" },
   pro: { credits: 1000, label: "Pro" },
 } as const;
+
+export * from "./plans.js";
 
 export const VOICE_CONSENT_PHRASE =
   "Я подтверждаю, что использую свой голос для создания музыкального трека.";

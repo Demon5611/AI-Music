@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { ApplyOperationBodySchema } from "@ai-music/shared";
 import { requireAuth } from "../../common/require-auth.js";
 import { sendAppError } from "../../common/errors.js";
+import { assertFeature } from "../billing/entitlements.service.js";
 import {
   applyOperation,
   previewOperation,
@@ -21,6 +22,7 @@ import {
 } from "./song-editor.service.js";
 import { toEditorStateDto, toRenderJobDto, parseOperations } from "./song-editor.mapper.js";
 async function buildEditorResponse(userId: string, songId: string) {
+  await assertFeature(userId, "editor");
   const song = await refreshEditorProgress(userId, songId);
   const version = await getCurrentVersion(song.id);
   return toEditorStateDto(song, version);

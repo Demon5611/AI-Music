@@ -27,6 +27,14 @@ export async function syncAuthUser(identity: AuthIdentity) {
       },
     });
 
+    await tx.subscription.create({
+      data: {
+        userId: user.id,
+        planId: "free",
+        status: "active",
+      },
+    });
+
     await tx.creditTransaction.create({
       data: {
         userId: user.id,

@@ -1,12 +1,5 @@
-import { PlaceholderPage } from "@/shared/ui/placeholder-page";
+import { PricingPanel } from "@/features/billing/pricing-panel";
 
 export default function PricingPage() {
-  return (
-    <PlaceholderPage
-      title="Тарифы"
-      description="Starter, Creator, Pro — покупка credits через Stripe."
-      actionHref="/music-create"
-      actionLabel="Создать трек"
-    />
-  );
+  return <PricingPanel />;
 }

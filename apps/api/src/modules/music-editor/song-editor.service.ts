@@ -1,6 +1,11 @@
 import { createMusicService, downloadUrl, type StemResult } from "@ai-music/ai-providers";
 import { prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
+import { spendCredits } from "../credits/service.js";
+import {
+  assertFeature,
+} from "../billing/entitlements.service.js";
+import { STEM_SEPARATION_CREDIT_COST } from "@ai-music/shared";
 import { buildSongStemKey, getStorageService } from "../storage/storage.service.js";
 import { buildDefaultRegions, type SongVersionWithOperations } from "./song-editor.mapper.js";
 import {
@@ -10,6 +15,8 @@ import {
 } from "./stem-separation.js";
 
 export async function ensureSongForTrack(userId: string, trackId: string) {
+  await assertFeature(userId, "editor");
+
   const track = await prisma.musicGenerationTrack.findUnique({
     where: { id: trackId },
     include: { musicGeneration: true, song: true },
@@ -149,6 +156,9 @@ export async function kickoffStemSeparation(userId: string, songId: string) {
   if (song.status === "separating_stems") {
     return song;
   }
+
+  await assertFeature(userId, "stemSeparation");
+  await spendCredits(userId, STEM_SEPARATION_CREDIT_COST, `stem_separation:${song.id}`);
 
   const musicService = createMusicService();
   const started = await musicService.separateStems({

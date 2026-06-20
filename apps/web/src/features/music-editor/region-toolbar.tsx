@@ -6,6 +6,7 @@ import { me } from "@/features/music-editor/music-editor-classes";
 interface RegionToolbarProps {
   disabled: boolean;
   regionSelected: boolean;
+  lockedAdvancedOps?: boolean;
   onSplit: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -47,6 +48,7 @@ function RegionActionButton({
 export function RegionToolbar({
   disabled,
   regionSelected,
+  lockedAdvancedOps = false,
   onSplit,
   onDelete,
   onDuplicate,
@@ -56,6 +58,7 @@ export function RegionToolbar({
   onMoveRight,
 }: RegionToolbarProps) {
   const actionsDisabled = disabled || !regionSelected;
+  const advancedLockedTooltip = "Доступно на тарифе Pro и выше";
 
   return (
     <div className={me.panel}>
@@ -74,16 +77,22 @@ export function RegionToolbar({
             onClick={onSplit}
           />
           <RegionActionButton
-            disabled={actionsDisabled}
+            disabled={actionsDisabled || lockedAdvancedOps}
             label="Delete"
-            tooltip="Удалить выделенный фрагмент на timeline или весь region, если выделения нет"
+            tooltip={
+              lockedAdvancedOps
+                ? advancedLockedTooltip
+                : "Удалить выделенный фрагмент на timeline или весь region, если выделения нет"
+            }
             variant="destructive"
             onClick={onDelete}
           />
           <RegionActionButton
-            disabled={actionsDisabled}
+            disabled={actionsDisabled || lockedAdvancedOps}
             label="Duplicate"
-            tooltip="Создать копию выбранного фрагмента"
+            tooltip={
+              lockedAdvancedOps ? advancedLockedTooltip : "Создать копию выбранного фрагмента"
+            }
             onClick={onDuplicate}
           />
           <RegionActionButton

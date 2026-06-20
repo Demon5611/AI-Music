@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import { fileURLToPath } from "node:url";
+import { registerStripeWebhookRawBody } from "./common/stripe-webhook-raw-body.js";
 import { isAppError } from "./common/errors.js";
 import { registerRateLimitPlugin } from "./common/rate-limit.js";
 import { registerAuthPlugin } from "./modules/auth/plugin.js";
@@ -31,6 +32,8 @@ export async function buildApp() {
   await app.register(multipart, {
     limits: { fileSize: 100 * 1024 * 1024 },
   });
+
+  await registerStripeWebhookRawBody(app);
 
   await registerRateLimitPlugin(app);
 

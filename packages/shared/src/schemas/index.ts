@@ -35,8 +35,10 @@ export const uploadVoiceSampleFieldsSchema = voiceConsentSchema.extend({
 });
 
 export const createCheckoutSessionSchema = z.object({
-  packageId: z.enum(["starter", "creator", "pro"]),
+  planId: z.enum(["starter", "pro", "creator"]),
 });
+
+export const createPortalSessionSchema = z.object({});
 
 export type CreateGenerationInput = z.infer<typeof createGenerationSchema>;
 export type VoiceConsentInput = z.infer<typeof voiceConsentSchema>;

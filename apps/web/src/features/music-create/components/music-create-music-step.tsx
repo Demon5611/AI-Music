@@ -1,6 +1,7 @@
 "use client";
 
 import type { GenerateSongInput } from "@/features/music-create/hooks/use-music-generation";
+import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
 import { mc } from "@/features/music-create/music-create-classes";
 import { MusicStyleChips } from "@/features/music-create/music-style-chips-panel";
 import {
@@ -11,16 +12,19 @@ import {
   IconWand,
 } from "@/features/music-create/components/music-create-icons";
 import { cn } from "@/lib/utils";
+import { getAllowedDurationOptions } from "@ai-music/shared";
+import { useEffect } from "react";
 
 const STYLE_MAX_LENGTH = 200;
 const TITLE_MAX_LENGTH = 100;
 
-const DURATION_OPTIONS = [
-  { value: 0, label: "Auto (~2–3 мин)" },
-  { value: 30, label: "~30 сек" },
-  { value: 60, label: "~1 мин" },
-  { value: 120, label: "~2 мин" },
-] as const;
+const DURATION_LABELS: Record<number, string> = {
+  0: "Auto (~2–3 мин)",
+  30: "~30 сек",
+  60: "~1 мин",
+  120: "~2 мин",
+  180: "~3 мин",
+};
 
 interface MusicCreateMusicStepProps {
   configured: boolean | null;
@@ -53,6 +57,16 @@ export function MusicCreateMusicStep({
   onBack,
   onGenerate,
 }: MusicCreateMusicStepProps) {
+  const subscriptionQuery = useSubscriptionQuery();
+  const maxTrackDurationSec = subscriptionQuery.data?.entitlements.maxTrackDurationSec ?? 60;
+  const durationOptions = getAllowedDurationOptions(maxTrackDurationSec);
+
+  useEffect(() => {
+    if (durationSec > 0 && durationSec > maxTrackDurationSec) {
+      onDurationChange(maxTrackDurationSec);
+    }
+  }, [durationSec, maxTrackDurationSec, onDurationChange]);
+
   return (
     <div className={mc.fieldStack}>
       <div className={mc.wizardStepHeader}>
@@ -117,9 +131,9 @@ export function MusicCreateMusicStep({
             value={durationSec}
             onChange={(event) => onDurationChange(Number(event.target.value))}
           >
-            {DURATION_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            {durationOptions.map((value) => (
+              <option key={value} value={value}>
+                {DURATION_LABELS[value] ?? `${value} сек`}
               </option>
             ))}
           </select>

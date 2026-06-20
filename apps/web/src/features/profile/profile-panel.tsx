@@ -4,6 +4,7 @@ import { parseApiError } from "@/shared/lib/parse-api-error";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { pf } from "@/features/profile/profile-classes";
+import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
 import { useApi } from "@/shared/providers/api-provider";
 import { env } from "@/shared/config/env";
 
@@ -20,8 +21,10 @@ export function ProfilePanel() {
     queryFn: () => api.credits.getBalance(),
   });
 
-  const isLoading = userQuery.isLoading || creditsQuery.isLoading;
-  const error = userQuery.error ?? creditsQuery.error;
+  const subscriptionQuery = useSubscriptionQuery();
+
+  const isLoading = userQuery.isLoading || creditsQuery.isLoading || subscriptionQuery.isLoading;
+  const error = userQuery.error ?? creditsQuery.error ?? subscriptionQuery.error;
 
   if (isLoading) {
     return <p className={pf.status}>Загрузка профиля...</p>;
@@ -42,7 +45,8 @@ export function ProfilePanel() {
   }
 
   const user = userQuery.data;
-  const balance = creditsQuery.data?.balance ?? 0;
+  const balance = subscriptionQuery.data?.creditsBalance ?? creditsQuery.data?.balance ?? 0;
+  const planLabel = subscriptionQuery.data?.planLabel ?? "Free";
 
   if (!user) {
     return null;
@@ -60,6 +64,10 @@ export function ProfilePanel() {
         <div className={pf.row}>
           <dt className={pf.label}>Имя</dt>
           <dd className={pf.value}>{user.name ?? "—"}</dd>
+        </div>
+        <div className={pf.row}>
+          <dt className={pf.label}>Тариф</dt>
+          <dd className={pf.value}>{planLabel}</dd>
         </div>
         <div className={pf.row}>
           <dt className={pf.label}>Credits</dt>

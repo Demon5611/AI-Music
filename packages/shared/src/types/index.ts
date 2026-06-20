@@ -21,6 +21,8 @@ export type VoiceCloneStatus =
 export type CreditTransactionType = "purchase" | "spend" | "refund";
 
 import type { VocalGender } from "../constants/vocal-gender.js";
+import type { PlanId } from "../constants/plans.js";
+import type { ResolvedEntitlements } from "../entitlements/index.js";
 
 export type { VocalGender };
 
@@ -87,6 +89,17 @@ export interface CreditTransaction {
 
 export interface CreditsBalance {
   balance: number;
+}
+
+export type SubscriptionStatus = "active" | "canceled" | "past_due" | "trialing";
+
+export interface SubscriptionDto {
+  planId: PlanId;
+  planLabel: string;
+  status: SubscriptionStatus;
+  currentPeriodEnd: string | null;
+  entitlements: ResolvedEntitlements;
+  creditsBalance: number;
 }
 
 export interface GenerationJobPayload {
