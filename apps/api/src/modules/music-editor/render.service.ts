@@ -1,10 +1,13 @@
 import { spawn } from "node:child_process";
+import { access } from "node:fs/promises";
+import { constants } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { EditOperation, EditorTrackId } from "@ai-music/shared";
 import { prisma, Prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
+import { isFfmpegMissingError, resolveFfmpegPath } from "../../common/resolve-ffmpeg-path.js";
 import { buildSongRenderKey, getStorageService } from "../storage/storage.service.js";
 import { parseOperations } from "./song-editor.mapper.js";
 import { getCurrentVersion, getSongForUser } from "./song-editor.service.js";
@@ -156,8 +159,10 @@ function resolveFadeFilters(
 }
 
 async function runFfmpeg(args: string[]): Promise<void> {
+  const ffmpegPath = resolveFfmpegPath();
+
   await new Promise<void>((resolve, reject) => {
-    const processRef = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const processRef = spawn(ffmpegPath, args, { stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "";
 
     processRef.stderr.on("data", (chunk: Buffer) => {
@@ -273,7 +278,26 @@ async function renderStemTrack({
   await concatSegments(segmentPaths, outputPath);
 }
 
+async function assertFfmpegAvailable(): Promise<void> {
+  const ffmpegPath = resolveFfmpegPath();
+
+  if (ffmpegPath === "ffmpeg") {
+    return;
+  }
+
+  try {
+    await access(ffmpegPath, constants.X_OK);
+  } catch {
+    throw new BadRequestError(
+      "ffmpeg is not available on the server. Install ffmpeg or set FFMPEG_PATH.",
+      "FFMPEG_MISSING",
+    );
+  }
+}
+
 export async function renderSongVersion(userId: string, songId: string) {
+  await assertFfmpegAvailable();
+
   const song = await getSongForUser(userId, songId);
 
   if (song.status !== "ready") {
@@ -398,8 +422,11 @@ export async function renderSongVersion(userId: string, songId: string) {
       },
     });
 
-    if (message.includes("ENOENT") && message.includes("ffmpeg")) {
-      throw new BadRequestError("ffmpeg is not installed on the server", "FFMPEG_MISSING");
+    if (isFfmpegMissingError(error)) {
+      throw new BadRequestError(
+        "ffmpeg is not available on the server. Install ffmpeg or set FFMPEG_PATH.",
+        "FFMPEG_MISSING",
+      );
     }
 
     throw error;
