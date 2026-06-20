@@ -1,5 +1,9 @@
 import type { EditOperation, EditorStateDto, EditorTrackId, SongRegionDto } from "@ai-music/shared";
 import { create } from "zustand";
+import {
+  isEditorStemsReady,
+  setCachedEditorState,
+} from "@/features/music-editor/utils/editor-session-cache";
 
 export interface PreviewTrackState {
   gainDb: number;
@@ -212,6 +216,10 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
   timelineSelectionContext: null,
 
   hydrate: (state) => {
+    if (isEditorStemsReady(state)) {
+      setCachedEditorState(state.song.id, state);
+    }
+
     set((current) => {
       const selectedRegionId = resolveSelectedRegionId(
         state.regions,

@@ -2,6 +2,7 @@
 
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { clearCachedEditorState } from "@/features/music-editor/utils/editor-session-cache";
 import { useClientMounted } from "@/shared/hooks/use-client-mounted";
 import { EditorStemNotice } from "@/features/music-editor/editor-stem-notice";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
@@ -217,6 +218,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   async function handleRetryStemSeparation() {
     setIsRetryingStems(true);
     setError(null);
+    clearCachedEditorState(songId);
 
     try {
       const state = await api.musicEditor.retryStemSeparation(songId);

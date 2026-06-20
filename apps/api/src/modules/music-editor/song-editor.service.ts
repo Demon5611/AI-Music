@@ -128,12 +128,25 @@ export async function retryStemSeparation(userId: string, songId: string) {
 
 export async function kickoffStemSeparation(userId: string, songId: string) {
   const song = await getSongForUser(userId, songId);
+  const reconciled = await reconcileStoredStems(userId, song);
 
-  if (song.status === "ready" && song.stems.length >= 2) {
+  if (reconciled) {
+    return reconciled;
+  }
+
+  if (song.stemSeparationTaskId) {
+    if (song.status === "pending_stems") {
+      await prisma.song.update({
+        where: { id: song.id },
+        data: { status: "separating_stems" },
+      });
+      return getSongForUser(userId, song.id);
+    }
+
     return song;
   }
 
-  if (song.status === "separating_stems" && song.stemSeparationTaskId) {
+  if (song.status === "separating_stems") {
     return song;
   }
 
@@ -153,11 +166,29 @@ export async function kickoffStemSeparation(userId: string, songId: string) {
   });
 }
 
+async function reconcileStoredStems(userId: string, song: Awaited<ReturnType<typeof getSongForUser>>) {
+  if (song.stems.length < 2) {
+    return null;
+  }
+
+  if (song.status === "ready") {
+    return song;
+  }
+
+  await prisma.song.update({
+    where: { id: song.id },
+    data: { status: "ready" },
+  });
+
+  return getSongForUser(userId, song.id);
+}
+
 export async function tickStemSeparation(userId: string, songId: string) {
   const song = await getSongForUser(userId, songId);
+  const reconciled = await reconcileStoredStems(userId, song);
 
-  if (song.status === "ready" && song.stems.length >= 2) {
-    return song;
+  if (reconciled) {
+    return reconciled;
   }
 
   if (!song.stemSeparationTaskId) {
@@ -250,6 +281,11 @@ async function persistStemResult(userId: string, songId: string, result: StemRes
 
 export async function refreshEditorProgress(userId: string, songId: string) {
   const song = await getSongForUser(userId, songId);
+  const reconciled = await reconcileStoredStems(userId, song);
+
+  if (reconciled) {
+    return reconciled;
+  }
 
   if (song.status === "separating_stems" || song.status === "pending_stems") {
     return tickStemSeparation(userId, songId);

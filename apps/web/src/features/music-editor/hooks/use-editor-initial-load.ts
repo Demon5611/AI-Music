@@ -2,6 +2,11 @@
 
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import { useEffect, useState } from "react";
+import {
+  getCachedEditorState,
+  isEditorStemsReady,
+  setCachedEditorState,
+} from "@/features/music-editor/utils/editor-session-cache";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
 import { useApi } from "@/shared/providers/api-provider";
 
@@ -14,30 +19,48 @@ export function useEditorInitialLoad(songId: string) {
 
   useEffect(() => {
     let cancelled = false;
+    const cachedState = getCachedEditorState(songId);
+
+    if (cachedState) {
+      hydrate(cachedState);
+      setTitle(cachedState.song.title);
+    }
 
     void Promise.resolve().then(async () => {
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
 
-      setBusy(true);
+      setBusy(!cachedState);
       setError(null);
 
       try {
-        let state = await api.musicEditor.getEditorState(songId);
-        if (state.song.status !== "ready") {
-          await api.musicEditor.separateStems(songId);
-          state = await api.musicEditor.getEditorState(songId);
+        const state = await api.musicEditor.getEditorState(songId);
+
+        if (cancelled) {
+          return;
         }
-        if (cancelled) return;
+
         hydrate(state);
         setTitle(state.song.title);
+
+        if (isEditorStemsReady(state)) {
+          setCachedEditorState(songId, state);
+        }
       } catch (loadError) {
-        if (!cancelled) setError(parseApiError(loadError, "Editor error"));
+        if (!cancelled) {
+          setError(parseApiError(loadError, "Editor error"));
+        }
       } finally {
-        if (!cancelled) setBusy(false);
+        if (!cancelled) {
+          setBusy(false);
+        }
       }
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [api, hydrate, setBusy, setError, songId]);
 
   return { title };

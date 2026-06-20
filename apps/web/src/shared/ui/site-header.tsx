@@ -100,24 +100,34 @@ export function SiteHeader() {
           <div className="hidden md:contents">
             {env.isClerkEnabled ? <ClerkAuthActions /> : <DevAuthBadge />}
           </div>
-          <button
-            aria-expanded={isMobileNavOpen}
-            aria-label={isMobileNavOpen ? "Закрыть меню" : "Открыть меню"}
-            className={appShell.siteHeaderMenuButton}
-            type="button"
-            onClick={toggleMobileNav}
-          >
-            {isMobileNavOpen ? (
+          {isMobileNavOpen ? (
+            <button
+              aria-controls="site-header-mobile-nav"
+              aria-expanded="true"
+              aria-label="Закрыть меню"
+              className={appShell.siteHeaderMenuButton}
+              type="button"
+              onClick={toggleMobileNav}
+            >
               <X aria-hidden className={appShell.siteHeaderMenuIcon} />
-            ) : (
+            </button>
+          ) : (
+            <button
+              aria-controls="site-header-mobile-nav"
+              aria-expanded="false"
+              aria-label="Открыть меню"
+              className={appShell.siteHeaderMenuButton}
+              type="button"
+              onClick={toggleMobileNav}
+            >
               <Menu aria-hidden className={appShell.siteHeaderMenuIcon} />
-            )}
-          </button>
+            </button>
+          )}
         </div>
       </div>
 
       {isMobileNavOpen ? (
-        <div className={appShell.siteHeaderNavMobile}>
+        <div className={appShell.siteHeaderNavMobile} id="site-header-mobile-nav">
           <SiteHeaderNav className="flex flex-col gap-0.5" onNavigate={closeMobileNav} />
           <div className="mt-3 border-t border-[var(--app-border-subtle)] pt-3 md:hidden">
             {env.isClerkEnabled ? <ClerkAuthActions compact /> : <DevAuthBadge />}
