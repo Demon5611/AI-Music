@@ -99,7 +99,7 @@ function shouldAutoPrepare(status: VoiceSample["voiceCloneStatus"]): boolean {
 }
 
 function isProcessingStatus(status: VoiceSample["voiceCloneStatus"]): boolean {
-  return status === "preparing" || status === "cloning" || status === "pending";
+  return status === "preparing" || status === "cloning";
 }
 
 function shouldPollVoiceStatus(status: VoiceSample["voiceCloneStatus"]): boolean {
@@ -141,11 +141,12 @@ export function SunoVoiceVerifyFlow({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRetryingPrepare, setIsRetryingPrepare] = useState(false);
-  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
   const [pollRequested, setPollRequested] = useState(false);
   const [waitElapsedSec, setWaitElapsedSec] = useState(0);
   const pollCountRef = useRef(0);
   const bootstrappedSampleIdRef = useRef<string | null>(null);
+  const prepareInFlightRef = useRef(false);
   const onVoiceReadyRef = useRef(onVoiceReady);
   const onRecordNewSampleRef = useRef(onRecordNewSample);
   const onSampleChangeRef = useRef(onSampleChange);
@@ -188,6 +189,20 @@ export function SunoVoiceVerifyFlow({
     pollCountRef.current = 0;
     setPollRequested(true);
   }, [sampleId]);
+
+  const resumeStatusPolling = useCallback(
+    (debugReason: string) => {
+      if (!sampleId) {
+        return;
+      }
+
+      setError(null);
+      pollCountRef.current = 0;
+      void queryClient.removeQueries({ queryKey: ["suno-voice-status", sampleId] });
+      startPolling(debugReason);
+    },
+    [queryClient, sampleId, startPolling],
+  );
 
   const handleWaitElapsedChange = useCallback((elapsedSec: number) => {
     setWaitElapsedSec(elapsedSec);
@@ -293,6 +308,11 @@ export function SunoVoiceVerifyFlow({
     }
 
     if (bootstrappedSampleIdRef.current === sampleId) {
+      setIsBootstrapping(false);
+      return;
+    }
+
+    if (prepareInFlightRef.current) {
       return;
     }
 
@@ -390,12 +410,25 @@ export function SunoVoiceVerifyFlow({
         bootstrappedSampleIdRef.current = sampleId;
       } catch (bootstrapError) {
         if (!cancelled) {
+          bootstrappedSampleIdRef.current = null;
           setError(parseApiError(bootstrapError, VOICE_SETUP_ERROR));
         }
       } finally {
-        if (!cancelled) {
-          setIsBootstrapping(false);
-        }
+        // #region agent log
+        fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
+          body: JSON.stringify({
+            sessionId: "543522",
+            hypothesisId: "H-bootstrap",
+            location: "suno-voice-verify-flow.tsx:bootstrap:finally",
+            message: "bootstrap finished",
+            data: { sampleId, cancelled, bootstrapped: bootstrappedSampleIdRef.current === sampleId },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+        setIsBootstrapping(false);
       }
     }
 
@@ -493,8 +526,9 @@ export function SunoVoiceVerifyFlow({
     pollCountRef.current = 0;
     setIsBootstrapping(true);
     setIsRetryingPrepare(true);
+    prepareInFlightRef.current = true;
     stopPolling();
-    bootstrappedSampleIdRef.current = null;
+    bootstrappedSampleIdRef.current = sampleId;
 
     void queryClient.removeQueries({ queryKey: ["suno-voice-status", sampleId] });
 
@@ -521,9 +555,8 @@ export function SunoVoiceVerifyFlow({
       .finally(() => {
         setIsBootstrapping(false);
         setIsRetryingPrepare(false);
-        if (sampleId) {
-          bootstrappedSampleIdRef.current = sampleId;
-        }
+        prepareInFlightRef.current = false;
+        bootstrappedSampleIdRef.current = sampleId;
       });
   }
 
@@ -555,12 +588,25 @@ export function SunoVoiceVerifyFlow({
         hypothesisId: "D",
         location: "suno-voice-verify-flow.tsx:handleRetryPrepare",
         message: "retry prepare clicked",
-        data: { sampleId, isRetryingPrepare },
+        data: {
+          sampleId,
+          isRetryingPrepare,
+          voiceCloneStatus: resolvedSample?.voiceCloneStatus ?? null,
+          hasPhrase: Boolean(resolvedSample?.sunoValidatePhrase?.trim()),
+        },
         timestamp: Date.now(),
       }),
     }).catch(() => {});
     // #endregion
     if (!sampleId || isRetryingPrepare) {
+      return;
+    }
+
+    if (
+      resolvedSample?.voiceCloneStatus === "awaiting_verification" &&
+      resolvedSample.sunoValidatePhrase?.trim()
+    ) {
+      resumeStatusPolling("retry:resume-awaiting");
       return;
     }
 
@@ -645,7 +691,8 @@ export function SunoVoiceVerifyFlow({
         ? resolvedSample.voiceCloneError ?? "Не удалось создать голос AI Music"
         : null);
   const showFailedActions = Boolean(displayError);
-  const showStuckActions = isWaitingForSuno && waitElapsedSec >= STUCK_WAIT_SEC;
+  const showStuckActions =
+    (isWaitingForSuno || isBootstrapping) && waitElapsedSec >= STUCK_WAIT_SEC;
   const needsReverify = resolvedSample
     ? needsPersonaReverification(resolvedSample)
     : false;
@@ -684,7 +731,7 @@ export function SunoVoiceVerifyFlow({
             <div className={voiceUi.formActions}>
               <button
                 className={voiceUi.upload.toolButtonDestructive}
-                disabled={isCancelling || isBootstrapping}
+                disabled={isCancelling}
                 type="button"
                 onClick={handleStopVerification}
               >
@@ -765,6 +812,14 @@ export function SunoVoiceVerifyFlow({
               onClick={handleStartPrepare}
             >
               {isRetryingPrepare ? "Запуск..." : "Начать верификацию"}
+            </button>
+            <button
+              className={appShell.btnSecondaryOutline}
+              disabled={isBootstrapping || isRetryingPrepare}
+              type="button"
+              onClick={handleRecordNewSample}
+            >
+              Записать образец заново
             </button>
           </div>
         ) : null}

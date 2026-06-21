@@ -122,6 +122,18 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
         />
       ) : null}
 
+      {needsVerification && !showUploadForm ? (
+        <div className={voiceUi.verifyReadyActions}>
+          <button
+            className={voiceUi.upload.toolButton}
+            type="button"
+            onClick={handleRecordNewSample}
+          >
+            Загрузить новый образец
+          </button>
+        </div>
+      ) : null}
+
       {isReady ? (
         <div className={voiceUi.verifyReadyActions}>
           <p className={voiceUi.creationSectionHint}>
