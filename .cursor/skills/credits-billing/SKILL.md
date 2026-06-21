@@ -78,3 +78,4 @@ Full spec: [docs/admin-dev-testing-flow.md](../../../docs/admin-dev-testing-flow
 
 - Pricing tiers and cost rationale: [references/pricing-model.md](references/pricing-model.md)
 - Admin/QA dev flow: [references/admin-dev-testing.md](references/admin-dev-testing.md)
+- Stripe env + local webhook setup: [docs/billing-stripe-local-setup.md](../../../docs/billing-stripe-local-setup.md)

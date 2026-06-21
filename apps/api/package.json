@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "postinstall": "node scripts/ensure-ffmpeg.mjs",
     "grant-dev-credits": "tsx scripts/grant-dev-credits.ts",
-    "set-dev-plan": "tsx scripts/set-dev-plan.ts"
+    "set-dev-plan": "tsx scripts/set-dev-plan.ts",
+    "setup-stripe-billing": "tsx scripts/setup-stripe-billing.ts"
   },
   "dependencies": {
     "@ai-music/ai-providers": "workspace:*",
