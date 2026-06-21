@@ -1,6 +1,6 @@
 import { FREE_TIER_DEFAULT_DURATION_SEC } from "./music-combo-styles.js";
+import { resolveEffectiveDurationSecForPlan } from "./music-duration.js";
 import type { PlanId } from "./plans.js";
-import { PLANS } from "./plans.js";
 import {
   buildGenderLyricsPromptSuffix,
   SUNO_LYRICS_PROMPT_MAX_LENGTH,
@@ -33,11 +33,7 @@ export function resolveLyricsDurationSecForPlan(
   planId: PlanId,
   selectedDurationSec: number,
 ): number {
-  if (PLANS[planId].features.musicGeneration === "simplified") {
-    return FREE_TIER_DEFAULT_DURATION_SEC;
-  }
-
-  return selectedDurationSec > 0 ? selectedDurationSec : 180;
+  return resolveEffectiveDurationSecForPlan(planId, selectedDurationSec);
 }
 
 export function resolveManualLyricsMaxLength(

@@ -1,4 +1,13 @@
 import {
+  FREE_TIER_DEFAULT_DURATION_SEC,
+  isComboStylePreset,
+} from "../constants/music-combo-styles.js";
+import {
+  formatAutoDurationLabel,
+  formatDurationOptionLabel,
+  resolveEffectiveDurationSecForPlan,
+} from "../constants/music-duration.js";
+import {
   ADVANCED_EDITOR_OPERATIONS,
   BASIC_EDITOR_OPERATIONS,
   PLANS,
@@ -7,10 +16,6 @@ import {
   type PlanFeatures,
   type PlanId,
 } from "../constants/plans.js";
-import {
-  FREE_TIER_DEFAULT_DURATION_SEC,
-  isComboStylePreset,
-} from "../constants/music-combo-styles.js";
 
 export type FeatureKey = keyof PlanFeatures;
 
@@ -113,12 +118,9 @@ export function checkFeature(
 
 export function checkMaxDuration(planId: PlanId, durationSec: number): EntitlementCheckResult {
   const entitlements = resolveEntitlements(planId);
+  const effectiveDurationSec = resolveEffectiveDurationSecForPlan(planId, durationSec);
 
-  if (durationSec <= 0) {
-    return { ok: true };
-  }
-
-  if (durationSec <= entitlements.maxTrackDurationSec) {
+  if (effectiveDurationSec <= entitlements.maxTrackDurationSec) {
     return { ok: true };
   }
 
@@ -129,6 +131,12 @@ export function checkMaxDuration(planId: PlanId, durationSec: number): Entitleme
     limit: entitlements.maxTrackDurationSec,
   };
 }
+
+export {
+  formatAutoDurationLabel,
+  formatDurationOptionLabel,
+  resolveEffectiveDurationSecForPlan,
+} from "../constants/music-duration.js";
 
 export function checkMusicGenerationMode(
   planId: PlanId,

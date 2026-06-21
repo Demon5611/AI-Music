@@ -17,6 +17,7 @@ import {
   ALL_DURATION_OPTIONS,
   FREE_TIER_DEFAULT_COMBO_STYLE,
   FREE_TIER_DEFAULT_DURATION_SEC,
+  formatDurationOptionLabel,
   GENERATION_CREDIT_COST,
   getDurationOptionsForPlan,
   isComboStylePreset,
@@ -31,14 +32,6 @@ import { useEffect, useState } from "react";
 
 const STYLE_MAX_LENGTH = 200;
 const TITLE_MAX_LENGTH = 100;
-
-const DURATION_LABELS: Record<number, string> = {
-  0: "Auto (~2–3 мин)",
-  30: "~30 сек",
-  60: "~1 мин",
-  120: "~2 мин",
-  180: "~3 мин",
-};
 
 const PAID_PLAN_HINT = "Starter+";
 
@@ -200,7 +193,7 @@ export function MusicCreateMusicStep({
           >
             {ALL_DURATION_OPTIONS.map((value) => {
               const isAllowed = allowedDurationOptions.includes(value);
-              const label = DURATION_LABELS[value] ?? `${value} сек`;
+              const label = formatDurationOptionLabel(value, planId);
 
               return (
                 <option key={value} disabled={!isAllowed} value={value}>

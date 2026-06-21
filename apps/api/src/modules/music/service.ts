@@ -27,20 +27,20 @@ import {
   assertMusicGenerationMode,
   getUserEntitlements,
 } from "../billing/entitlements.service.js";
-import { prisma } from "@ai-music/db";
 import {
   buildDurationAwareLyricsGenerationPrompt,
   checkContentAllowed,
   CONTENT_MODERATION_ERROR_RU,
-  FREE_TIER_DEFAULT_DURATION_SEC,
   GENERATION_CREDIT_COST,
   isVocalGender,
+  resolveEffectiveDurationSecForPlan,
   resolveLyricsBriefMaxLength,
   resolveLyricsDurationSecForPlan,
   resolveManualLyricsMaxLength,
   SUNO_LYRICS_PROMPT_MAX_LENGTH,
   truncateLyricsForDuration,
 } from "@ai-music/shared";
+import { prisma } from "@ai-music/db";
 
 const musicService = createMusicService();
 const CONTENT_MODERATION_ERROR_CODE = "CONTENT_MODERATION";
@@ -84,20 +84,27 @@ export async function generateMusicForUser(
     );
   }
 
-  if (input.durationSec) {
-    await assertMaxDuration(userId, input.durationSec);
-  }
+  const entitlements = await getUserEntitlements(userId);
+  const effectiveDurationSec = resolveEffectiveDurationSecForPlan(
+    entitlements.planId,
+    input.durationSec ?? 0,
+  );
+
+  await assertMaxDuration(userId, effectiveDurationSec);
 
   await assertMusicGenerationMode(userId, {
     customMode: input.customMode,
     instrumental: input.instrumental,
     style: input.style,
-    durationSec: input.durationSec,
+    durationSec: input.durationSec ?? 0,
   });
 
-  await assertLyricsTextLengthForUser(userId, input.prompt, input.durationSec);
+  await assertLyricsTextLengthForUser(userId, input.prompt, input.durationSec ?? 0);
 
-  const songInput = buildPersonaSongInput(input, persona);
+  const songInput = buildPersonaSongInput(
+    { ...input, durationSec: effectiveDurationSec },
+    persona,
+  );
 
   log?.info(
     {
@@ -176,7 +183,7 @@ export async function generateLyricsForUser(
   const entitlements = await getUserEntitlements(userId);
   const lyricsDurationSec = resolveLyricsDurationSecForPlan(
     entitlements.planId,
-    durationSec ?? FREE_TIER_DEFAULT_DURATION_SEC,
+    durationSec ?? 0,
   );
 
   if (durationSec && durationSec > 0) {
@@ -235,7 +242,7 @@ export async function getLyricsGenerationStatus(
   const entitlements = await getUserEntitlements(userId);
   const lyricsDurationSec = resolveLyricsDurationSecForPlan(
     entitlements.planId,
-    durationSec ?? FREE_TIER_DEFAULT_DURATION_SEC,
+    durationSec ?? 0,
   );
 
   const status = await musicService.getLyricsGenerationStatus(taskId);
@@ -267,17 +274,11 @@ export async function getLyricsGenerationStatus(
 async function assertLyricsTextLengthForUser(
   userId: string,
   lyrics: string,
-  durationSec?: number,
+  durationSec: number,
 ): Promise<void> {
   const entitlements = await getUserEntitlements(userId);
-  const maxLength = resolveManualLyricsMaxLength(
-    entitlements.planId,
-    durationSec ?? FREE_TIER_DEFAULT_DURATION_SEC,
-  );
-  const effectiveDuration = resolveLyricsDurationSecForPlan(
-    entitlements.planId,
-    durationSec ?? FREE_TIER_DEFAULT_DURATION_SEC,
-  );
+  const maxLength = resolveManualLyricsMaxLength(entitlements.planId, durationSec);
+  const effectiveDuration = resolveLyricsDurationSecForPlan(entitlements.planId, durationSec);
 
   if (lyrics.trim().length > maxLength) {
     throw new BadRequestError(
