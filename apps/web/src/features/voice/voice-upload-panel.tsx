@@ -28,6 +28,7 @@ import { useApi } from "@/shared/providers/api-provider";
 import { lp } from "@/features/landing/landing-classes";
 import { LoadingPanel } from "@/shared/ui/elevenlabs";
 import { appShell } from "@/shared/theme/app-theme";
+import { AuthGate } from "@/shared/ui/auth-gate";
 
 type VoiceUploadVariant = "page" | "landing";
 
@@ -426,7 +427,13 @@ export function VoiceUploadPanel({
   }
 
   if (!isSignedIn) {
-    return null;
+    return (
+      <AuthGate
+        hint="Запись и загрузка образца голоса доступны после входа в аккаунт."
+        layout="inline"
+        title="Войдите, чтобы записать голос"
+      />
+    );
   }
 
   const formClassName = styles.form;

@@ -9,6 +9,7 @@ import { MusicHistoryPanel } from "@/features/music-history/music-history-panel"
 import { mp } from "@/shared/theme/music-page-classes";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
+import { RequireAuth } from "@/shared/ui/require-auth";
 
 function IconClock() {
   return (
@@ -30,6 +31,17 @@ function IconClock() {
 }
 
 export function MusicHistoryPage() {
+  return (
+    <RequireAuth
+      hint="Войдите или зарегистрируйтесь, чтобы видеть историю генераций."
+      title="Войдите, чтобы видеть историю"
+    >
+      <MusicHistoryPageContent />
+    </RequireAuth>
+  );
+}
+
+function MusicHistoryPageContent() {
   const api = useApi();
   const authReady = useAuthReady();
   const queryClient = useQueryClient();
@@ -90,17 +102,6 @@ export function MusicHistoryPage() {
     } finally {
       setOpeningEditorTrackId(null);
     }
-  }
-
-  if (!authReady) {
-    return (
-      <div className={mp.authLoading}>
-        <div className={mp.authLoadingInner}>
-          <span aria-hidden="true" className={mp.spinner} />
-          Загрузка сессии...
-        </div>
-      </div>
-    );
   }
 
   return (

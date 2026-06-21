@@ -8,13 +8,13 @@ import { cn } from "@/lib/utils";
 import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
 import { SunoVoiceVerifyFlow } from "@/features/voice/suno-voice-verify-flow";
 import { VoiceSampleCard } from "@/features/voice/voice-sample-card";
-import { VoiceAuthGate } from "@/features/voice/voice-auth-gate";
 import { VoiceUploadPanel } from "@/features/voice/voice-upload-panel";
 import { voiceUi } from "@/features/voice/voice-classes";
-import { useAuthSession } from "@/shared/hooks/use-auth-ready";
+import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
 import { appShell } from "@/shared/theme/app-theme";
 import { LoadingPanel } from "@/shared/ui/elevenlabs";
+import { RequireAuth } from "@/shared/ui/require-auth";
 
 type VoiceCreationVariant = "page" | "landing";
 
@@ -23,8 +23,29 @@ interface VoiceCreationPanelProps {
 }
 
 export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelProps) {
+  const isLanding = variant === "landing";
+
+  return (
+    <RequireAuth
+      hint={
+        isLanding
+          ? "Зарегистрируйтесь бесплатно — затем запишите образец и создайте трек с вашим вокалом."
+          : "Запись и верификация голоса доступны после входа в аккаунт."
+      }
+      layout={isLanding ? "inline" : "page"}
+      loadingFallback={isLanding ? <LoadingPanel lines={3} /> : <LoadingPanel />}
+      title={
+        isLanding ? "Начните с создания голоса" : "Войдите, чтобы записать голос"
+      }
+    >
+      <VoiceCreationPanelContent variant={variant} />
+    </RequireAuth>
+  );
+}
+
+function VoiceCreationPanelContent({ variant = "landing" }: VoiceCreationPanelProps) {
   const api = useApi();
-  const { isLoaded, isSignedIn, authReady } = useAuthSession();
+  const authReady = useAuthReady();
   const [sample, setSample] = useState<VoiceSample | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showUploadForm, setShowUploadForm] = useState(true);
@@ -100,14 +121,6 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
   const handleSampleChange = useCallback((updated: VoiceSample) => {
     setSample(updated);
   }, []);
-
-  if (!isLoaded) {
-    return variant === "landing" ? <LoadingPanel lines={3} /> : <LoadingPanel />;
-  }
-
-  if (!isSignedIn) {
-    return <VoiceAuthGate variant={variant} />;
-  }
 
   if (isLoading) {
     return variant === "landing" ? <LoadingPanel lines={3} /> : <LoadingPanel />;

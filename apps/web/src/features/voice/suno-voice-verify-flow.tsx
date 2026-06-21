@@ -11,11 +11,12 @@ import { isVoiceSampleReadyForGeneration, isVoiceCloneCancelled, needsPersonaRev
 import { useVoiceRecorder } from "@/features/voice/use-voice-recorder";
 import { SunoVoiceVerifyTipsPanel } from "@/features/voice/voice-recording-tips-panel";
 import { voiceUi } from "@/features/voice/voice-classes";
-import { useAuthReady } from "@/shared/hooks/use-auth-ready";
+import { useAuthReady, useAuthSession } from "@/shared/hooks/use-auth-ready";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { useApi } from "@/shared/providers/api-provider";
 import { VoiceCloneWaitingPanel } from "@/features/voice/voice-clone-waiting-panel";
 import { appShell } from "@/shared/theme/app-theme";
+import { AuthGate } from "@/shared/ui/auth-gate";
 import { cn } from "@/lib/utils";
 
 const STATUS_POLL_MS = 3_000;
@@ -135,6 +136,7 @@ export function SunoVoiceVerifyFlow({
   const queryClient = useQueryClient();
   const router = useRouter();
   const authReady = useAuthReady();
+  const { isLoaded, isSignedIn } = useAuthSession();
   const isInline = variant === "inline";
   const [sample, setSample] = useState<VoiceSample | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -662,11 +664,24 @@ export function SunoVoiceVerifyFlow({
     return <div className={shellClassName}>{content}</div>;
   }
 
-  if (!authReady) {
+  if (!isLoaded) {
     return renderShell(
       <div className={formClassName}>
         {!isInline ? <h1 className={titleClassName}>Создание вашего голоса</h1> : null}
         <VoiceCloneWaitingPanel active label="Загрузка..." />
+      </div>,
+    );
+  }
+
+  if (!isSignedIn) {
+    return renderShell(
+      <div className={formClassName}>
+        {!isInline ? <h1 className={titleClassName}>Создание вашего голоса</h1> : null}
+        <AuthGate
+          hint="Верификация голоса доступна после входа в аккаунт."
+          layout="inline"
+          title="Войдите для верификации голоса"
+        />
       </div>,
     );
   }

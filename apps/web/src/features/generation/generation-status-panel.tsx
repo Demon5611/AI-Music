@@ -14,12 +14,29 @@ import {
   LoadingPanel,
   resolveGenerationProgress,
 } from "@/shared/ui/elevenlabs";
+import { RequireAuth } from "@/shared/ui/require-auth";
 
 interface GenerationStatusPanelProps {
   jobId: string;
 }
 
 export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
+  return (
+    <RequireAuth
+      hint="Войдите или зарегистрируйтесь, чтобы следить за статусом генерации."
+      loadingFallback={
+        <section className={appShell.formPage}>
+          <LoadingPanel />
+        </section>
+      }
+      title="Войдите, чтобы следить за генерацией"
+    >
+      <GenerationStatusPanelContent jobId={jobId} />
+    </RequireAuth>
+  );
+}
+
+function GenerationStatusPanelContent({ jobId }: GenerationStatusPanelProps) {
   const api = useApi();
   const authReady = useAuthReady();
 
@@ -30,14 +47,6 @@ export function GenerationStatusPanel({ jobId }: GenerationStatusPanelProps) {
     isTerminal: (job) => Boolean(job && isGenerationTerminal(job.status)),
     intervalMs: 3000,
   });
-
-  if (!authReady) {
-    return (
-      <section className={appShell.formPage}>
-        <LoadingPanel />
-      </section>
-    );
-  }
 
   if (jobQuery.isLoading) {
     return (

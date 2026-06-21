@@ -25,6 +25,7 @@ import {
 } from "@/shared/providers/hints-visibility-provider";
 import { me } from "@/features/music-editor/music-editor-classes";
 import { cn } from "@/lib/utils";
+import { RequireAuth } from "@/shared/ui/require-auth";
 import { useEditorRegionShortcuts } from "./hooks/use-editor-region-shortcuts";
 import { useEditorTransportShortcuts } from "./hooks/use-editor-transport-shortcuts";
 import { useEditorInitialLoad } from "./hooks/use-editor-initial-load";
@@ -170,9 +171,14 @@ function PlaybackUrlBridge({
 
 export function AudioEditor({ songId }: AudioEditorProps) {
   return (
-    <HintsVisibilityProvider>
-      <AudioEditorContent songId={songId} />
-    </HintsVisibilityProvider>
+    <RequireAuth
+      hint="Войдите или зарегистрируйтесь, чтобы редактировать треки."
+      title="Войдите, чтобы открыть редактор"
+    >
+      <HintsVisibilityProvider>
+        <AudioEditorContent songId={songId} />
+      </HintsVisibilityProvider>
+    </RequireAuth>
   );
 }
 

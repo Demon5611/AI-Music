@@ -7,8 +7,20 @@ import { pf } from "@/features/profile/profile-classes";
 import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
 import { useApi } from "@/shared/providers/api-provider";
 import { env } from "@/shared/config/env";
+import { RequireAuth } from "@/shared/ui/require-auth";
 
 export function ProfilePanel() {
+  return (
+    <RequireAuth
+      hint="Войдите или зарегистрируйтесь, чтобы открыть профиль и баланс credits."
+      title="Войдите, чтобы открыть профиль"
+    >
+      <ProfilePanelContent />
+    </RequireAuth>
+  );
+}
+
+function ProfilePanelContent() {
   const api = useApi();
 
   const userQuery = useQuery({

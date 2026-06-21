@@ -13,6 +13,7 @@ import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-
 import { mc } from "@/features/music-create/music-create-classes";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { mp } from "@/shared/theme/music-page-classes";
+import { RequireAuth } from "@/shared/ui/require-auth";
 import {
   FREE_TIER_DEFAULT_COMBO_STYLE,
   FREE_TIER_DEFAULT_DURATION_SEC,
@@ -24,6 +25,17 @@ const DEFAULT_TITLE = "Summer Friends";
 type WizardStep = "lyrics" | "music";
 
 export function MusicCreatePanel() {
+  return (
+    <RequireAuth
+      hint="Зарегистрируйтесь бесплатно, чтобы создавать треки с вашим AI-вокалом."
+      title="Войдите, чтобы создавать музыку"
+    >
+      <MusicCreatePanelContent />
+    </RequireAuth>
+  );
+}
+
+function MusicCreatePanelContent() {
   const authReady = useAuthReady();
   const subscriptionQuery = useSubscriptionQuery();
   const [wizardStep, setWizardStep] = useState<WizardStep>("lyrics");
@@ -94,17 +106,6 @@ export function MusicCreatePanel() {
     },
     [title],
   );
-
-  if (!authReady) {
-    return (
-      <div className={mp.authLoading}>
-        <div className={mp.authLoadingInner}>
-          <span aria-hidden="true" className={mp.spinner} />
-          Загрузка сессии...
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={mp.page}>

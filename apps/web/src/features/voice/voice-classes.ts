@@ -81,10 +81,6 @@ export const voiceUi = {
   creationSection: "flex flex-col gap-4",
   creationSectionTitle: "text-base font-semibold text-[var(--app-text)]",
   creationSectionHint: `text-sm ${appShell.textMuted}`,
-  authGate: "flex flex-col gap-3",
-  authGateTitle: "text-sm font-semibold text-[var(--app-text)]",
-  authGateHint: `text-sm leading-relaxed ${appShell.textMuted}`,
-  authGateActions: "flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center",
   upload: {
     hint: `text-sm ${appShell.textMuted} mb-1`,
     durationRecommendNotice:

@@ -1,5 +1,6 @@
 "use client";
 
+import { SignInButton } from "@clerk/nextjs";
 import {
   PAID_PLAN_IDS,
   PLANS,
@@ -12,6 +13,7 @@ import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-
 import { pricing } from "@/features/billing/pricing-classes";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useAuthSession } from "@/shared/hooks/use-auth-ready";
 
 const PLAN_FEATURES: Record<PlanId, string[]> = {
   free: [
@@ -59,11 +61,12 @@ function formatDurationLimit(seconds: number): string {
 
 export function PricingPanel() {
   const api = useApi();
+  const { isSignedIn } = useAuthSession();
   const subscriptionQuery = useSubscriptionQuery();
   const [checkoutPlanId, setCheckoutPlanId] = useState<PaidPlanId | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const currentPlanId = subscriptionQuery.data?.planId ?? "free";
+  const currentPlanId = isSignedIn ? (subscriptionQuery.data?.planId ?? "free") : null;
 
   const handleCheckout = async (planId: PaidPlanId) => {
     setActionError(null);
@@ -101,7 +104,7 @@ export function PricingPanel() {
       <div className={pricing.grid}>
         {(Object.keys(PLANS) as PlanId[]).map((planId) => {
           const plan = PLANS[planId];
-          const isCurrent = currentPlanId === planId;
+          const isCurrent = isSignedIn && currentPlanId === planId;
           const isPaid = PAID_PLAN_IDS.includes(planId as PaidPlanId);
           const isRecommended = planId === "pro";
           const tagline = PLAN_TAGLINES[planId];
@@ -151,14 +154,22 @@ export function PricingPanel() {
                     Текущий план
                   </button>
                 ) : isPaid ? (
-                  <button
-                    className={pricing.primaryButton}
-                    disabled={checkoutPlanId === planId}
-                    type="button"
-                    onClick={() => void handleCheckout(planId as PaidPlanId)}
-                  >
-                    {checkoutPlanId === planId ? "Переход к оплате..." : "Выбрать план"}
-                  </button>
+                  isSignedIn ? (
+                    <button
+                      className={pricing.primaryButton}
+                      disabled={checkoutPlanId === planId}
+                      type="button"
+                      onClick={() => void handleCheckout(planId as PaidPlanId)}
+                    >
+                      {checkoutPlanId === planId ? "Переход к оплате..." : "Выбрать план"}
+                    </button>
+                  ) : (
+                    <SignInButton mode="modal">
+                      <button className={pricing.primaryButton} type="button">
+                        Войти, чтобы выбрать план
+                      </button>
+                    </SignInButton>
+                  )
                 ) : (
                   <button className={pricing.disabledButton} disabled type="button">
                     Бесплатный план
@@ -170,7 +181,7 @@ export function PricingPanel() {
         })}
       </div>
 
-      {currentPlanId !== "free" ? (
+      {isSignedIn && currentPlanId !== "free" ? (
         <div className={pricing.notice}>
           <p>
             Текущий план: <strong>{subscriptionQuery.data?.planLabel ?? currentPlanId}</strong>.
