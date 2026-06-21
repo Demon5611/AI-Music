@@ -65,11 +65,14 @@ export function stripPersonaConflictingStyleTags(style: string | undefined): str
   return filtered.length > 0 ? filtered.join(", ") : trimmedStyle;
 }
 
+/** Brief for POST /music/lyrics — gender/duration suffixes are added on the server. */
 export const VOICE_RECORDING_SCRIPT_GENERATION_PROMPT =
-  "Короткий связный текст (~15 секунд чтения вслух) для напева голоса: про создание музыки своим голосом, вдохновляющий тон, русский язык.";
+  "Короткий текст ~15 сек для напева про музыку.";
 
-export function buildVoiceRecordingScriptPrompt(vocalGender: VocalGender): string {
-  return buildGenderAwareLyricsPrompt(VOICE_RECORDING_SCRIPT_GENERATION_PROMPT, vocalGender);
+export const VOICE_RECORDING_SCRIPT_DURATION_SEC = 15;
+
+export function buildVoiceRecordingScriptPrompt(): string {
+  return VOICE_RECORDING_SCRIPT_GENERATION_PROMPT;
 }
 
 /** Suno Voice `/voice/generate` metadata — задаёт пол persona при клонировании. */

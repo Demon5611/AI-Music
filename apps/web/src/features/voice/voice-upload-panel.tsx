@@ -180,7 +180,13 @@ export function VoiceUploadPanel({
   }, [api.users, authReady]);
 
   useEffect(() => {
-    if (!isScriptPanelOpen || !vocalGender || recordingScript || isScriptGenerating) {
+    if (
+      !isScriptPanelOpen ||
+      !vocalGender ||
+      recordingScript ||
+      isScriptGenerating ||
+      Boolean(scriptError)
+    ) {
       return;
     }
 
@@ -190,6 +196,7 @@ export function VoiceUploadPanel({
     isScriptGenerating,
     isScriptPanelOpen,
     recordingScript,
+    scriptError,
     vocalGender,
   ]);
 

@@ -4,6 +4,7 @@ import type { VoiceSample } from "@ai-music/shared";
 import { buildRecommendedVoiceSampleDurationLabel } from "@ai-music/shared";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import { isVoiceSampleReadyForGeneration } from "@/entities/voice-sample";
 import { SunoVoiceVerifyFlow } from "@/features/voice/suno-voice-verify-flow";
 import { VoiceSampleCard } from "@/features/voice/voice-sample-card";
@@ -40,11 +41,7 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
       const samples = await api.voiceSamples.list();
       const latest = samples[0] ?? null;
       setSample(latest);
-      setShowUploadForm(
-        !latest ||
-          isVoiceSampleReadyForGeneration(latest) ||
-          latest.voiceCloneStatus === "failed",
-      );
+      setShowUploadForm(!latest || latest.voiceCloneStatus === "failed");
     } catch {
       setSample(null);
     } finally {
@@ -76,6 +73,10 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
   const handleRecordNewSample = useCallback(() => {
     setShowUploadForm(true);
     setSample(null);
+  }, []);
+
+  const toggleUploadForm = useCallback(() => {
+    setShowUploadForm((value) => !value);
   }, []);
 
   const handleSampleChange = useCallback((updated: VoiceSample) => {
@@ -122,18 +123,6 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
         />
       ) : null}
 
-      {needsVerification && !showUploadForm ? (
-        <div className={voiceUi.verifyReadyActions}>
-          <button
-            className={voiceUi.upload.toolButton}
-            type="button"
-            onClick={handleRecordNewSample}
-          >
-            Загрузить новый образец
-          </button>
-        </div>
-      ) : null}
-
       {isReady ? (
         <div className={voiceUi.verifyReadyActions}>
           <p className={voiceUi.creationSectionHint}>
@@ -142,23 +131,33 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
           <Link className={appShell.formSubmit} href="/music-create">
             Создать трек
           </Link>
-          <button
-            className={voiceUi.upload.toolButton}
-            type="button"
-            onClick={() => setShowUploadForm(true)}
-          >
-            Загрузить новый образец
-          </button>
         </div>
       ) : null}
 
-      {showUploadForm || !sample ? (
-        <VoiceUploadPanel
-          embedded
-          variant={variant}
-          onSuccess={handleUploadSuccess}
-        />
+      {sample ? (
+        <button
+          aria-controls="voice-upload-form-panel"
+          aria-expanded={showUploadForm ? "true" : "false"}
+          className={cn(
+            voiceUi.uploadFormToggle,
+            showUploadForm && voiceUi.uploadFormToggleActive,
+          )}
+          type="button"
+          onClick={toggleUploadForm}
+        >
+          Добавить новый образец
+        </button>
       ) : null}
+
+      <div hidden={Boolean(sample) && !showUploadForm} id={sample ? "voice-upload-form-panel" : undefined}>
+        {showUploadForm || !sample ? (
+          <VoiceUploadPanel
+            embedded
+            variant={variant}
+            onSuccess={handleUploadSuccess}
+          />
+        ) : null}
+      </div>
     </section>
   );
 }

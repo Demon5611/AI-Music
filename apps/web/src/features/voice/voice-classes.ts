@@ -53,6 +53,12 @@ export const voiceUi = {
   verifyInlineTitle: "m-0 text-sm font-semibold text-[var(--app-text)]",
   verifyInlineDescription: "m-0 text-sm leading-relaxed text-[var(--app-text-muted)]",
   verifyReadyActions: "flex flex-col gap-3",
+  uploadFormToggle: [
+    "inline-flex w-full items-center justify-center rounded-lg border border-[var(--app-border-default)]",
+    "bg-[var(--app-bg-surface)] px-4 py-2.5 text-sm font-semibold text-[var(--app-text)]",
+    "transition-colors hover:border-violet-500/40 hover:bg-violet-600/5 sm:w-auto",
+  ].join(" "),
+  uploadFormToggleActive: "border-violet-500/40 bg-violet-600/10",
   sampleCard:
     "flex flex-col gap-3 rounded-lg border border-[var(--app-border-subtle)] bg-[var(--app-bg-elevated)] p-3",
   sampleCardHeader: "flex flex-col gap-3 sm:flex-row sm:items-start",

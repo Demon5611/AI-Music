@@ -2,7 +2,10 @@
 
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import type { MusicLyricsStatusResponseDto, VocalGender } from "@ai-music/shared";
-import { buildVoiceRecordingScriptPrompt } from "@ai-music/shared";
+import {
+  buildVoiceRecordingScriptPrompt,
+  VOICE_RECORDING_SCRIPT_DURATION_SEC,
+} from "@ai-music/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { useApi } from "@/shared/providers/api-provider";
@@ -22,8 +25,9 @@ export function useVoiceRecordingScript(vocalGender: VocalGender | null) {
   const lastGenderRef = useRef<VocalGender | null>(null);
 
   const statusQuery = usePollingQuery({
-    queryKey: ["voice-recording-script", taskId],
-    queryFn: () => api.music.lyricsStatus(taskId!),
+    queryKey: ["voice-recording-script", taskId, VOICE_RECORDING_SCRIPT_DURATION_SEC],
+    queryFn: () =>
+      api.music.lyricsStatus(taskId!, VOICE_RECORDING_SCRIPT_DURATION_SEC),
     enabled: Boolean(taskId),
     isTerminal: isScriptStatusTerminal,
     intervalMs: SCRIPT_POLL_INTERVAL_MS,
@@ -68,8 +72,11 @@ export function useVoiceRecordingScript(vocalGender: VocalGender | null) {
     setIsStarting(true);
 
     try {
-      const prompt = buildVoiceRecordingScriptPrompt(vocalGender);
-      const body = await api.music.generateLyrics({ prompt });
+      const prompt = buildVoiceRecordingScriptPrompt();
+      const body = await api.music.generateLyrics({
+        prompt,
+        durationSec: VOICE_RECORDING_SCRIPT_DURATION_SEC,
+      });
       setTaskId(body.taskId);
       lastGenderRef.current = vocalGender;
     } catch (generateError) {
@@ -91,6 +98,7 @@ export function useVoiceRecordingScript(vocalGender: VocalGender | null) {
     if (lastGenderRef.current !== vocalGender) {
       setScript(null);
       setTaskId(null);
+      setError(null);
     }
   }, [vocalGender]);
 
