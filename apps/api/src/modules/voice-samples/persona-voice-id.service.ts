@@ -19,22 +19,6 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-async function checkPersonaVoiceIdAvailableWithRetry(personaVoiceId: string): Promise<boolean> {
-  const { voice } = createSunoVoiceClients();
-
-  for (let attempt = 0; attempt < PERSONA_CHECK_RETRIES; attempt += 1) {
-    if (await voice.checkVoiceIdAvailability(personaVoiceId)) {
-      return true;
-    }
-
-    if (attempt < PERSONA_CHECK_RETRIES - 1) {
-      await sleep(PERSONA_CHECK_DELAY_MS);
-    }
-  }
-
-  return false;
-}
-
 async function checkPersonaAvailableWithRetry(personaVoiceId: string): Promise<boolean> {
   const { voice } = createSunoVoiceClients();
 
@@ -69,7 +53,7 @@ async function persistPersonaVoiceId(
  * Single source of truth for Suno persona id used in music generate.
  *
  * - sunoVoiceTaskId → task_id (validate/generate pipeline), record-info polling
- * - sunoVoiceId     → persona id from record-info voiceId (never task_id)
+ * - sunoVoiceId     → persona id from record-info voiceId (may equal task_id on Suno)
  */
 export async function resolvePersonaVoiceId(
   sample: VoiceSample,
@@ -94,24 +78,15 @@ export async function resolvePersonaVoiceId(
     }
   }
 
-  const storedVoiceId = sample.sunoVoiceId?.trim() ?? "";
-
-  if (
-    !personaVoiceId &&
-    storedVoiceId &&
-    taskId &&
-    storedVoiceId === taskId
-  ) {
-    personaVoiceId = "";
-  } else if (!personaVoiceId && storedVoiceId) {
-    personaVoiceId = storedVoiceId;
+  if (!personaVoiceId && sample.sunoVoiceId?.trim()) {
+    personaVoiceId = sample.sunoVoiceId.trim();
   }
 
   if (!personaVoiceId) {
     return null;
   }
 
-  const available = await checkPersonaVoiceIdAvailableWithRetry(personaVoiceId);
+  const available = await checkPersonaAvailableWithRetry(personaVoiceId);
 
   if (!available) {
     return null;
@@ -144,4 +119,4 @@ export function isReadyForMusicGeneration(
   );
 }
 
-export { PERSONA_VOICE_UNAVAILABLE_MESSAGE, checkPersonaAvailableWithRetry, checkPersonaVoiceIdAvailableWithRetry };
+export { PERSONA_VOICE_UNAVAILABLE_MESSAGE, checkPersonaAvailableWithRetry };

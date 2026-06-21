@@ -12,7 +12,7 @@ import { ForbiddenError, NotFoundError } from "../../common/errors.js";
 import { getStorageService } from "../storage/storage.service.js";
 import { toVoiceSampleDto, toVoiceSampleDtoWithPersonaCheck } from "./mapper.js";
 import {
-  checkPersonaVoiceIdAvailableWithRetry,
+  checkPersonaAvailableWithRetry,
   PERSONA_VOICE_UNAVAILABLE_MESSAGE,
   resolvePersonaVoiceId,
 } from "./persona-voice-id.service.js";
@@ -442,7 +442,7 @@ async function syncSunoVoiceTaskStatus(sample: VoiceSample) {
   const voiceId = resolveSunoRecordVoiceId(recordInfo);
 
   if (recordStatus === "success" && voiceId) {
-    const available = await checkPersonaVoiceIdAvailableWithRetry(voiceId);
+    const available = await checkPersonaAvailableWithRetry(voiceId);
 
     if (!available) {
       return markCloneFailed(sample, SUNO_VOICE_UNAVAILABLE_MESSAGE);

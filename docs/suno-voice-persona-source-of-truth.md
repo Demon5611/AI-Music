@@ -29,7 +29,7 @@ apps/api/src/modules/voice-samples/persona-voice-id.service.ts
 | `GET /api/voice-samples` | `toVoiceSampleDtoWithPersonaCheck` → `readyForMusicGeneration` |
 | `GET .../suno-voice/status` | то же после sync |
 | `POST /api/music/generate` | `resolveSunoVoicePersonaForUser` → `resolvePersonaVoiceId` |
-| `syncSunoVoiceTaskStatus` (ready) | `check-voice(voice_id)` **до** `voiceCloneStatus: ready` |
+| `syncSunoVoiceTaskStatus` (ready) | `checkPersonaVoiceAvailability` **до** `voiceCloneStatus: ready` |
 
 ### Критерий `readyForMusicGeneration: true`
 
@@ -38,7 +38,9 @@ apps/api/src/modules/voice-samples/persona-voice-id.service.ts
 1. `status === "ready"` (файл образца загружен)
 2. `consentConfirmed === true`
 3. `voiceCloneStatus === "ready"`
-4. `resolvePersonaVoiceId()` вернул не-null (Suno `check-voice` с `{ voice_id }` → `isAvailable: true`)
+4. `resolvePersonaVoiceId()` вернул не-null (`record-info.voiceId` + live `checkPersonaVoiceAvailability`)
+
+**Запрещено:** подставлять `task_id` в `sunoVoiceId`, если `record-info.voiceId` пустой — даже когда `check-voice(task_id)` отвечает `true`.
 
 **Не достаточно** только наличия строки в `sunoVoiceId` без live check.
 

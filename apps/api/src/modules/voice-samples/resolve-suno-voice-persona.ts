@@ -64,7 +64,7 @@ export async function resolveSunoVoicePersonaForUser(
 
 export async function assertPersonaVoiceAvailable(personaId: string): Promise<boolean> {
   const { voice } = createSunoVoiceClients();
-  return voice.checkVoiceIdAvailability(personaId);
+  return voice.checkPersonaVoiceAvailability(personaId);
 }
 
 export { PERSONA_VOICE_UNAVAILABLE_MESSAGE, resolvePersonaVoiceId };
