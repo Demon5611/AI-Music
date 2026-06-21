@@ -13,6 +13,7 @@ import {
   updateSubscriptionPlan,
 } from "./subscription.service.js";
 import {
+  getInvoiceLinePlanId,
   getInvoiceLinePriceId,
   getInvoiceSubscriptionId,
   getSubscriptionPeriodEnd,
@@ -171,14 +172,52 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   });
 }
 
+async function resolveSubscriptionForInvoicePaid(
+  stripe: Stripe,
+  stripeSubscriptionId: string,
+) {
+  const existing = await findSubscriptionByStripeSubscriptionId(stripeSubscriptionId);
+
+  if (existing) {
+    return existing;
+  }
+
+  const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+  const userId = stripeSubscription.metadata?.userId;
+
+  if (!userId) {
+    return null;
+  }
+
+  const stripeCustomerId =
+    typeof stripeSubscription.customer === "string"
+      ? stripeSubscription.customer
+      : stripeSubscription.customer?.id;
+
+  const planId = resolvePlanIdFromStripeSubscription(stripeSubscription);
+
+  await updateSubscriptionPlan(userId, {
+    planId,
+    status: mapStripeStatus(stripeSubscription.status),
+    stripeCustomerId: stripeCustomerId ?? null,
+    stripeSubscriptionId,
+    currentPeriodEnd: toDate(
+      getSubscriptionPeriodEnd(stripeSubscription as unknown as Record<string, unknown>),
+    ),
+  });
+
+  return getOrCreateSubscription(userId);
+}
+
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
+  const stripe = getStripe();
   const stripeSubscriptionId = getInvoiceSubscriptionId(invoice as unknown as Record<string, unknown>);
 
   if (!stripeSubscriptionId || !invoice.id) {
     return;
   }
 
-  const subscription = await findSubscriptionByStripeSubscriptionId(stripeSubscriptionId);
+  const subscription = await resolveSubscriptionForInvoicePaid(stripe, stripeSubscriptionId);
 
   if (!subscription) {
     return;
@@ -271,6 +310,12 @@ function resolveSubscriptionPlanIdFromInvoice(
   invoice: Stripe.Invoice,
   fallbackPlanId: string,
 ): PlanId {
+  const metadataPlanId = getInvoiceLinePlanId(invoice as unknown as Record<string, unknown>);
+
+  if (metadataPlanId && metadataPlanId in PLANS) {
+    return metadataPlanId as PlanId;
+  }
+
   const priceId = getInvoiceLinePriceId(invoice as unknown as Record<string, unknown>);
 
   if (priceId) {

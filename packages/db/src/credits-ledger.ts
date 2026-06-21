@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma.js";
 
 export class InsufficientCreditsLedgerError extends Error {
@@ -64,25 +65,27 @@ export async function grantCredits(
   reason: string,
   stripePaymentId?: string,
 ): Promise<boolean> {
-  if (stripePaymentId) {
-    const existing = await prisma.creditTransaction.findFirst({
-      where: { stripePaymentId },
+  try {
+    await prisma.creditTransaction.create({
+      data: {
+        userId,
+        type: "purchase",
+        amount,
+        reason,
+        stripePaymentId: stripePaymentId ?? null,
+      },
     });
 
-    if (existing) {
+    return true;
+  } catch (error) {
+    if (
+      stripePaymentId &&
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
       return false;
     }
+
+    throw error;
   }
-
-  await prisma.creditTransaction.create({
-    data: {
-      userId,
-      type: "purchase",
-      amount,
-      reason,
-      stripePaymentId: stripePaymentId ?? null,
-    },
-  });
-
-  return true;
 }
