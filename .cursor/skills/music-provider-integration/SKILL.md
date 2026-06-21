@@ -53,6 +53,11 @@ Create-flow — два шага записи:
 1. Главная: свободный сэмпл → `VoiceSample`
 2. `/consent`: фраза Suno + верификация → `sunoVoiceId` → генерация на `/music-create`
 
+**Перед изменениями voice/persona/music-generate** — обязательно:
+
+- [docs/suno-voice-persona-source-of-truth.md](../../../docs/suno-voice-persona-source-of-truth.md)
+- [.cursor/rules/suno-voice-persona-contract.mdc](../../rules/suno-voice-persona-contract.mdc)
+
 Подробно: [references/suno-voice-flow.md](references/suno-voice-flow.md)
 
 ## Env (music)

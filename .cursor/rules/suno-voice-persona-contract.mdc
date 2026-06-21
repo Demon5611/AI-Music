@@ -1,0 +1,79 @@
+---
+description: Suno Voice persona contract — voiceId, sync, music generate; не ломать при изменениях voice/music
+alwaysApply: true
+---
+
+# Suno Voice Persona Contract (обязательно)
+
+Полная спецификация: [docs/suno-voice-persona-source-of-truth.md](../../docs/suno-voice-persona-source-of-truth.md).
+
+**Перед правками** в voice-samples, suno-voice client, music generate / persona — прочитать этот doc и skill [suno-voice-flow.md](../skills/music-provider-integration/references/suno-voice-flow.md).
+
+## Два разных persona в Suno (не смешивать)
+
+| API | Endpoint | Наш код |
+|-----|----------|---------|
+| **Suno Voice custom voice** | `/voice/validate` → `/voice/generate` → `record-info` | `sunoVoiceId` → music `personaId` |
+| **Generate Persona** | `POST /generate/generate-persona` (из готового трека) | **не используем** для user voice sample |
+
+Suno dashboard может называть custom voice id **`persona_id`** в `resultJson` — это наш `sunoVoiceId`, не generate-persona.
+
+## ID mapping (не ломать)
+
+| Suno | БД | Правило |
+|------|-----|---------|
+| validate/generate `taskId` | `sunoVoiceTaskId` | после verify **заменяется** на generate taskId |
+| `record-info.voiceId` при `success` | `sunoVoiceId` | единственный источник persona id |
+
+**Запрещено:**
+
+- Писать в `sunoVoiceId` значение, которого **нет** в непустом `record-info.voiceId` при `success`.
+- Fallback на `taskId`, если `record-info.voiceId` **пустой**, даже когда `check-voice(task_id)` = true.
+- Отклонять persona только потому что `sunoVoiceId === sunoVoiceTaskId` — Suno иногда возвращает `voiceId === taskId`; это **валидно**, если id пришёл из `record-info.voiceId`.
+
+## Единый код (не дублировать логику)
+
+```txt
+resolve-suno-record-voice-id.ts     → persona id только из record-info.voiceId
+persona-voice-id.service.ts         → resolvePersonaVoiceId, isReadyForMusicGeneration
+resolve-suno-voice-persona.ts       → persona для POST /music/generate
+music-persona.ts                    → buildPersonaSongInput, assert перед generate
+suno-voice.service.ts               → syncSunoVoiceTaskStatus (ready path)
+suno-voice.client.ts                → checkPersonaVoiceAvailability
+```
+
+Новые потребители persona — только через `resolvePersonaVoiceId` / `resolveSunoVoicePersonaForUser`.
+
+## check-voice (критично)
+
+- **`checkPersonaVoiceAvailability`** — для sync ready, `readyForMusicGeneration`, блокировки music generate.
+- **`checkVoiceIdAvailability`** — только `{ voice_id }`; **недостаточно** одного, когда `voiceId === taskId`.
+- Официальная дока Suno описывает `task_id`; клиент пробует `voice_id`, затем `task_id` — **не удалять** fallback без нового prod-теста.
+
+Sync **не ставит** `failed`, если `checkPersonaVoiceAvailability(voiceId)` true, даже когда `checkVoiceIdAvailability` false.
+
+## Music generate с voice persona
+
+[`suno-api.provider.ts`](../../packages/ai-providers/src/music/providers/suno-api/suno-api.provider.ts) + [`music-persona.ts`](../../apps/api/src/modules/music/music-persona.ts):
+
+- `personaId` = resolved `sunoVoiceId`
+- `personaModel: "voice_persona"`
+- `model` = `SUNO_VOICE_MODEL` (V5 / V5_5), не `SUNO_API_MODEL`
+- **`vocalGender` не отправлять** при `voice_persona`
+- `stripPersonaConflictingStyleTags` — убрать `*vocal*` из style
+- `applySunoDurationHints` — duration hints в style (custom mode)
+
+Lyrics generate (`POST /music/lyrics`) — **без** `personaId`; `vocalGender` только для текста (род глаголов).
+
+## readyForMusicGeneration
+
+Все условия + live `resolvePersonaVoiceId()` не null. Нельзя выставлять true только по строке в `sunoVoiceId` без check.
+
+## Чеклист агента при изменении
+
+- [ ] Не добавлен fallback `taskId` при пустом `record-info.voiceId`
+- [ ] Sync/generate используют `checkPersonaVoiceAvailability`, не только `checkVoiceIdAvailability`
+- [ ] `voiceId === taskId` из record-info не отфильтровывается
+- [ ] Music generate не шлёт `vocalGender` с `voice_persona`
+- [ ] Логика persona не продублирована вне allow-list файлов выше
+- [ ] Обновлён [docs/suno-voice-persona-source-of-truth.md](../../docs/suno-voice-persona-source-of-truth.md), если меняется контракт

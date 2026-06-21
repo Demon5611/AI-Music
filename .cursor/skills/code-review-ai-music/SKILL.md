@@ -10,6 +10,7 @@ Apply on every review:
 - [.cursor/rules/project-rules.md](../../rules/project-rules.md)
 - [.cursor/rules/frontend-architecture.mdc](../../rules/frontend-architecture.mdc)
 - [.cursor/rules/backend-shared-packages.mdc](../../rules/backend-shared-packages.mdc)
+- [.cursor/rules/suno-voice-persona-contract.mdc](../../rules/suno-voice-persona-contract.mdc) — если PR трогает voice/persona/music generate
 
 ## Review order
 
@@ -44,6 +45,14 @@ Apply on every review:
 - [ ] Cost from shared constants, not hardcoded in one file
 - [ ] Refund path on every failure branch after spend
 - [ ] `creditsCost` stored on job for accurate refund amount
+
+## Suno Voice persona checklist (если PR трогает voice / music generate)
+
+- [ ] `sunoVoiceId` только из непустого `record-info.voiceId`, без fallback на `taskId`
+- [ ] Ready/sync используют `checkPersonaVoiceAvailability`, не только `checkVoiceIdAvailability`
+- [ ] `voiceId === taskId` из record-info не отфильтровывается
+- [ ] Music generate: `personaModel: voice_persona`, `SUNO_VOICE_MODEL`, без `vocalGender`
+- [ ] Persona resolve не продублирован вне allow-list из [suno-voice-persona-contract.mdc](../../rules/suno-voice-persona-contract.mdc)
 
 ## Frontend checklist
 

@@ -12,6 +12,7 @@ Always follow:
 - [.cursor/rules/frontend-architecture.mdc](.cursor/rules/frontend-architecture.mdc) — features, style tokens, polling, entities
 - [.cursor/rules/backend-shared-packages.mdc](.cursor/rules/backend-shared-packages.mdc) — storage keys, credits ledger, Kits scope
 - [.cursor/rules/elevenlabs-ui-integration.mdc](.cursor/rules/elevenlabs-ui-integration.mdc) — ElevenLabs UI scope (preview/status only, not timeline)
+- [.cursor/rules/suno-voice-persona-contract.mdc](.cursor/rules/suno-voice-persona-contract.mdc) — Suno Voice persona id, sync ready, music generate payload
 
 ## Skills index
 

@@ -22,3 +22,4 @@
 - [frontend-architecture.mdc](frontend-architecture.mdc) — структура features, tokens, entities, polling
 - [backend-shared-packages.mdc](backend-shared-packages.mdc) — storage keys, credits ledger, Kits scope
 - [elevenlabs-ui-integration.mdc](elevenlabs-ui-integration.mdc) — ElevenLabs UI только preview/status
+- [suno-voice-persona-contract.mdc](suno-voice-persona-contract.mdc) — Suno Voice persona, sync, music generate (не ломать контракт)
