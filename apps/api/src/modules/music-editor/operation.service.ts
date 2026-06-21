@@ -1,7 +1,7 @@
 import type { EditOperation, EditorTrackId } from "@ai-music/shared";
 import { prisma, Prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
-import { assertEditorOperation } from "../billing/entitlements.service.js";
+import { assertEditorOperation, assertVersionHistory } from "../billing/entitlements.service.js";
 import {
   countActiveOperations,
   findLastActiveOperation,
@@ -621,6 +621,8 @@ export async function undoLastOperation(
   songId: string,
   log: UndoLogContext = noopLogger,
 ) {
+  await assertVersionHistory(userId);
+
   const song = await getSongForUser(userId, songId);
 
   if (song.status !== "ready") {
@@ -677,6 +679,8 @@ export async function undoLastOperation(
 }
 
 export async function redoLastOperation(userId: string, songId: string) {
+  await assertVersionHistory(userId);
+
   const song = await getSongForUser(userId, songId);
 
   if (song.status !== "ready") {

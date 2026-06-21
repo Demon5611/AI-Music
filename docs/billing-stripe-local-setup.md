@@ -48,7 +48,7 @@ Entitlements (лимиты, editor, duration) — в [`packages/shared/src/const
 pnpm --filter @ai-music/api setup-stripe-billing
 ```
 
-Скрипт создаёт (или находит) продукты с metadata `app=ai-music`, `planId=starter|pro|creator` и прописывает `STRIPE_PRICE_*` в `.env`.
+Скрипт создаёт (или находит) продукты с metadata `app=ai-music`, `planId=pro|studio` и прописывает `STRIPE_PRICE_*` в `.env`.
 
 ### 2. Webhook secret
 

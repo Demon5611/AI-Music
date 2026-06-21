@@ -149,15 +149,15 @@ export function useMusicGeneration() {
           voiceSampleId,
         });
 
-        setTaskId(body.taskId);
+        setTaskId(body.recordId);
         setStatus({
           recordId: body.recordId,
-          taskId: body.taskId,
+          taskId: body.recordId,
           status: "pending",
           provider: body.provider,
           rawStatus: "PENDING",
         });
-        setActivePollTaskId(body.taskId);
+        setActivePollTaskId(body.recordId);
       } catch (generateError) {
         setError(parseApiError(generateError, "Music API error", PARSE_OPTS));
       } finally {

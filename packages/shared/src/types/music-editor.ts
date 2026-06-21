@@ -92,6 +92,12 @@ export interface FadeOperation {
   rangeEndMs?: number;
 }
 
+export interface ReplaceSectionOperation {
+  type: "REPLACE_SECTION";
+  regionId: string;
+  prompt: string;
+}
+
 export type EditOperation =
   | SetVolumeOperation
   | MuteTrackOperation
@@ -104,7 +110,8 @@ export type EditOperation =
   | DuplicateRegionOperation
   | ResizeRegionOperation
   | ResizeTrackRegionOperation
-  | FadeOperation;
+  | FadeOperation
+  | ReplaceSectionOperation;
 
 export interface SongStemDto {
   id: string;
@@ -138,6 +145,7 @@ export interface SongDto {
   audioUrl: string | null;
   sourceTrackId: string;
   stemSeparationNotice?: string | null;
+  pendingAction?: string | null;
   createdAt: string;
   updatedAt: string;
 }

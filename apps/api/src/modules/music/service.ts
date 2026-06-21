@@ -6,7 +6,6 @@ import {
 import { randomUUID } from "node:crypto";
 import type { GenerateSongInput } from "@ai-music/ai-providers";
 import {
-  buildSongRecordInput,
   createMusicGenerationRecord,
   deleteMusicGenerationTrack,
   deleteMusicGenerations,
@@ -25,8 +24,10 @@ import { refundCredits, refundCreditsOnce, spendCredits } from "../credits/servi
 import {
   assertMaxDuration,
   assertMusicGenerationMode,
+  getQueuePriorityForUser,
   getUserEntitlements,
 } from "../billing/entitlements.service.js";
+import { enqueueProviderJob } from "../queue/provider-job-queue.js";
 import {
   buildDurationAwareLyricsGenerationPrompt,
   checkContentAllowed,
@@ -123,34 +124,115 @@ export async function generateMusicForUser(
 
   await spendCredits(userId, OPERATION_COST_UNITS.generateTrack, "music_generate");
 
+  const queuePlaceholder = `queue:${randomUUID()}`;
+
+  const record = await createMusicGenerationRecord({
+    userId,
+    type: "song",
+    providerTaskId: queuePlaceholder,
+    prompt: input.prompt,
+    style: input.style,
+    title: input.title,
+    customMode: input.customMode,
+    instrumental: input.instrumental,
+  });
+
   try {
-    const result = await musicService.generateSong(songInput);
-    const record = await createMusicGenerationRecord(
-      buildSongRecordInput(userId, input, result.taskId),
+    const priority = await getQueuePriorityForUser(userId);
+
+    await enqueueProviderJob(
+      {
+        type: "music_generate",
+        userId,
+        recordId: record.id,
+        songInputJson: JSON.stringify(songInput),
+        spendReason: `music_generate:${record.id}`,
+      },
+      priority,
     );
 
     return {
       recordId: record.id,
-      provider: result.provider,
-      taskId: result.taskId,
-      status: result.status,
+      provider: resolveMusicProviderId(),
+      taskId: record.id,
+      status: "pending" as const,
     };
   } catch (error) {
+    await prisma.musicGeneration.update({
+      where: { id: record.id },
+      data: {
+        status: "failed",
+        errorMessage: "Failed to enqueue music generation",
+      },
+    });
+
     await refundCredits(
       userId,
       OPERATION_COST_UNITS.generateTrack,
-      `music_generate_failed:${userId}`,
+      `music_generate_failed:${record.id}`,
     ).catch(() => undefined);
     throw error;
   }
 }
 
-export async function getMusicGenerationStatusForUser(taskId: string, userId?: string) {
-  const status = await musicService.getGenerationStatus(taskId);
-  const record = await syncMusicGenerationRecord(taskId, status, userId);
+export async function getMusicGenerationStatusForUser(taskOrRecordId: string, userId?: string) {
+  const record = await findMusicGenerationRecord(taskOrRecordId, userId);
+
+  if (!record) {
+    throw new NotFoundError("Music generation not found");
+  }
+
   const apiBaseUrl = resolveApiBaseUrl();
 
-  return toMusicStatusResponse(status, record, apiBaseUrl);
+  if (record.providerTaskId.startsWith("queue:")) {
+    return toMusicStatusResponse(
+      {
+        taskId: record.id,
+        status: "pending",
+        provider: resolveMusicProviderId(),
+        rawStatus: "QUEUED",
+      },
+      record,
+      apiBaseUrl,
+    );
+  }
+
+  if (record.status === "failed") {
+    return toMusicStatusResponse(
+      {
+        taskId: record.providerTaskId,
+        status: "failed",
+        provider: resolveMusicProviderId(),
+        errorMessage: record.errorMessage ?? undefined,
+        rawStatus: record.rawStatus ?? undefined,
+      },
+      record,
+      apiBaseUrl,
+    );
+  }
+
+  const status = await musicService.getGenerationStatus(record.providerTaskId);
+  const synced = await syncMusicGenerationRecord(record.providerTaskId, status, userId);
+
+  return toMusicStatusResponse(status, synced ?? record, apiBaseUrl);
+}
+
+async function findMusicGenerationRecord(id: string, userId?: string) {
+  const scopedUser = userId ? { userId } : {};
+
+  const byId = await prisma.musicGeneration.findFirst({
+    where: { id, ...scopedUser },
+    include: { tracks: true },
+  });
+
+  if (byId) {
+    return byId;
+  }
+
+  return prisma.musicGeneration.findFirst({
+    where: { providerTaskId: id, ...scopedUser },
+    include: { tracks: true },
+  });
 }
 
 export async function getMusicHistory(userId: string) {

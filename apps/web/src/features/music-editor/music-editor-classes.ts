@@ -131,4 +131,5 @@ export const me = {
   voiceModelPagination: "mb-3 flex items-center justify-between gap-2",
   voiceModelPaginationLabel: "text-center text-[0.8125rem] text-[var(--app-text-muted)]",
   dialogActions: "mt-3 flex justify-end gap-2",
+  replacePromptInput: appShell.fieldTextarea,
 } as const;

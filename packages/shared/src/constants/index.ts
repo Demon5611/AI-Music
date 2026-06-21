@@ -57,4 +57,5 @@ export function buildVoiceSampleDurationRangeLabel(): string {
 
 export const GENERATION_QUEUE_NAME = "generation";
 
+export * from "./provider-job-queue.js";
 export * from "./vocal-gender.js";

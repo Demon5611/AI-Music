@@ -14,7 +14,7 @@ import { mc } from "@/features/music-create/music-create-classes";
 import { DisabledTooltipWrap } from "@/shared/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-const PAID_PLAN_CHIP_TOOLTIP = "Доступно на платных тарифах";
+const PAID_PLAN_CHIP_TOOLTIP = "Доступно на тарифе Pro";
 
 interface MusicStyleChipsProps {
   value: string;

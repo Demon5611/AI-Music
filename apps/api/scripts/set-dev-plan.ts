@@ -6,7 +6,7 @@ import { PLANS, type PlanId } from "@ai-music/shared";
 config({ path: resolve(import.meta.dirname, "../../../.env") });
 
 function printUsage(): void {
-  console.error("Usage: tsx scripts/set-dev-plan.ts <email> <free|starter|pro|creator>");
+  console.error("Usage: tsx scripts/set-dev-plan.ts <email> <free|pro|studio>");
   console.error("Example: tsx scripts/set-dev-plan.ts user@example.com pro");
 }
 

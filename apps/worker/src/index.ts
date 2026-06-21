@@ -3,22 +3,36 @@ import {
   closeGenerationWorker,
   createGenerationWorker,
 } from "./generation.worker.js";
+import {
+  closeProviderJobWorker,
+  createProviderJobWorker,
+} from "./provider-job.worker.js";
 
 async function main() {
-  const worker = createGenerationWorker();
+  const generationWorker = createGenerationWorker();
+  const providerJobWorker = createProviderJobWorker();
 
-  worker.on("completed", (job) => {
+  generationWorker.on("completed", (job) => {
     console.log(`Generation job completed: ${job.id}`);
   });
 
-  worker.on("failed", (job, error) => {
+  generationWorker.on("failed", (job, error) => {
     console.error(`Generation job failed: ${job?.id ?? "unknown"}`, error);
   });
 
-  console.log("Worker started (generation queue)");
+  providerJobWorker.on("completed", (job) => {
+    console.log(`Provider job completed: ${job.id}`);
+  });
+
+  providerJobWorker.on("failed", (job, error) => {
+    console.error(`Provider job failed: ${job?.id ?? "unknown"}`, error);
+  });
+
+  console.log("Worker started (generation + provider-jobs queues)");
 
   const shutdown = async () => {
-    await closeGenerationWorker(worker);
+    await closeGenerationWorker(generationWorker);
+    await closeProviderJobWorker(providerJobWorker);
     process.exit(0);
   };
 

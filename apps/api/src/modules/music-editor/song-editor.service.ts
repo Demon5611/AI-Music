@@ -2,7 +2,11 @@ import { createMusicService, downloadUrl, type StemResult } from "@ai-music/ai-p
 import { prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
 import { refundCreditsOnce, spendCreditsOnce } from "../credits/service.js";
-import { assertFeature } from "../billing/entitlements.service.js";
+import {
+  assertFeature,
+  assertProjectLimit,
+  getUserEntitlements,
+} from "../billing/entitlements.service.js";
 import { OPERATION_COST_UNITS } from "@ai-music/shared";
 import { buildSongStemKey, getStorageService } from "../storage/storage.service.js";
 import { buildDefaultRegions, type SongVersionWithOperations } from "./song-editor.mapper.js";
@@ -11,6 +15,7 @@ import {
   isStemSeparationTimedOut,
   persistOriginalAudioAsStems,
 } from "./stem-separation.js";
+import { tickReplaceSection } from "./replace-section.service.js";
 
 export async function ensureSongForTrack(userId: string, trackId: string) {
   await assertFeature(userId, "editor");
@@ -31,6 +36,9 @@ export async function ensureSongForTrack(userId: string, trackId: string) {
   if (track.song) {
     return track.song;
   }
+
+  const projectCount = await prisma.song.count({ where: { userId } });
+  await assertProjectLimit(userId, projectCount);
 
   const durationMs = track.durationSec ? track.durationSec * 1000 : 180_000;
 
@@ -212,6 +220,19 @@ export async function tickStemSeparation(userId: string, songId: string) {
   }
 
   if (!song.stemSeparationTaskId) {
+    const entitlements = await getUserEntitlements(userId);
+
+    if (!entitlements.features.stemSeparation) {
+      await persistOriginalAudioAsStems(
+        userId,
+        song,
+        buildStemSeparationFallbackNotice(
+          "Stem Separation доступна на тарифе Pro. Редактор открыт с полным миксом.",
+        ),
+      );
+      return getSongForUser(userId, songId);
+    }
+
     await kickoffStemSeparation(userId, songId);
     return getSongForUser(userId, songId);
   }
@@ -311,7 +332,15 @@ async function persistStemResult(userId: string, songId: string, result: StemRes
 }
 
 export async function refreshEditorProgress(userId: string, songId: string) {
-  const song = await getSongForUser(userId, songId);
+  let song = await getSongForUser(userId, songId);
+
+  if (song.pendingAction === "replace_section") {
+    song = await tickReplaceSection(userId, songId);
+    if (song.pendingAction === "replace_section") {
+      return song;
+    }
+  }
+
   const reconciled = await reconcileStoredStems(userId, song);
 
   if (reconciled) {

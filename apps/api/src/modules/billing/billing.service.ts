@@ -331,7 +331,7 @@ function resolveSubscriptionPlanIdFromInvoice(
     return fallbackPlanId as PlanId;
   }
 
-  return "starter";
+  return "pro";
 }
 
 function resolvePlanIdFromMetadata(value: string | undefined): PlanId {
@@ -339,7 +339,15 @@ function resolvePlanIdFromMetadata(value: string | undefined): PlanId {
     return value as PlanId;
   }
 
-  return "starter";
+  if (value === "starter") {
+    return "pro";
+  }
+
+  if (value === "creator") {
+    return "studio";
+  }
+
+  return "pro";
 }
 
 function toDate(unixSeconds: number | null | undefined): Date | null {

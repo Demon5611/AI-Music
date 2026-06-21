@@ -35,7 +35,7 @@ export const uploadVoiceSampleFieldsSchema = voiceConsentSchema.extend({
 });
 
 export const createCheckoutSessionSchema = z.object({
-  planId: z.enum(["starter", "pro", "creator"]),
+  planId: z.enum(["pro", "studio"]),
 });
 
 export const createPortalSessionSchema = z.object({});
@@ -47,6 +47,7 @@ export type CreateCheckoutSessionInput = z.infer<typeof createCheckoutSessionSch
 
 export {
   ApplyOperationBodySchema,
+  ReplaceSectionRequestSchema,
   DeleteRegionOperationSchema,
   DuplicateRegionOperationSchema,
   EditOperationSchema,

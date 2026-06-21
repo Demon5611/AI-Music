@@ -2,6 +2,7 @@
 
 import type { EditOperation } from "@ai-music/shared";
 import { Tooltip } from "@/shared/ui/tooltip";
+import { PlanGatedWrap, usePlanGate } from "@/shared/ui/plan-gated";
 import {
   selectRegionLabel,
   useAudioEditorStore,
@@ -48,6 +49,8 @@ function formatOperationLabel(
       return `Resize — ${regionLabel}`;
     case "RESIZE_TRACK_REGION":
       return `Resize ${operation.trackId} — ${regionLabel}`;
+    case "REPLACE_SECTION":
+      return `Replace section — ${regionLabel}`;
     default:
       return `Operation — ${regionLabel}`;
   }
@@ -62,6 +65,8 @@ export function EditHistoryPanel({
   const regions = useAudioEditorStore((state) => state.regions);
   const undoneOperations = useAudioEditorStore((state) => state.undoneOperations);
   const setSelectedRegion = useAudioEditorStore((state) => state.setSelectedRegion);
+  const historyGate = usePlanGate("versionHistory");
+  const historyLocked = !historyGate.allowed;
 
   return (
     <div className={me.panel}>
@@ -96,26 +101,30 @@ export function EditHistoryPanel({
       )}
 
       <div className={me.toolbarRow}>
-        <Tooltip content="Отменить последнее изменение">
-          <button
-            className={me.toolButton}
-            disabled={disabled || operations.length === 0}
-            type="button"
-            onClick={onUndo}
-          >
-            Undo
-          </button>
-        </Tooltip>
-        <Tooltip content="Вернуть отмененное изменение">
-          <button
-            className={me.toolButton}
-            disabled={disabled || undoneOperations.length === 0}
-            type="button"
-            onClick={onRedo}
-          >
-            Redo
-          </button>
-        </Tooltip>
+        <PlanGatedWrap feature="versionHistory">
+          <Tooltip content="Отменить последнее изменение">
+            <button
+              className={me.toolButton}
+              disabled={disabled || historyLocked || operations.length === 0}
+              type="button"
+              onClick={onUndo}
+            >
+              Undo
+            </button>
+          </Tooltip>
+        </PlanGatedWrap>
+        <PlanGatedWrap feature="versionHistory">
+          <Tooltip content="Вернуть отмененное изменение">
+            <button
+              className={me.toolButton}
+              disabled={disabled || historyLocked || undoneOperations.length === 0}
+              type="button"
+              onClick={onRedo}
+            >
+              Redo
+            </button>
+          </Tooltip>
+        </PlanGatedWrap>
       </div>
     </div>
   );

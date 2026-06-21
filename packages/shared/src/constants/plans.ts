@@ -1,12 +1,14 @@
 import { CREDIT_UNIT_SCALE, FULL_PRODUCTION_FLOW_UNITS } from "./credits-economy.js";
 
-export type PlanId = "free" | "starter" | "pro" | "creator";
+export type PlanId = "free" | "pro" | "studio";
 
 export type PaidPlanId = Exclude<PlanId, "free">;
 
-export type EditorLevel = false | "basic" | "advanced";
+export type EditorLevel = "lite" | "advanced";
 
 export type MusicGenerationLevel = "simplified" | "full";
+
+export type VersionHistoryLevel = false | "standard" | "extended";
 
 export interface PlanFeatures {
   musicGeneration: MusicGenerationLevel;
@@ -17,8 +19,10 @@ export interface PlanFeatures {
   replaceSections: boolean;
   wavExport: boolean;
   priorityQueue: boolean;
-  albumCover: boolean;
-  voiceTransferLimit: number | null;
+  versionHistory: VersionHistoryLevel;
+  maxProjects: number | null;
+  earlyAccess: boolean;
+  apiAccess: boolean;
 }
 
 export interface PlanConfig {
@@ -31,7 +35,7 @@ export interface PlanConfig {
   features: PlanFeatures;
 }
 
-export const BASIC_EDITOR_OPERATIONS = [
+export const LITE_EDITOR_OPERATIONS = [
   "SPLIT_REGION",
   "MOVE_REGION",
   "MOVE_TRACK_REGION",
@@ -49,9 +53,20 @@ export const ADVANCED_EDITOR_OPERATIONS = [
   "RESIZE_TRACK_REGION",
 ] as const;
 
-export type BasicEditorOperation = (typeof BASIC_EDITOR_OPERATIONS)[number];
+/** @deprecated Use LITE_EDITOR_OPERATIONS */
+export const BASIC_EDITOR_OPERATIONS = LITE_EDITOR_OPERATIONS;
+
+export type LiteEditorOperation = (typeof LITE_EDITOR_OPERATIONS)[number];
 export type AdvancedEditorOperation = (typeof ADVANCED_EDITOR_OPERATIONS)[number];
-export type EditorOperationType = BasicEditorOperation | AdvancedEditorOperation;
+export type EditorOperationType = LiteEditorOperation | AdvancedEditorOperation;
+
+export const VERSION_HISTORY_OPERATION_LIMIT: Record<
+  Exclude<VersionHistoryLevel, false>,
+  number | null
+> = {
+  standard: 50,
+  extended: null,
+};
 
 function estimateFullProductionFlows(monthlyCredits: number): number {
   return Math.floor((monthlyCredits * CREDIT_UNIT_SCALE) / FULL_PRODUCTION_FLOW_UNITS);
@@ -74,33 +89,15 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       musicGeneration: "simplified",
       voiceReplace: true,
       lyricsGeneration: true,
-      editor: false,
+      editor: "lite",
       stemSeparation: false,
       replaceSections: false,
-      wavExport: false,
-      priorityQueue: false,
-      albumCover: false,
-      voiceTransferLimit: 1,
-    },
-  },
-  starter: {
-    id: "starter",
-    label: "Starter",
-    priceUsd: 9,
-    monthlyCredits: 150,
-    maxTrackDurationSec: 120,
-    estimatedFlows: estimateFullProductionFlows(150),
-    features: {
-      musicGeneration: "full",
-      voiceReplace: true,
-      lyricsGeneration: true,
-      editor: "basic",
-      stemSeparation: true,
-      replaceSections: true,
       wavExport: true,
       priorityQueue: false,
-      albumCover: false,
-      voiceTransferLimit: 3,
+      versionHistory: false,
+      maxProjects: 3,
+      earlyAccess: false,
+      apiAccess: false,
     },
   },
   pro: {
@@ -119,17 +116,19 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       replaceSections: true,
       wavExport: true,
       priorityQueue: true,
-      albumCover: true,
-      voiceTransferLimit: 5,
+      versionHistory: "standard",
+      maxProjects: 20,
+      earlyAccess: false,
+      apiAccess: false,
     },
   },
-  creator: {
-    id: "creator",
-    label: "Creator",
-    priceUsd: 39,
-    monthlyCredits: 1500,
+  studio: {
+    id: "studio",
+    label: "Studio",
+    priceUsd: 49,
+    monthlyCredits: 2000,
     maxTrackDurationSec: 180,
-    estimatedFlows: estimateFullProductionFlows(1500),
+    estimatedFlows: estimateFullProductionFlows(2000),
     features: {
       musicGeneration: "full",
       voiceReplace: true,
@@ -139,22 +138,24 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       replaceSections: true,
       wavExport: true,
       priorityQueue: true,
-      albumCover: true,
-      voiceTransferLimit: null,
+      versionHistory: "extended",
+      maxProjects: null,
+      earlyAccess: true,
+      apiAccess: false,
     },
   },
 } as const;
 
-export const PAID_PLAN_IDS = ["starter", "pro", "creator"] as const satisfies readonly PaidPlanId[];
+export const PAID_PLAN_IDS = ["pro", "studio"] as const satisfies readonly PaidPlanId[];
 
-export const PLAN_UPGRADE_ORDER: PlanId[] = ["free", "starter", "pro", "creator"];
+export const PLAN_UPGRADE_ORDER: PlanId[] = ["free", "pro", "studio"];
 
 export function getMinimumPlanForFeature(feature: keyof PlanFeatures): PlanId {
   for (const planId of PLAN_UPGRADE_ORDER) {
     const value = PLANS[planId].features[feature];
 
     if (feature === "editor") {
-      if (value !== false) {
+      if (value === "advanced") {
         return planId;
       }
       continue;
@@ -167,14 +168,33 @@ export function getMinimumPlanForFeature(feature: keyof PlanFeatures): PlanId {
       continue;
     }
 
+    if (feature === "versionHistory") {
+      if (value !== false) {
+        return planId;
+      }
+      continue;
+    }
+
+    if (feature === "maxProjects") {
+      if (value === null) {
+        return planId;
+      }
+      continue;
+    }
+
     if (value === true || (typeof value === "number" && value > 0)) {
       return planId;
     }
   }
 
-  return "creator";
+  return "studio";
 }
 
 export function getPlanLabel(planId: PlanId): string {
   return PLANS[planId].label;
+}
+
+export function getPlanFeatureTooltip(feature: keyof PlanFeatures): string {
+  const requiredPlan = getMinimumPlanForFeature(feature);
+  return `Доступно на тарифе ${getPlanLabel(requiredPlan)}`;
 }

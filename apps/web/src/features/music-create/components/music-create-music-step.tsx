@@ -35,7 +35,7 @@ import { useEffect, useState } from "react";
 const STYLE_MAX_LENGTH = 200;
 const TITLE_MAX_LENGTH = 100;
 
-const PAID_PLAN_HINT = "Starter+";
+const PAID_PLAN_HINT = "Pro+";
 
 interface MusicCreateMusicStepProps {
   configured: boolean | null;

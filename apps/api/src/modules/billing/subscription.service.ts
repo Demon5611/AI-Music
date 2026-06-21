@@ -3,6 +3,19 @@ import { PLANS, type PlanId } from "@ai-music/shared";
 
 const DEFAULT_PLAN_ID: PlanId = "free";
 
+const LEGACY_PLAN_ALIASES: Record<string, PlanId> = {
+  starter: "pro",
+  creator: "studio",
+};
+
+function normalizePlanId(value: string): PlanId {
+  if (value in PLANS) {
+    return value as PlanId;
+  }
+
+  return LEGACY_PLAN_ALIASES[value] ?? DEFAULT_PLAN_ID;
+}
+
 function isPlanId(value: string): value is PlanId {
   return value in PLANS;
 }
@@ -26,7 +39,7 @@ export async function getOrCreateSubscription(userId: string) {
 }
 
 export function resolveSubscriptionPlanId(planId: string): PlanId {
-  return isPlanId(planId) ? planId : DEFAULT_PLAN_ID;
+  return normalizePlanId(planId);
 }
 
 export async function updateSubscriptionPlan(
@@ -40,6 +53,10 @@ export async function updateSubscriptionPlan(
   },
 ) {
   await getOrCreateSubscription(userId);
+
+  if (!isPlanId(input.planId)) {
+    throw new Error(`Invalid plan id: ${input.planId}`);
+  }
 
   return prisma.subscription.update({
     where: { userId },

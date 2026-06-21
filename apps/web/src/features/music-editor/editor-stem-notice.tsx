@@ -1,6 +1,7 @@
 "use client";
 
 import { me } from "@/features/music-editor/music-editor-classes";
+import { PlanGatedWrap } from "@/shared/ui/plan-gated";
 
 interface EditorStemNoticeProps {
   notice: string;
@@ -24,14 +25,16 @@ export function EditorStemNotice({
         иногда отклоняет трек при первой попытке.
       </p>
       <div className={me.stemNoticeActions}>
-        <button
-          className={me.primaryButton}
-          disabled={disabled || isRetrying}
-          type="button"
-          onClick={onRetry}
-        >
-          {isRetrying ? "Повторяем разделение..." : "Повторить разделение"}
-        </button>
+        <PlanGatedWrap feature="stemSeparation">
+          <button
+            className={me.primaryButton}
+            disabled={disabled || isRetrying}
+            type="button"
+            onClick={onRetry}
+          >
+            {isRetrying ? "Повторяем разделение..." : "Повторить разделение"}
+          </button>
+        </PlanGatedWrap>
       </div>
     </div>
   );

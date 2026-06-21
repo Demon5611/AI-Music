@@ -15,29 +15,34 @@ import { useState } from "react";
 
 const PLAN_FEATURES: Record<PlanId, string[]> = {
   free: [
-    "Подмена голоса своим",
-    "Генерация текста по промту",
+    "AI Music Generation",
+    "Свой голос в генерации",
     "До 60 сек трек",
-    "Упрощённая генерация музыки",
+    "Music Editor Lite",
+    "WAV Export",
   ],
-  starter: [
-    "Music editor — Basic",
+  pro: [
+    "До 3 минут трек",
+    "Music Editor Advanced",
     "Stem Separation",
     "Replace Sections",
     "WAV Export",
-    "До 2 мин трек",
-  ],
-  pro: [
-    "Music editor — Advanced",
+    "Version History",
     "Priority Queue",
-    "Album Cover Generation",
-    "2–3 мин трек",
   ],
-  creator: [
-    "Больше Voice Transfers",
-    "Больше Stem Processing",
-    "Продвинутый Editor",
+  studio: [
+    "Всё из Pro",
+    "Fastest Queue",
+    "Unlimited Projects",
+    "Extended Version History",
+    "More Stem Processing",
+    "Early Access",
   ],
+};
+
+const PLAN_TAGLINES: Partial<Record<PlanId, string>> = {
+  pro: "For creators editing tracks every week",
+  studio: "For musicians, producers and heavy users",
 };
 
 function formatDurationLimit(seconds: number): string {
@@ -50,18 +55,6 @@ function formatDurationLimit(seconds: number): string {
   }
 
   return "2–3 мин";
-}
-
-function formatEstimatedFlows(planId: PlanId): string | null {
-  const flows = PLANS[planId].estimatedFlows;
-
-  if (flows === null) {
-    return null;
-  }
-
-  return planId === "free"
-    ? `≈ ${flows} production flows`
-    : `≈ ${flows} полных production flows`;
 }
 
 export function PricingPanel() {
@@ -110,14 +103,23 @@ export function PricingPanel() {
           const plan = PLANS[planId];
           const isCurrent = currentPlanId === planId;
           const isPaid = PAID_PLAN_IDS.includes(planId as PaidPlanId);
+          const isRecommended = planId === "pro";
+          const tagline = PLAN_TAGLINES[planId];
 
           return (
             <article
               key={planId}
-              className={cn(pricing.card, isCurrent ? pricing.cardCurrent : undefined)}
+              className={cn(
+                pricing.card,
+                isCurrent ? pricing.cardCurrent : undefined,
+                isRecommended ? pricing.cardRecommended : undefined,
+              )}
             >
               <div className={pricing.cardHeader}>
-                <h2 className={pricing.planName}>{plan.label}</h2>
+                <div className={pricing.planTitleRow}>
+                  <h2 className={pricing.planName}>{plan.label}</h2>
+                  {isRecommended ? <span className={pricing.planBadge}>Most Popular</span> : null}
+                </div>
                 <p className={pricing.planPrice}>
                   {plan.priceUsd === 0 ? (
                     "0"
@@ -131,17 +133,16 @@ export function PricingPanel() {
                 <p className={pricing.credits}>
                   {plan.monthlyCredits} credits · {formatDurationLimit(plan.maxTrackDurationSec)}
                 </p>
+                {tagline ? <p className={pricing.planTagline}>{tagline}</p> : null}
               </div>
 
               <ul className={pricing.featureList}>
-                {[...PLAN_FEATURES[planId], formatEstimatedFlows(planId)]
-                  .filter((feature): feature is string => Boolean(feature))
-                  .map((feature) => (
-                    <li key={feature} className={pricing.featureItem}>
-                      <span aria-hidden="true" className={pricing.featureBullet} />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
+                {PLAN_FEATURES[planId].map((feature) => (
+                  <li key={feature} className={pricing.featureItem}>
+                    <span aria-hidden="true" className={pricing.featureBullet} />
+                    <span>{feature}</span>
+                  </li>
+                ))}
               </ul>
 
               <div className={pricing.actionWrap}>

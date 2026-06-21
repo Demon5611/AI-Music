@@ -9,12 +9,13 @@ import {
 } from "../constants/music-duration.js";
 import {
   ADVANCED_EDITOR_OPERATIONS,
-  BASIC_EDITOR_OPERATIONS,
+  LITE_EDITOR_OPERATIONS,
   PLANS,
   type EditorLevel,
   type EditorOperationType,
   type PlanFeatures,
   type PlanId,
+  type VersionHistoryLevel,
 } from "../constants/plans.js";
 
 export type FeatureKey = keyof PlanFeatures;
@@ -33,7 +34,8 @@ export type EntitlementViolationCode =
   | "FEATURE_NOT_AVAILABLE"
   | "DURATION_LIMIT_EXCEEDED"
   | "EDITOR_OPERATION_NOT_ALLOWED"
-  | "SIMPLIFIED_GENERATION_ONLY";
+  | "SIMPLIFIED_GENERATION_ONLY"
+  | "PROJECT_LIMIT_EXCEEDED";
 
 export interface EntitlementViolation {
   ok: false;
@@ -49,11 +51,11 @@ export interface EntitlementSuccess {
 
 export type EntitlementCheckResult = EntitlementSuccess | EntitlementViolation;
 
+/** BullMQ: lower number = higher priority */
 const QUEUE_PRIORITY_BY_PLAN: Record<PlanId, number> = {
-  free: 1,
-  starter: 2,
+  studio: 1,
   pro: 5,
-  creator: 10,
+  free: 10,
 };
 
 export function resolveEntitlements(planId: PlanId): ResolvedEntitlements {
@@ -70,31 +72,36 @@ export function resolveEntitlements(planId: PlanId): ResolvedEntitlements {
   };
 }
 
-export function hasEditorAccess(editorLevel: EditorLevel): editorLevel is "basic" | "advanced" {
-  return editorLevel !== false;
+export function hasEditorAccess(_editorLevel: EditorLevel): boolean {
+  return true;
 }
 
-export function checkFeature(
-  planId: PlanId,
-  feature: FeatureKey,
-): EntitlementCheckResult {
+export function checkFeature(planId: PlanId, feature: FeatureKey): EntitlementCheckResult {
   const entitlements = resolveEntitlements(planId);
   const value = entitlements.features[feature];
 
   if (feature === "editor") {
-    if (value === false) {
-      return {
-        ok: false,
-        code: "FEATURE_NOT_AVAILABLE",
-        message: "Музыкальный редактор доступен на тарифе Starter и выше",
-        requiredPlan: "starter",
-      };
-    }
-
     return { ok: true };
   }
 
-  if (feature === "musicGeneration") {
+  if (feature === "musicGeneration" || feature === "voiceReplace" || feature === "lyricsGeneration") {
+    return { ok: true };
+  }
+
+  if (feature === "versionHistory") {
+    if (value !== false) {
+      return { ok: true };
+    }
+
+    return {
+      ok: false,
+      code: "FEATURE_NOT_AVAILABLE",
+      message: "История версий доступна на тарифе Pro и выше",
+      requiredPlan: "pro",
+    };
+  }
+
+  if (feature === "maxProjects") {
     return { ok: true };
   }
 
@@ -132,6 +139,31 @@ export function checkMaxDuration(planId: PlanId, durationSec: number): Entitleme
   };
 }
 
+export function checkProjectLimit(
+  planId: PlanId,
+  projectCount: number,
+): EntitlementCheckResult {
+  const maxProjects = PLANS[planId].features.maxProjects;
+
+  if (maxProjects === null || projectCount < maxProjects) {
+    return { ok: true };
+  }
+
+  const requiredPlan = maxProjects === PLANS.free.features.maxProjects ? "pro" : "studio";
+
+  return {
+    ok: false,
+    code: "PROJECT_LIMIT_EXCEEDED",
+    message: `Лимит проектов на тарифе ${PLANS[planId].label}: ${maxProjects}`,
+    requiredPlan,
+    limit: maxProjects,
+  };
+}
+
+export function checkVersionHistory(planId: PlanId): EntitlementCheckResult {
+  return checkFeature(planId, "versionHistory");
+}
+
 export {
   formatAutoDurationLabel,
   formatDurationOptionLabel,
@@ -152,8 +184,8 @@ export function checkMusicGenerationMode(
     return {
       ok: false,
       code: "SIMPLIFIED_GENERATION_ONLY",
-      message: "Инструментальная генерация доступна на платных тарифах",
-      requiredPlan: "starter",
+      message: "Инструментальная генерация доступна на тарифе Pro",
+      requiredPlan: "pro",
     };
   }
 
@@ -164,7 +196,7 @@ export function checkMusicGenerationMode(
       ok: false,
       code: "SIMPLIFIED_GENERATION_ONLY",
       message: "На Free доступна генерация только 30 секунд",
-      requiredPlan: "starter",
+      requiredPlan: "pro",
     };
   }
 
@@ -174,8 +206,8 @@ export function checkMusicGenerationMode(
     return {
       ok: false,
       code: "SIMPLIFIED_GENERATION_ONLY",
-      message: "На Free доступен только комбо-стиль. Расширенные параметры — на платных тарифах",
-      requiredPlan: "starter",
+      message: "На Free доступен только комбо-стиль. Расширенные параметры — на тарифе Pro",
+      requiredPlan: "pro",
     };
   }
 
@@ -187,16 +219,6 @@ export function checkEditorOperation(
   operationType: string,
 ): EntitlementCheckResult {
   const editorLevel = PLANS[planId].features.editor;
-
-  if (editorLevel === false) {
-    return {
-      ok: false,
-      code: "FEATURE_NOT_AVAILABLE",
-      message: "Музыкальный редактор доступен на тарифе Starter и выше",
-      requiredPlan: "starter",
-    };
-  }
-
   const normalizedType = operationType === "CUT_REGION" ? "DELETE_REGION" : operationType;
   const allowed = isEditorOperationAllowed(editorLevel, normalizedType as EditorOperationType);
 
@@ -216,13 +238,11 @@ export function isEditorOperationAllowed(
   editorLevel: EditorLevel,
   operationType: EditorOperationType | string,
 ): boolean {
-  if (editorLevel === false) {
-    return false;
-  }
-
   const normalizedType = operationType === "CUT_REGION" ? "DELETE_REGION" : operationType;
 
-  if (BASIC_EDITOR_OPERATIONS.includes(normalizedType as (typeof BASIC_EDITOR_OPERATIONS)[number])) {
+  if (
+    LITE_EDITOR_OPERATIONS.includes(normalizedType as (typeof LITE_EDITOR_OPERATIONS)[number])
+  ) {
     return true;
   }
 
@@ -233,6 +253,10 @@ export function isEditorOperationAllowed(
   return ADVANCED_EDITOR_OPERATIONS.includes(
     normalizedType as (typeof ADVANCED_EDITOR_OPERATIONS)[number],
   );
+}
+
+export function resolveVersionHistoryLevel(planId: PlanId): VersionHistoryLevel {
+  return PLANS[planId].features.versionHistory;
 }
 
 export function getAllowedDurationOptions(maxTrackDurationSec: number): number[] {
@@ -255,9 +279,7 @@ export function getDurationOptionsForPlan(planId: PlanId): number[] {
 }
 
 function findMinimumPlanForBooleanFeature(feature: FeatureKey): PlanId {
-  const planOrder: PlanId[] = ["starter", "pro", "creator"];
-
-  for (const planId of planOrder) {
+  for (const planId of ["pro", "studio"] as const) {
     const value = PLANS[planId].features[feature];
 
     if (value === true) {
@@ -265,5 +287,5 @@ function findMinimumPlanForBooleanFeature(feature: FeatureKey): PlanId {
     }
   }
 
-  return "creator";
+  return "studio";
 }
