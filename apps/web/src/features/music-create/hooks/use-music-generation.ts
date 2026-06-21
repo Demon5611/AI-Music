@@ -122,6 +122,23 @@ export function useMusicGeneration() {
       setActivePollTaskId(null);
 
       try {
+        const voiceSampleId = input.voiceSampleId ?? undefined;
+
+        // #region agent log
+        fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
+          body: JSON.stringify({
+            sessionId: "543522",
+            hypothesisId: "G-D",
+            location: "use-music-generation.ts:generate",
+            message: "music generate submit from UI",
+            data: { voiceSampleId: voiceSampleId ?? null },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+
         const body = await api.music.generate({
           prompt: input.prompt,
           style: input.style,
@@ -129,7 +146,7 @@ export function useMusicGeneration() {
           customMode: true,
           instrumental: false,
           durationSec: input.durationSec > 0 ? input.durationSec : undefined,
-          voiceSampleId: input.voiceSampleId ?? undefined,
+          voiceSampleId,
         });
 
         setTaskId(body.taskId);

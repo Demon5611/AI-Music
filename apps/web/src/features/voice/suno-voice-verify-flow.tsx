@@ -58,6 +58,8 @@ function resolveStatusLabel(sample: VoiceSample | null): string {
   }
 
   switch (sample.voiceCloneStatus) {
+    case "pending":
+      return "Нажмите «Начать верификацию», чтобы AI Music подготовил фразу для записи.";
     case "preparing":
       return "Анализируем ваш голос и готовим фразу для верификации...";
     case "awaiting_verification":
@@ -168,10 +170,24 @@ export function SunoVoiceVerifyFlow({
     setPollRequested(false);
   }, []);
 
-  const startPolling = useCallback(() => {
+  const startPolling = useCallback((debugReason: string) => {
+    // #region agent log
+    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
+      body: JSON.stringify({
+        sessionId: "543522",
+        hypothesisId: "B-C",
+        location: "suno-voice-verify-flow.tsx:startPolling",
+        message: "startPolling",
+        data: { debugReason, sampleId },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     pollCountRef.current = 0;
     setPollRequested(true);
-  }, []);
+  }, [sampleId]);
 
   const handleWaitElapsedChange = useCallback((elapsedSec: number) => {
     setWaitElapsedSec(elapsedSec);
@@ -221,6 +237,26 @@ export function SunoVoiceVerifyFlow({
 
     setSample(statusQuery.data);
 
+    // #region agent log
+    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
+      body: JSON.stringify({
+        sessionId: "543522",
+        hypothesisId: "B",
+        location: "suno-voice-verify-flow.tsx:poll:status",
+        message: "poll status update",
+        data: {
+          sampleId,
+          voiceCloneStatus: statusQuery.data.voiceCloneStatus,
+          voiceCloneError: statusQuery.data.voiceCloneError,
+          pollCount: pollCountRef.current,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
     if (
       statusQuery.data.voiceCloneStatus !== "failed" ||
       isVoiceCloneCancelled(statusQuery.data)
@@ -263,6 +299,20 @@ export function SunoVoiceVerifyFlow({
     let cancelled = false;
 
     async function bootstrap() {
+      // #region agent log
+      fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
+        body: JSON.stringify({
+          sessionId: "543522",
+          hypothesisId: "A-D",
+          location: "suno-voice-verify-flow.tsx:bootstrap:start",
+          message: "bootstrap started",
+          data: { sampleId, bootstrappedRef: bootstrappedSampleIdRef.current },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       setIsBootstrapping(true);
       setError(null);
 
@@ -274,6 +324,27 @@ export function SunoVoiceVerifyFlow({
         }
 
         setSample(current);
+
+        // #region agent log
+        fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
+          body: JSON.stringify({
+            sessionId: "543522",
+            hypothesisId: "A-B-C",
+            location: "suno-voice-verify-flow.tsx:bootstrap:status",
+            message: "bootstrap initial status",
+            data: {
+              sampleId,
+              voiceCloneStatus: current.voiceCloneStatus,
+              voiceCloneError: current.voiceCloneError,
+              recoverable: isRecoverableVoiceCloneFailure(current),
+              willAutoPrepare: shouldAutoPrepare(current.voiceCloneStatus),
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
 
         if (isVoiceSampleReadyForGeneration(current)) {
           handleVoiceReady();
@@ -288,9 +359,14 @@ export function SunoVoiceVerifyFlow({
           }
 
           if (isRecoverableVoiceCloneFailure(current)) {
-            startPolling();
+            // Stay on failed UI — user restarts via button; polling sync kept failing state.
           }
 
+          bootstrappedSampleIdRef.current = sampleId;
+          return;
+        }
+
+        if (current.voiceCloneStatus === "pending") {
           bootstrappedSampleIdRef.current = sampleId;
           return;
         }
@@ -300,35 +376,15 @@ export function SunoVoiceVerifyFlow({
           current.voiceCloneStatus === "cloning"
         ) {
           setSample(current);
-          startPolling();
+          startPolling("bootstrap:preparing-or-cloning");
           bootstrappedSampleIdRef.current = sampleId;
           return;
         }
 
         if (current.voiceCloneStatus === "awaiting_verification") {
-          startPolling();
+          startPolling("bootstrap:awaiting-verification");
           bootstrappedSampleIdRef.current = sampleId;
           return;
-        }
-
-        const prepared = shouldAutoPrepare(current.voiceCloneStatus)
-          ? await apiRef.current.voiceSamples.prepareSunoVoice(sampleId!)
-          : current;
-
-        if (cancelled) {
-          return;
-        }
-
-        setSample(prepared);
-
-        if (isVoiceSampleReadyForGeneration(prepared)) {
-          handleVoiceReady();
-          bootstrappedSampleIdRef.current = sampleId;
-          return;
-        }
-
-        if (isProcessingStatus(prepared.voiceCloneStatus)) {
-          startPolling();
         }
 
         bootstrappedSampleIdRef.current = sampleId;
@@ -351,6 +407,20 @@ export function SunoVoiceVerifyFlow({
   }, [authReady, handleVoiceReady, sampleId, startPolling]);
 
   async function handleVerifySubmit() {
+    // #region agent log
+    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
+      body: JSON.stringify({
+        sessionId: "543522",
+        hypothesisId: "E",
+        location: "suno-voice-verify-flow.tsx:handleVerifySubmit",
+        message: "verify submit invoked",
+        data: { sampleId },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     if (!sampleId) {
       setError("Не указан образец голоса");
       return;
@@ -387,7 +457,7 @@ export function SunoVoiceVerifyFlow({
       }
 
       if (verified.voiceCloneStatus === "cloning") {
-        startPolling();
+        startPolling("verify-submit:cloning");
         return;
       }
 
@@ -414,7 +484,7 @@ export function SunoVoiceVerifyFlow({
     }
   }
 
-  function handleRetryPrepare() {
+  function runPrepare(restart: boolean, debugReason: string) {
     if (!sampleId || isRetryingPrepare) {
       return;
     }
@@ -429,7 +499,7 @@ export function SunoVoiceVerifyFlow({
     void queryClient.removeQueries({ queryKey: ["suno-voice-status", sampleId] });
 
     void apiRef.current.voiceSamples
-      .prepareSunoVoice(sampleId, { restart: true })
+      .prepareSunoVoice(sampleId, restart ? { restart: true } : undefined)
       .then((next) => {
         setSample(next);
 
@@ -439,12 +509,12 @@ export function SunoVoiceVerifyFlow({
         }
 
         if (isProcessingStatus(next.voiceCloneStatus)) {
-          startPolling();
+          startPolling(debugReason);
           return;
         }
 
         if (next.voiceCloneStatus === "awaiting_verification") {
-          startPolling();
+          startPolling(`${debugReason}:awaiting`);
         }
       })
       .catch((retryError) => setError(parseApiError(retryError, VOICE_SETUP_ERROR)))
@@ -455,6 +525,46 @@ export function SunoVoiceVerifyFlow({
           bootstrappedSampleIdRef.current = sampleId;
         }
       });
+  }
+
+  function handleStartPrepare() {
+    // #region agent log
+    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
+      body: JSON.stringify({
+        sessionId: "543522",
+        hypothesisId: "A-fix",
+        location: "suno-voice-verify-flow.tsx:handleStartPrepare",
+        message: "start prepare clicked",
+        data: { sampleId },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    runPrepare(false, "start-prepare:processing");
+  }
+
+  function handleRetryPrepare() {
+    // #region agent log
+    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
+      body: JSON.stringify({
+        sessionId: "543522",
+        hypothesisId: "D",
+        location: "suno-voice-verify-flow.tsx:handleRetryPrepare",
+        message: "retry prepare clicked",
+        data: { sampleId, isRetryingPrepare },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    if (!sampleId || isRetryingPrepare) {
+      return;
+    }
+
+    runPrepare(true, "retry-prepare:processing");
   }
 
   function handleStopVerification() {
@@ -525,30 +635,33 @@ export function SunoVoiceVerifyFlow({
     isSubmitting ||
     isCancelling ||
     isProcessingStatus(resolvedSample?.voiceCloneStatus ?? "pending");
-  const displayError =
-    error ??
-    pollError ??
-    (resolvedSample?.voiceCloneStatus === "failed"
-      ? resolvedSample.voiceCloneError ?? "Не удалось создать голос AI Music"
-      : null);
+  const isReady = resolvedSample ? isVoiceSampleReadyForGeneration(resolvedSample) : false;
+  const showWaitingPanel = isBootstrapping || isWaitingForSuno;
+  const displayError = showWaitingPanel
+    ? null
+    : error ??
+      pollError ??
+      (resolvedSample?.voiceCloneStatus === "failed"
+        ? resolvedSample.voiceCloneError ?? "Не удалось создать голос AI Music"
+        : null);
   const showFailedActions = Boolean(displayError);
   const showStuckActions = isWaitingForSuno && waitElapsedSec >= STUCK_WAIT_SEC;
   const needsReverify = resolvedSample
     ? needsPersonaReverification(resolvedSample)
     : false;
+  const showStartVerification =
+    resolvedSample?.voiceCloneStatus === "pending" && !showWaitingPanel && !isReady;
   const showRecoveryActions =
     showFailedActions ||
     showStuckActions ||
     needsReverify ||
     (resolvedSample ? isRecoverableVoiceCloneFailure(resolvedSample) : false);
   const showVoiceMismatchHint = isVoiceMismatchMessage(displayError);
-  const showWaitingPanel = isBootstrapping || isWaitingForSuno;
   const waitingLabel = isBootstrapping
     ? "Подготовка AI-Voice..."
     : isSubmitting
       ? "Отправляем запись верификации в AI Music..."
       : resolveStatusLabel(resolvedSample);
-  const isReady = resolvedSample ? isVoiceSampleReadyForGeneration(resolvedSample) : false;
 
   const shellContent = (
     <div className={formClassName}>
@@ -640,6 +753,19 @@ export function SunoVoiceVerifyFlow({
             <Link className={appShell.formSubmit} href="/music-create">
               Перейти к созданию трека
             </Link>
+          </div>
+        ) : null}
+
+        {showStartVerification ? (
+          <div className={voiceUi.formActions}>
+            <button
+              className={appShell.formSubmit}
+              disabled={isBootstrapping || isRetryingPrepare}
+              type="button"
+              onClick={handleStartPrepare}
+            >
+              {isRetryingPrepare ? "Запуск..." : "Начать верификацию"}
+            </button>
           </div>
         ) : null}
 
