@@ -29,29 +29,47 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
   const [isLoading, setIsLoading] = useState(true);
   const [showUploadForm, setShowUploadForm] = useState(true);
 
-  const reloadSample = useCallback(async () => {
+  const loadLatestSample = useCallback(async (isCancelled: () => boolean) => {
     if (!authReady) {
-      setIsLoading(false);
+      if (!isCancelled()) {
+        setIsLoading(false);
+      }
       return;
     }
 
-    setIsLoading(true);
+    if (!isCancelled()) {
+      setIsLoading(true);
+    }
 
     try {
       const samples = await api.voiceSamples.list();
+      if (isCancelled()) {
+        return;
+      }
+
       const latest = samples[0] ?? null;
       setSample(latest);
       setShowUploadForm(!latest || latest.voiceCloneStatus === "failed");
     } catch {
-      setSample(null);
+      if (!isCancelled()) {
+        setSample(null);
+      }
     } finally {
-      setIsLoading(false);
+      if (!isCancelled()) {
+        setIsLoading(false);
+      }
     }
   }, [api, authReady]);
 
   useEffect(() => {
-    void reloadSample();
-  }, [reloadSample]);
+    let cancelled = false;
+
+    void Promise.resolve().then(() => loadLatestSample(() => cancelled));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadLatestSample]);
 
   function handleUploadSuccess(sampleId: string) {
     setShowUploadForm(false);
@@ -67,8 +85,8 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
   }
 
   const handleVoiceReady = useCallback(() => {
-    void reloadSample();
-  }, [reloadSample]);
+    void loadLatestSample(() => false);
+  }, [loadLatestSample]);
 
   const handleRecordNewSample = useCallback(() => {
     setShowUploadForm(true);
@@ -135,21 +153,30 @@ export function VoiceCreationPanel({ variant = "landing" }: VoiceCreationPanelPr
       ) : null}
 
       {sample ? (
-        <button
-          aria-controls="voice-upload-form-panel"
-          aria-expanded={showUploadForm ? "true" : "false"}
-          className={cn(
-            voiceUi.uploadFormToggle,
-            showUploadForm && voiceUi.uploadFormToggleActive,
-          )}
-          type="button"
-          onClick={toggleUploadForm}
-        >
-          Добавить новый образец
-        </button>
+        showUploadForm ? (
+          <button
+            aria-controls="voice-upload-form-panel"
+            aria-expanded="true"
+            className={cn(voiceUi.uploadFormToggle, voiceUi.uploadFormToggleActive)}
+            type="button"
+            onClick={toggleUploadForm}
+          >
+            Добавить новый образец
+          </button>
+        ) : (
+          <button
+            aria-controls="voice-upload-form-panel"
+            aria-expanded="false"
+            className={voiceUi.uploadFormToggle}
+            type="button"
+            onClick={toggleUploadForm}
+          >
+            Добавить новый образец
+          </button>
+        )
       ) : null}
 
-      <div hidden={Boolean(sample) && !showUploadForm} id={sample ? "voice-upload-form-panel" : undefined}>
+      <div hidden={Boolean(sample) && !showUploadForm} id="voice-upload-form-panel">
         {showUploadForm || !sample ? (
           <VoiceUploadPanel
             embedded
