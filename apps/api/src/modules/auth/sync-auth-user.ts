@@ -1,5 +1,5 @@
 import { prisma } from "@ai-music/db";
-import { FREE_DEMO_CREDITS } from "@ai-music/shared";
+import { FREE_DEMO_CREDIT_UNITS } from "@ai-music/shared";
 import type { AuthIdentity } from "./types.js";
 
 export async function syncAuthUser(identity: AuthIdentity) {
@@ -39,7 +39,7 @@ export async function syncAuthUser(identity: AuthIdentity) {
       data: {
         userId: user.id,
         type: "purchase",
-        amount: FREE_DEMO_CREDITS,
+        amountUnits: FREE_DEMO_CREDIT_UNITS,
         reason: "free_demo",
       },
     });

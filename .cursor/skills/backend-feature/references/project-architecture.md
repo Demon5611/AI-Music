@@ -93,7 +93,7 @@ Implementation: `packages/db/src/credits-ledger.ts` — `spendCredits`, `refundC
 
 - API: `apps/api/src/modules/credits/service.ts` wraps ledger + maps errors to `InsufficientCreditsError`.
 - Worker: `refundCredits` from `@ai-music/db` on processor failure.
-- Balance = `SUM(amount)` append-only; no mutable balance column on `User`.
+- Balance = `SUM(amount_units) / 1000` append-only; no mutable balance column on `User`.
 
 ## Queue
 

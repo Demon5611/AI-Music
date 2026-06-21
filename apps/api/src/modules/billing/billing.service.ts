@@ -3,6 +3,7 @@ import { grantCredits } from "@ai-music/db";
 import {
   PAID_PLAN_IDS,
   PLANS,
+  creditsToUnits,
   type PaidPlanId,
   type PlanId,
 } from "@ai-music/shared";
@@ -224,12 +225,12 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   }
 
   const planId = resolveSubscriptionPlanIdFromInvoice(invoice, subscription.planId);
-  const credits = PLANS[planId].monthlyCredits;
+  const creditUnits = creditsToUnits(PLANS[planId].monthlyCredits);
   const periodStart = invoice.period_start ?? Math.floor(Date.now() / 1000);
 
   await grantCredits(
     subscription.userId,
-    credits,
+    creditUnits,
     `subscription_grant:${planId}:${periodStart}`,
     invoice.id,
   );

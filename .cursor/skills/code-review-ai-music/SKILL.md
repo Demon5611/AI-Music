@@ -44,7 +44,7 @@ Apply on every review:
 
 - [ ] Cost from shared constants, not hardcoded in one file
 - [ ] Refund path on every failure branch after spend
-- [ ] `creditsCost` stored on job for accurate refund amount
+- [ ] `creditsCostUnits` stored on job for accurate refund amount
 
 ## Suno Voice persona checklist (если PR трогает voice / music generate)
 

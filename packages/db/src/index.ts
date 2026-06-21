@@ -18,8 +18,11 @@ export type {
 } from "@prisma/client";
 export {
   getCreditsBalance,
+  getCreditsBalanceUnits,
   grantCredits,
   InsufficientCreditsLedgerError,
   refundCredits,
+  refundCreditsOnce,
   spendCredits,
+  spendCreditsOnce,
 } from "./credits-ledger.js";

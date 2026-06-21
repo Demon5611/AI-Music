@@ -83,8 +83,9 @@ export interface CreditTransaction {
   id: string;
   userId: string;
   type: CreditTransactionType;
-  amount: number;
+  amountUnits: number;
   reason: string;
+  idempotencyKey: string | null;
   stripePaymentId: string | null;
   createdAt: string;
 }

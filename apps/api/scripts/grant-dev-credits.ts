@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import { resolve } from "node:path";
 import { getCreditsBalance, grantCredits, prisma } from "@ai-music/db";
+import { creditsToUnits } from "@ai-music/shared";
 
 config({ path: resolve(import.meta.dirname, "../../../.env") });
 
@@ -38,7 +39,7 @@ async function main(): Promise<void> {
   }
 
   const balanceBefore = await getCreditsBalance(user.id);
-  await grantCredits(user.id, amount, "manual_dev_grant");
+  await grantCredits(user.id, creditsToUnits(amount), "manual_dev_grant");
   const balanceAfter = await getCreditsBalance(user.id);
 
   console.log(

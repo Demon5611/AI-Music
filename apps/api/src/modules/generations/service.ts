@@ -1,6 +1,6 @@
 import { prisma } from "@ai-music/db";
 import {
-  GENERATION_CREDIT_COST,
+  OPERATION_COST_UNITS,
   type CreateGenerationInput,
 } from "@ai-music/shared";
 import { ForbiddenError, NotFoundError } from "../../common/errors.js";
@@ -31,7 +31,7 @@ export async function createGenerationJob(
 
   await assertMaxDuration(userId, input.duration);
 
-  await spendCredits(userId, GENERATION_CREDIT_COST, "generation_start");
+  await spendCredits(userId, OPERATION_COST_UNITS.generateTrack, "generation_start");
 
   const job = await prisma.generationJob.create({
     data: {
@@ -41,7 +41,7 @@ export async function createGenerationJob(
       style: input.style,
       durationSec: input.duration,
       status: "pending",
-      creditsCost: GENERATION_CREDIT_COST,
+      creditsCostUnits: OPERATION_COST_UNITS.generateTrack,
     },
   });
 
@@ -65,7 +65,7 @@ export async function createGenerationJob(
     });
     await refundCredits(
       userId,
-      GENERATION_CREDIT_COST,
+      OPERATION_COST_UNITS.generateTrack,
       `enqueue_failed:${job.id}`,
     );
     throw error;

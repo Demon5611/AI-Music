@@ -10,10 +10,12 @@ description: Implements credits ledger, spending, refunds, and Stripe billing fo
 Credits are an **append-only ledger** (`CreditTransaction`), not a mutable balance column.
 
 ```txt
-balance(userId) = SUM(credit_transactions.amount) WHERE user_id = userId
+balanceUnits(userId) = SUM(credit_transactions.amount_units) WHERE user_id = userId
+displayCredits = balanceUnits / 1000
 ```
 
-Types: `purchase`, `spend`, `refund`. Amount: positive = credit, negative = debit.
+Types: `purchase`, `spend`, `refund`. `amount_units`: positive = credit, negative = debit.
+Use nullable unique `idempotency_key` for retry-safe spend/refund operations.
 
 Implementation:
 
@@ -23,23 +25,27 @@ Implementation:
 
 ## Constants
 
-Single source: `packages/shared/src/constants/index.ts`
+Single source: `packages/shared/src/constants/credits-economy.ts`
 
-- `FREE_DEMO_CREDITS` — on first user sync
-- `GENERATION_CREDIT_COST` — full generation pipeline
+- `CREDIT_UNIT_SCALE = 1000`
+- `OPERATION_COST_UNITS` — Suno operation costs
+- `FREE_DEMO_CREDITS = 50`, `FREE_DEMO_CREDIT_UNITS = 50000`
 - `VOICE_CONVERSION_CREDIT_COST` — standalone conversion
 - `CREDIT_PACKAGES` — Stripe package ids
 
-Change costs here only; do not duplicate magic numbers in routes.
+Change Suno costs here only; do not duplicate magic numbers in routes.
 
 ## Spend / refund rules
 
-1. **Spend inside DB transaction** with balance check (`spendCredits`).
+1. **Spend units inside DB transaction** with balance check (`spendCredits`).
 2. Spend at **job start** (after validation), not on frontend click alone.
 3. **Refund on failure** with explicit reason: `generation_failed:{jobId}`, `enqueue_failed:{jobId}`.
 4. Never accept credit amount from client body.
 
 Example flow: `apps/api/src/modules/generations/service.ts` — spend → create job → enqueue; refund if enqueue fails. Worker refunds on processor failure.
+
+Suno MVP costs: Generate Text 400, Generate Track 12000, Stem Separation 10000,
+Replace Section 5000, WAV Export 400. Render version MP3 is local ffmpeg and free in MVP.
 
 ## Stripe (target flow)
 

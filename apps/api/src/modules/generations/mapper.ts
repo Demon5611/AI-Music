@@ -1,4 +1,5 @@
 import type { GenerationJob as GenerationJobDto } from "@ai-music/shared";
+import { unitsToCredits } from "@ai-music/shared";
 import type { GenerationJob } from "@ai-music/db";
 
 export function toGenerationJobDto(job: GenerationJob): GenerationJobDto {
@@ -13,7 +14,7 @@ export function toGenerationJobDto(job: GenerationJob): GenerationJobDto {
     status: job.status as GenerationJobDto["status"],
     errorMessage: job.errorMessage,
     providerJobId: job.providerJobId,
-    creditsCost: job.creditsCost,
+    creditsCost: unitsToCredits(job.creditsCostUnits),
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   };

@@ -18,11 +18,13 @@ import {
   FREE_TIER_DEFAULT_COMBO_STYLE,
   FREE_TIER_DEFAULT_DURATION_SEC,
   formatDurationOptionLabel,
-  GENERATION_CREDIT_COST,
+  formatCreditsFromUnits,
   getDurationOptionsForPlan,
   isComboStylePreset,
   isDurationAllowedForPlan,
   isVocalGender,
+  OPERATION_COST_UNITS,
+  unitsToCredits,
   VOCAL_GENDER_LABELS,
 } from "@ai-music/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -85,7 +87,8 @@ export function MusicCreateMusicStep({
     subscriptionQuery.data?.entitlements.features.musicGeneration === "simplified";
   const allowedDurationOptions = getDurationOptionsForPlan(planId);
   const creditsBalance = subscriptionQuery.data?.creditsBalance ?? 0;
-  const hasEnoughCredits = creditsBalance >= GENERATION_CREDIT_COST;
+  const generationCostCredits = unitsToCredits(OPERATION_COST_UNITS.generateTrack);
+  const hasEnoughCredits = creditsBalance >= generationCostCredits;
   const [durationNotice, setDurationNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -222,7 +225,8 @@ export function MusicCreateMusicStep({
       </label>
 
       <p className={mc.generationCostHint}>
-        Стоимость генерации: {GENERATION_CREDIT_COST} credits. Баланс: {creditsBalance}.
+        Стоимость генерации: {formatCreditsFromUnits(OPERATION_COST_UNITS.generateTrack)} credits.
+        Баланс: {creditsBalance}.
         {!hasEnoughCredits ? (
           <>
             {" "}

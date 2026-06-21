@@ -3,6 +3,7 @@ import {
   resolveMusicProviderConfig,
   resolveMusicProviderId,
 } from "@ai-music/ai-providers";
+import { randomUUID } from "node:crypto";
 import type { GenerateSongInput } from "@ai-music/ai-providers";
 import {
   buildSongRecordInput,
@@ -19,10 +20,9 @@ import {
   resolveMusicPersonaForUser,
   type MusicGenerateLogger,
 } from "./music-persona.js";
-import { ForbiddenError, BadRequestError } from "../../common/errors.js";
-import { refundCredits, spendCredits } from "../credits/service.js";
+import { BadRequestError, ForbiddenError, NotFoundError } from "../../common/errors.js";
+import { refundCredits, refundCreditsOnce, spendCredits } from "../credits/service.js";
 import {
-  assertFeature,
   assertMaxDuration,
   assertMusicGenerationMode,
   getUserEntitlements,
@@ -31,8 +31,8 @@ import {
   buildDurationAwareLyricsGenerationPrompt,
   checkContentAllowed,
   CONTENT_MODERATION_ERROR_RU,
-  GENERATION_CREDIT_COST,
   isVocalGender,
+  OPERATION_COST_UNITS,
   resolveEffectiveDurationSecForPlan,
   resolveLyricsBriefMaxLength,
   resolveLyricsDurationSecForPlan,
@@ -40,7 +40,7 @@ import {
   SUNO_LYRICS_PROMPT_MAX_LENGTH,
   truncateLyricsForDuration,
 } from "@ai-music/shared";
-import { prisma } from "@ai-music/db";
+import { prisma, Prisma } from "@ai-music/db";
 
 const musicService = createMusicService();
 const CONTENT_MODERATION_ERROR_CODE = "CONTENT_MODERATION";
@@ -121,7 +121,7 @@ export async function generateMusicForUser(
     "Submitting Suno music generation with persona",
   );
 
-  await spendCredits(userId, GENERATION_CREDIT_COST, "music_generate");
+  await spendCredits(userId, OPERATION_COST_UNITS.generateTrack, "music_generate");
 
   try {
     const result = await musicService.generateSong(songInput);
@@ -138,7 +138,7 @@ export async function generateMusicForUser(
   } catch (error) {
     await refundCredits(
       userId,
-      GENERATION_CREDIT_COST,
+      OPERATION_COST_UNITS.generateTrack,
       `music_generate_failed:${userId}`,
     ).catch(() => undefined);
     throw error;
@@ -224,14 +224,32 @@ export async function generateLyricsForUser(
 
   assertModerationForNonEmptyText(providerPrompt);
 
-  const result = await musicService.generateLyrics({ prompt: providerPrompt });
+  const spendReason = `lyrics_generate:${randomUUID()}`;
+  await spendCredits(userId, OPERATION_COST_UNITS.generateText, spendReason);
 
-  return {
-    provider: result.provider,
-    taskId: result.taskId,
-    status: result.status,
-    lyricsDurationSec,
-  };
+  try {
+    const result = await musicService.generateLyrics({ prompt: providerPrompt });
+    await createMusicGenerationRecord({
+      userId,
+      type: "lyrics",
+      providerTaskId: result.taskId,
+      prompt: trimmedPrompt,
+    });
+
+    return {
+      provider: result.provider,
+      taskId: result.taskId,
+      status: result.status,
+      lyricsDurationSec,
+    };
+  } catch (error) {
+    await refundCredits(
+      userId,
+      OPERATION_COST_UNITS.generateText,
+      `lyrics_generate_failed:${spendReason}`,
+    ).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function getLyricsGenerationStatus(
@@ -244,6 +262,15 @@ export async function getLyricsGenerationStatus(
     entitlements.planId,
     durationSec ?? 0,
   );
+
+  const record = await prisma.musicGeneration.findUnique({
+    where: { providerTaskId: taskId },
+    select: { id: true, userId: true },
+  });
+
+  if (!record || record.userId !== userId) {
+    throw new NotFoundError("Lyrics generation not found");
+  }
 
   const status = await musicService.getLyricsGenerationStatus(taskId);
   const hasBlockedLyrics =
@@ -259,14 +286,35 @@ export async function getLyricsGenerationStatus(
           ...item,
           text: truncateLyricsForDuration(item.text, lyricsDurationSec),
         }));
+  const finalStatus = moderationBlocked ? "failed" : status.status;
+  const finalRawStatus = moderationBlocked ? "CONTENT_MODERATION" : status.rawStatus;
+  const finalErrorMessage = moderationBlocked ? CONTENT_MODERATION_ERROR_RU : status.errorMessage;
+
+  await prisma.musicGeneration.update({
+    where: { id: record.id },
+    data: {
+      status: finalStatus,
+      rawStatus: finalRawStatus ?? null,
+      errorMessage: finalErrorMessage ?? null,
+      lyricsResult: lyrics ? (lyrics as unknown as Prisma.InputJsonValue) : undefined,
+    },
+  });
+
+  if (finalStatus === "failed") {
+    await refundCreditsOnce(
+      userId,
+      OPERATION_COST_UNITS.generateText,
+      `lyrics_refund:${taskId}`,
+    ).catch(() => undefined);
+  }
 
   return {
     taskId: status.taskId,
-    status: moderationBlocked ? "failed" : status.status,
+    status: finalStatus,
     provider: status.provider,
-    rawStatus: moderationBlocked ? "CONTENT_MODERATION" : status.rawStatus,
+    rawStatus: finalRawStatus,
     lyrics,
-    errorMessage: moderationBlocked ? CONTENT_MODERATION_ERROR_RU : status.errorMessage,
+    errorMessage: finalErrorMessage,
     lyricsDurationSec,
   };
 }

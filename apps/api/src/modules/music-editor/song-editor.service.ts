@@ -1,11 +1,9 @@
 import { createMusicService, downloadUrl, type StemResult } from "@ai-music/ai-providers";
 import { prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
-import { spendCredits } from "../credits/service.js";
-import {
-  assertFeature,
-} from "../billing/entitlements.service.js";
-import { STEM_SEPARATION_CREDIT_COST } from "@ai-music/shared";
+import { refundCreditsOnce, spendCreditsOnce } from "../credits/service.js";
+import { assertFeature } from "../billing/entitlements.service.js";
+import { OPERATION_COST_UNITS } from "@ai-music/shared";
 import { buildSongStemKey, getStorageService } from "../storage/storage.service.js";
 import { buildDefaultRegions, type SongVersionWithOperations } from "./song-editor.mapper.js";
 import {
@@ -158,14 +156,26 @@ export async function kickoffStemSeparation(userId: string, songId: string) {
   }
 
   await assertFeature(userId, "stemSeparation");
-  await spendCredits(userId, STEM_SEPARATION_CREDIT_COST, `stem_separation:${song.id}`);
+  const spendReason = `stem_separation:${song.id}`;
+  const charged = await spendCreditsOnce(
+    userId,
+    OPERATION_COST_UNITS.stemSeparation,
+    spendReason,
+  );
 
   const musicService = createMusicService();
-  const started = await musicService.separateStems({
-    providerTaskId: song.providerTaskId,
-    providerTrackId: song.providerTrackId,
-    separationType: "separate_vocal",
-  });
+  const started = await musicService
+    .separateStems({
+      providerTaskId: song.providerTaskId,
+      providerTrackId: song.providerTrackId,
+      separationType: "separate_vocal",
+    })
+    .catch(async (error) => {
+      if (charged) {
+        await refundStemSeparation(userId, song.id);
+      }
+      throw error;
+    });
 
   return prisma.song.update({
     where: { id: song.id },
@@ -212,6 +222,7 @@ export async function tickStemSeparation(userId: string, songId: string) {
       song,
       buildStemSeparationFallbackNotice("Превышено время ожидания AI Music"),
     );
+    await refundStemSeparation(userId, song.id);
     return getSongForUser(userId, songId);
   }
 
@@ -228,6 +239,7 @@ export async function tickStemSeparation(userId: string, songId: string) {
       song,
       buildStemSeparationFallbackNotice(result.errorMessage),
     );
+    await refundStemSeparation(userId, song.id);
     return getSongForUser(userId, songId);
   }
 
@@ -241,11 +253,20 @@ export async function tickStemSeparation(userId: string, songId: string) {
       song,
       buildStemSeparationFallbackNotice("AI Music не вернул ссылки на дорожки"),
     );
+    await refundStemSeparation(userId, song.id);
     return getSongForUser(userId, songId);
   }
 
   await persistStemResult(userId, songId, result);
   return getSongForUser(userId, songId);
+}
+
+async function refundStemSeparation(userId: string, songId: string): Promise<void> {
+  await refundCreditsOnce(
+    userId,
+    OPERATION_COST_UNITS.stemSeparation,
+    `stem_separation_refund:${songId}`,
+  ).catch(() => undefined);
 }
 
 async function persistStemResult(userId: string, songId: string, result: StemResult) {

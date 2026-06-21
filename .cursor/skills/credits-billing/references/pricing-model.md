@@ -1,5 +1,18 @@
 # Pricing model reference
 
+## Source of truth
+
+Full economy spec: [docs/credits-economy-suno.md](../../../../docs/credits-economy-suno.md).
+
+Ledger stores **units**, not display credits:
+
+```txt
+1 credit = 1000 units
+0.4 credit = 400 units
+```
+
+Operation constants live in `packages/shared/src/constants/credits-economy.ts`.
+
 ## Credit packages
 
 Defined in `packages/shared/src/constants/index.ts`:
@@ -10,25 +23,25 @@ Defined in `packages/shared/src/constants/index.ts`:
 | `creator`  | 200     | Creator |
 | `pro`      | 1000    | Pro     | -->
 
-Free tier: `FREE_DEMO_CREDITS = 30` on first auth sync (`sync-auth-user.ts`).
+Free tier: `FREE_DEMO_CREDITS = 50` on first auth sync (`sync-auth-user.ts`).
 
 ## Operation costs
 
-| Operation                                            | Constant                       | Default |
-| ---------------------------------------------------- | ------------------------------ | ------- |
-| Full generation (voice + song + conversion + upload) | `GENERATION_CREDIT_COST`       | 10      |
-| Suno music generate (`/api/music/generate`)          | `GENERATION_CREDIT_COST`       | 10      |
-| Voice conversion only                                | `VOICE_CONVERSION_CREDIT_COST` | 5       |
-| Suno voice prepare (онбординг)                      | `VOICE_CLONE_PREPARE_CREDIT_COST` | 0 (бесплатно) |
-| Suno voice verify (онбординг)                      | `VOICE_CLONE_VERIFY_CREDIT_COST`  | 0 (бесплатно) |
+| Operation | Constant | Units | Display credits |
+| --- | --- | ---: | ---: |
+| Generate Text | `OPERATION_COST_UNITS.generateText` | 400 | 0.4 |
+| Generate Track | `OPERATION_COST_UNITS.generateTrack` | 12000 | 12 |
+| Stem Separation | `OPERATION_COST_UNITS.stemSeparation` | 10000 | 10 |
+| Replace Section | `OPERATION_COST_UNITS.replaceSection` | 5000 | 5 |
+| WAV Export | `OPERATION_COST_UNITS.wavExport` | 400 | 0.4 |
 
-Store per-job cost in `GenerationJob.creditsCost` for accurate refunds.
+Store per-job cost in `GenerationJob.creditsCostUnits` for accurate refunds.
 
 ## Billing principles
 
-1. **Fixed cost per operation** — predictable UX on pricing page.
+1. **Fixed cost per operation** in units — predictable UX on pricing page.
 2. **Refund on provider/worker failure** — user should not pay for failed jobs.
-3. **No partial refunds** in MVP — full `creditsCost` refunded on job failure.
+3. **No partial refunds** in MVP — full `creditsCostUnits` refunded on job failure.
 4. **Reserve at start** — spend credits when job is accepted, not when completed.
 
 ## Stripe mapping (planned)

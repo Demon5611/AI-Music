@@ -27,20 +27,20 @@ model User {
 }
 
 model VoiceSample {
-  id               String   @id @default(cuid())
-  userId           String   @map("user_id")
-  r2Key            String   @map("r2_key")
-  durationSec      Int      @map("duration_sec")
-  status           String   @default("pending")
-  consentConfirmed Boolean  @default(false) @map("consent_confirmed")
-  sunoVoiceId      String?  @map("suno_voice_id")
-  sunoVoiceTaskId  String?  @map("suno_voice_task_id")
-  sunoValidatePhrase String? @map("suno_validate_phrase")
-  voiceCloneStatus String   @default("pending") @map("voice_clone_status")
-  voiceCloneError  String?  @map("voice_clone_error")
-  voiceCloneStartedAt DateTime? @map("voice_clone_started_at")
-  sunoValidateRegenCount Int @default(0) @map("suno_validate_regen_count")
-  createdAt        DateTime @default(now()) @map("created_at")
+  id                     String    @id @default(cuid())
+  userId                 String    @map("user_id")
+  r2Key                  String    @map("r2_key")
+  durationSec            Int       @map("duration_sec")
+  status                 String    @default("pending")
+  consentConfirmed       Boolean   @default(false) @map("consent_confirmed")
+  sunoVoiceId            String?   @map("suno_voice_id")
+  sunoVoiceTaskId        String?   @map("suno_voice_task_id")
+  sunoValidatePhrase     String?   @map("suno_validate_phrase")
+  voiceCloneStatus       String    @default("pending") @map("voice_clone_status")
+  voiceCloneError        String?   @map("voice_clone_error")
+  voiceCloneStartedAt    DateTime? @map("voice_clone_started_at")
+  sunoValidateRegenCount Int       @default(0) @map("suno_validate_regen_count")
+  createdAt              DateTime  @default(now()) @map("created_at")
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   generationJobs GenerationJob[]
@@ -67,19 +67,19 @@ model Track {
 }
 
 model GenerationJob {
-  id            String   @id @default(cuid())
-  userId        String   @map("user_id")
-  voiceSampleId String   @map("voice_sample_id")
-  trackId       String?  @map("track_id")
-  prompt        String
-  style         String
-  durationSec   Int      @map("duration_sec")
-  status        String   @default("pending")
-  errorMessage  String?  @map("error_message")
-  providerJobId String?  @map("provider_job_id")
-  creditsCost   Int      @map("credits_cost")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  voiceSampleId    String   @map("voice_sample_id")
+  trackId          String?  @map("track_id")
+  prompt           String
+  style            String
+  durationSec      Int      @map("duration_sec")
+  status           String   @default("pending")
+  errorMessage     String?  @map("error_message")
+  providerJobId    String?  @map("provider_job_id")
+  creditsCostUnits Int      @map("credits_cost_units")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   voiceSample VoiceSample @relation(fields: [voiceSampleId], references: [id])
@@ -152,12 +152,12 @@ model Song {
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
-  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sourceTrack  MusicGenerationTrack  @relation(fields: [sourceTrackId], references: [id], onDelete: Cascade)
-  stems        SongStem[]
-  regions      SongRegion[]
-  versions     SongVersion[]
-  renderJobs   RenderJob[]
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceTrack MusicGenerationTrack @relation(fields: [sourceTrackId], references: [id], onDelete: Cascade)
+  stems       SongStem[]
+  regions     SongRegion[]
+  versions    SongVersion[]
+  renderJobs  RenderJob[]
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("songs")
@@ -244,8 +244,9 @@ model CreditTransaction {
   id              String   @id @default(cuid())
   userId          String   @map("user_id")
   type            String
-  amount          Int
+  amountUnits     Int      @map("amount_units")
   reason          String
+  idempotencyKey  String?  @unique @map("idempotency_key")
   stripePaymentId String?  @unique @map("stripe_payment_id")
   createdAt       DateTime @default(now()) @map("created_at")
 

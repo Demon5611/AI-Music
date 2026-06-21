@@ -7,8 +7,6 @@ export const MUSIC_STYLES = [
   { id: "acoustic", label: "Acoustic" },
 ] as const;
 
-export const GENERATION_CREDIT_COST = 10;
-
 export const VOICE_CONVERSION_CREDIT_COST = 5;
 
 /** Онбординг голоса — бесплатно. */
@@ -17,12 +15,6 @@ export const VOICE_CLONE_PREPARE_CREDIT_COST = 0;
 /** Онбординг голоса — бесплатно. */
 export const VOICE_CLONE_VERIFY_CREDIT_COST = 0;
 
-export const FREE_DEMO_CREDITS = 30;
-
-export const STEM_SEPARATION_CREDIT_COST = 5;
-
-export const WAV_EXPORT_CREDIT_COST = 3;
-
 /** @deprecated Use PLANS from ./plans.js for subscription tiers. */
 export const CREDIT_PACKAGES = {
   starter: { credits: 50, label: "Starter" },
@@ -30,6 +22,7 @@ export const CREDIT_PACKAGES = {
   pro: { credits: 1000, label: "Pro" },
 } as const;
 
+export * from "./credits-economy.js";
 export * from "./plans.js";
 export * from "./music-combo-styles.js";
 export * from "./music-duration.js";

@@ -48,7 +48,7 @@ export async function processGenerationJob(
     await updateJobStatus(payload.jobId, "failed", message);
     await refundCredits(
       payload.userId,
-      job.creditsCost,
+      job.creditsCostUnits,
       `generation_failed:${payload.jobId}`,
     );
   }

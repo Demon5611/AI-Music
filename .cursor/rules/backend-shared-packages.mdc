@@ -27,9 +27,12 @@ alwaysApply: true
 
 Реализация: `packages/db/src/credits-ledger.ts` (`spendCredits`, `refundCredits`, `getCreditsBalance`).
 
+Ledger хранит `credit_transactions.amount_units`: `1 display credit = 1000 units`.
+Suno costs — только из `OPERATION_COST_UNITS` в `@ai-music/shared`.
+
 - API: `apps/api/src/modules/credits/service.ts` — thin wrapper, маппинг `InsufficientCreditsLedgerError` → `InsufficientCreditsError`.
 - Worker: импорт `refundCredits` из `@ai-music/db`, не inline `prisma.creditTransaction.create`.
-- Баланс = `SUM(amount)` append-only ledger, не колонка в `User`.
+- Баланс = `SUM(amount_units) / 1000` append-only ledger, не колонка в `User`.
 
 ## Kits — границы
 

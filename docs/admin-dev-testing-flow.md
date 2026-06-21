@@ -19,7 +19,7 @@ Auth          Clerk (+ опционально AUTH_DEV_MODE)
 Credits       append-only ledger   →  grantCredits / spendCredits / refundCredits
 Смена plan    Только Stripe checkout + webhook (updateSubscriptionPlan)
 Admin         Нет ролей, нет admin API/UI, нет audit log
-Новый user    syncAuthUser: plan free + FREE_DEMO_CREDITS (30) один раз
+Новый user    syncAuthUser: plan free + FREE_DEMO_CREDITS (50) один раз
 Free top-up   ensureFreeTierCredits: до 30 credits для старых free-пользователей
 ```
 
@@ -35,7 +35,8 @@ Free top-up   ensureFreeTierCredits: до 30 credits для старых free-п
 | Plan config | `packages/shared/src/constants/plans.ts` |
 | UI gating (пример) | `apps/web/src/features/music-create/components/music-create-music-step.tsx` |
 
-**Важно:** кнопка «Создать музыку» блокируется при `creditsBalance < GENERATION_CREDIT_COST`
+**Важно:** кнопка «Создать музыку» блокируется при балансе ниже
+`OPERATION_COST_UNITS.generateTrack / CREDIT_UNIT_SCALE`.
 (10 credits). Баланс 0 — не баг UI, а исчерпанный ledger.
 
 ---

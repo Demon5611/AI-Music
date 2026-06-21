@@ -24,14 +24,14 @@ async function main(): Promise<void> {
     const rows = await prisma.creditTransaction.findMany({
       where: { stripePaymentId: paymentId },
       orderBy: { createdAt: "asc" },
-      select: { id: true, amount: true, createdAt: true },
+      select: { id: true, amountUnits: true, createdAt: true },
     });
 
     const [, ...toDelete] = rows;
 
     for (const tx of toDelete) {
       await prisma.creditTransaction.delete({ where: { id: tx.id } });
-      console.log(`Deleted duplicate grant ${tx.id} for ${paymentId} (-${tx.amount})`);
+      console.log(`Deleted duplicate grant ${tx.id} for ${paymentId} (-${tx.amountUnits})`);
     }
   }
 

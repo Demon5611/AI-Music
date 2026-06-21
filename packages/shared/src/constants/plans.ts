@@ -1,3 +1,5 @@
+import { CREDIT_UNIT_SCALE, FULL_PRODUCTION_FLOW_UNITS } from "./credits-economy.js";
+
 export type PlanId = "free" | "starter" | "pro" | "creator";
 
 export type PaidPlanId = Exclude<PlanId, "free">;
@@ -51,14 +53,23 @@ export type BasicEditorOperation = (typeof BASIC_EDITOR_OPERATIONS)[number];
 export type AdvancedEditorOperation = (typeof ADVANCED_EDITOR_OPERATIONS)[number];
 export type EditorOperationType = BasicEditorOperation | AdvancedEditorOperation;
 
+function estimateFullProductionFlows(monthlyCredits: number): number {
+  return Math.floor((monthlyCredits * CREDIT_UNIT_SCALE) / FULL_PRODUCTION_FLOW_UNITS);
+}
+
+function estimateDemoProductionFlows(monthlyCredits: number): number {
+  const flows = (monthlyCredits * CREDIT_UNIT_SCALE) / FULL_PRODUCTION_FLOW_UNITS;
+  return Math.floor(flows * 10) / 10;
+}
+
 export const PLANS: Record<PlanId, PlanConfig> = {
   free: {
     id: "free",
     label: "Free",
     priceUsd: 0,
-    monthlyCredits: 30,
+    monthlyCredits: 50,
     maxTrackDurationSec: 60,
-    estimatedFlows: 1,
+    estimatedFlows: estimateDemoProductionFlows(50),
     features: {
       musicGeneration: "simplified",
       voiceReplace: true,
@@ -78,7 +89,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     priceUsd: 9,
     monthlyCredits: 150,
     maxTrackDurationSec: 120,
-    estimatedFlows: 5,
+    estimatedFlows: estimateFullProductionFlows(150),
     features: {
       musicGeneration: "full",
       voiceReplace: true,
@@ -98,7 +109,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     priceUsd: 19,
     monthlyCredits: 500,
     maxTrackDurationSec: 180,
-    estimatedFlows: 14,
+    estimatedFlows: estimateFullProductionFlows(500),
     features: {
       musicGeneration: "full",
       voiceReplace: true,
@@ -118,7 +129,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     priceUsd: 39,
     monthlyCredits: 1500,
     maxTrackDurationSec: 180,
-    estimatedFlows: 36,
+    estimatedFlows: estimateFullProductionFlows(1500),
     features: {
       musicGeneration: "full",
       voiceReplace: true,

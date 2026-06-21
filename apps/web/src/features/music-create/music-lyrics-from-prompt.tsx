@@ -4,13 +4,18 @@ import { parseApiError } from "@/shared/lib/parse-api-error";
 import type { MusicLyricsStatusResponseDto } from "@ai-music/shared";
 import {
   checkContentAllowed,
+  formatCreditsFromUnits,
   isVocalGender,
+  OPERATION_COST_UNITS,
   resolveLyricsBriefMaxLength,
   truncateLyricsForDuration,
+  unitsToCredits,
   VOCAL_GENDER_LABELS,
 } from "@ai-music/shared";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { AiProcessingStatus } from "@/shared/ui/elevenlabs/ai-processing-status";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
@@ -72,6 +77,7 @@ export function MusicLyricsFromPrompt({
 }: MusicLyricsFromPromptProps) {
   const api = useApi();
   const authReady = useAuthReady();
+  const subscriptionQuery = useSubscriptionQuery();
   const userQuery = useQuery({
     queryKey: ["users", "me"],
     queryFn: () => api.users.getMe(),
@@ -189,8 +195,12 @@ export function MusicLyricsFromPrompt({
     !isLyricsStatusTerminal(lyricsStatusQuery.data);
   const isBusy = isGenerating || isPolling;
   const lockedByManualLyrics = disabled && !isBusy;
+  const creditsBalance = subscriptionQuery.data?.creditsBalance ?? 0;
+  const lyricsCostCredits = unitsToCredits(OPERATION_COST_UNITS.generateText);
+  const hasEnoughCredits = creditsBalance >= lyricsCostCredits;
   const fieldDisabled = isBusy || disabled;
-  const canGenerate = configured && !fieldDisabled && lyricsBrief.trim().length > 0;
+  const canGenerate =
+    configured && !fieldDisabled && lyricsBrief.trim().length > 0 && hasEnoughCredits;
   const durationHint = lyricsDurationHint;
   const genderHint = vocalGender
     ? `Пол голоса: ${VOCAL_GENDER_LABELS[vocalGender]} — зафиксирован при записи образца и верификации.`
@@ -233,6 +243,18 @@ export function MusicLyricsFromPrompt({
         ) : null}
         <p className={cn(mc.meta, "mt-2")}>{durationHint}</p>
         <p className={cn(mc.meta, "mt-1")}>{genderHint}</p>
+        <p className={cn(mc.meta, "mt-1")}>
+          Стоимость текста: {formatCreditsFromUnits(OPERATION_COST_UNITS.generateText)} credits.
+          Баланс: {creditsBalance}.
+          {!hasEnoughCredits ? (
+            <>
+              {" "}
+              <Link className={mc.planNoticeLink} href="/pricing">
+                Пополнить на странице тарифов
+              </Link>
+            </>
+          ) : null}
+        </p>
       </label>
 
       <button

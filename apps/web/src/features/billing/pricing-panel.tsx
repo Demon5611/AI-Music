@@ -26,20 +26,17 @@ const PLAN_FEATURES: Record<PlanId, string[]> = {
     "Replace Sections",
     "WAV Export",
     "До 2 мин трек",
-    "≈ 5 полных production flows",
   ],
   pro: [
     "Music editor — Advanced",
     "Priority Queue",
     "Album Cover Generation",
     "2–3 мин трек",
-    "≈ 14 полных production flows",
   ],
   creator: [
     "Больше Voice Transfers",
     "Больше Stem Processing",
     "Продвинутый Editor",
-    "≈ 36 полных production flows",
   ],
 };
 
@@ -53,6 +50,18 @@ function formatDurationLimit(seconds: number): string {
   }
 
   return "2–3 мин";
+}
+
+function formatEstimatedFlows(planId: PlanId): string | null {
+  const flows = PLANS[planId].estimatedFlows;
+
+  if (flows === null) {
+    return null;
+  }
+
+  return planId === "free"
+    ? `≈ ${flows} production flows`
+    : `≈ ${flows} полных production flows`;
 }
 
 export function PricingPanel() {
@@ -125,12 +134,14 @@ export function PricingPanel() {
               </div>
 
               <ul className={pricing.featureList}>
-                {PLAN_FEATURES[planId].map((feature) => (
-                  <li key={feature} className={pricing.featureItem}>
-                    <span aria-hidden="true" className={pricing.featureBullet} />
-                    <span>{feature}</span>
-                  </li>
-                ))}
+                {[...PLAN_FEATURES[planId], formatEstimatedFlows(planId)]
+                  .filter((feature): feature is string => Boolean(feature))
+                  .map((feature) => (
+                    <li key={feature} className={pricing.featureItem}>
+                      <span aria-hidden="true" className={pricing.featureBullet} />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
               </ul>
 
               <div className={pricing.actionWrap}>
