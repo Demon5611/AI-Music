@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { consumeMusicCreateLyricsBriefDraft } from "@/shared/lib/music-create-prompt-transfer";
 import { MusicCreateLyricsStep } from "@/features/music-create/components/music-create-lyrics-step";
 import { MusicCreateMusicStep } from "@/features/music-create/components/music-create-music-step";
@@ -9,12 +9,14 @@ import { IconMusic } from "@/features/music-create/components/music-create-icons
 import { MusicCreateResults } from "@/features/music-create/components/music-create-results";
 import { useMusicGeneration } from "@/features/music-create/hooks/use-music-generation";
 import { useVoiceSampleSelection } from "@/features/music-create/hooks/use-voice-sample-selection";
+import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
 import { mc } from "@/features/music-create/music-create-classes";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { mp } from "@/shared/theme/music-page-classes";
 import {
   FREE_TIER_DEFAULT_COMBO_STYLE,
   FREE_TIER_DEFAULT_DURATION_SEC,
+  getDefaultDurationSecForPlan,
 } from "@ai-music/shared";
 
 const DEFAULT_TITLE = "Summer Friends";
@@ -23,6 +25,7 @@ type WizardStep = "lyrics" | "music";
 
 export function MusicCreatePanel() {
   const authReady = useAuthReady();
+  const subscriptionQuery = useSubscriptionQuery();
   const [wizardStep, setWizardStep] = useState<WizardStep>("lyrics");
   const [durationSec, setDurationSec] = useState(FREE_TIER_DEFAULT_DURATION_SEC);
   const [lyricsBrief, setLyricsBrief] = useState(
@@ -57,6 +60,14 @@ export function MusicCreatePanel() {
     loadError: voiceSamplesLoadError,
     selectedId: selectedVoiceSampleId,
   } = useVoiceSampleSelection(authReady);
+
+  useEffect(() => {
+    if (!subscriptionQuery.data) {
+      return;
+    }
+
+    setDurationSec(getDefaultDurationSecForPlan(subscriptionQuery.data.planId));
+  }, [subscriptionQuery.data?.planId]);
 
   const handleLyricsBriefChange = useCallback((value: string) => {
     setLyricsBrief(value);

@@ -4,7 +4,6 @@ import { parseApiError } from "@/shared/lib/parse-api-error";
 import type { MusicLyricsStatusResponseDto } from "@ai-music/shared";
 import {
   checkContentAllowed,
-  FREE_TIER_DEFAULT_DURATION_SEC,
   isVocalGender,
   resolveLyricsBriefMaxLength,
   truncateLyricsForDuration,
@@ -26,23 +25,12 @@ const LYRICS_POLL_INTERVAL_MS = 5_000;
 interface MusicLyricsFromPromptProps {
   configured: boolean;
   disabled?: boolean;
-  isSimplifiedGeneration: boolean;
   lockedHint?: string;
   lyricsBrief: string;
+  lyricsDurationHint: string;
   lyricsDurationSec: number;
   onLyricsBriefChange: (value: string) => void;
   onApply: (text: string, suggestedTitle?: string) => void;
-}
-
-function resolveLyricsDurationHint(
-  isSimplifiedGeneration: boolean,
-  lyricsDurationSec: number,
-): string {
-  if (isSimplifiedGeneration) {
-    return `На тарифе Free AI создаёт короткий текст только под ~${FREE_TIER_DEFAULT_DURATION_SEC} сек. На платных тарифах длина зависит от выбранной длительности трека.`;
-  }
-
-  return `AI создаст текст под ~${lyricsDurationSec} сек — длительность, которую вы выберете на следующем шаге.`;
 }
 
 function isLyricsStatusTerminal(data: MusicLyricsStatusResponseDto | undefined): boolean {
@@ -75,9 +63,9 @@ function resolvePollError(
 export function MusicLyricsFromPrompt({
   configured,
   disabled = false,
-  isSimplifiedGeneration,
   lockedHint,
   lyricsBrief,
+  lyricsDurationHint,
   lyricsDurationSec,
   onLyricsBriefChange,
   onApply,
@@ -203,9 +191,9 @@ export function MusicLyricsFromPrompt({
   const lockedByManualLyrics = disabled && !isBusy;
   const fieldDisabled = isBusy || disabled;
   const canGenerate = configured && !fieldDisabled && lyricsBrief.trim().length > 0;
-  const durationHint = resolveLyricsDurationHint(isSimplifiedGeneration, lyricsDurationSec);
+  const durationHint = lyricsDurationHint;
   const genderHint = vocalGender
-    ? `Пол голоса: ${VOCAL_GENDER_LABELS[vocalGender]} — зафиксирован при записи образца и верификации. AI подбирает глаголы в ${vocalGender === "f" ? "женском" : "мужском"} роде.`
+    ? `Пол голоса: ${VOCAL_GENDER_LABELS[vocalGender]} — зафиксирован при записи образца и верификации.`
     : "Пол голоса не указан — задайте его при записи образца на главной, чтобы AI подбирал род глаголов.";
 
   const briefTextarea = (

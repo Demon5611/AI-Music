@@ -10,7 +10,8 @@ import {
 import { cn } from "@/lib/utils";
 import {
   checkContentAllowed,
-  FREE_TIER_DEFAULT_DURATION_SEC,
+  buildLyricsDurationHint,
+  formatDurationHintSec,
   resolveLyricsDurationSecForPlan,
   resolveManualLyricsMaxLength,
 } from "@ai-music/shared";
@@ -49,6 +50,7 @@ export function MusicCreateLyricsStep({
   const isSimplifiedGeneration =
     subscriptionQuery.data?.entitlements.features.musicGeneration === "simplified";
   const lyricsDurationSec = resolveLyricsDurationSecForPlan(planId, durationSec);
+  const lyricsDurationHint = buildLyricsDurationHint(planId, durationSec);
   const manualLyricsMaxLength = resolveManualLyricsMaxLength(planId, durationSec);
   const hasLyricsBrief = lyricsBrief.trim().length > 0;
   const hasManualLyrics = prompt.trim().length > 0;
@@ -84,9 +86,9 @@ export function MusicCreateLyricsStep({
       <MusicLyricsFromPrompt
         configured={configured === true}
         disabled={isBusy || hasManualLyrics}
-        isSimplifiedGeneration={isSimplifiedGeneration}
         lockedHint={PROMPT_LYRICS_LOCKED_HINT}
         lyricsBrief={lyricsBrief}
+        lyricsDurationHint={lyricsDurationHint}
         lyricsDurationSec={lyricsDurationSec}
         onLyricsBriefChange={onLyricsBriefChange}
         onApply={onApplyGeneratedLyrics}
@@ -131,8 +133,8 @@ export function MusicCreateLyricsStep({
         )}
         <p className={cn(mc.meta, "mt-2")}>
           {isSimplifiedGeneration
-            ? `На Free — до ${manualLyricsMaxLength} символов (~${FREE_TIER_DEFAULT_DURATION_SEC} сек). На платных тарифах лимит растёт с длительностью трека.`
-            : `Лимит текста: ${manualLyricsMaxLength} символов (~${lyricsDurationSec} сек).`}
+            ? `На Free — до ${manualLyricsMaxLength} символов (${formatDurationHintSec(lyricsDurationSec)}). На платных тарифах лимит растёт с длительностью трека.`
+            : `Лимит текста: ${manualLyricsMaxLength} символов (${formatDurationHintSec(lyricsDurationSec)}).`}
         </p>
         {manualLyricsLocked ? (
           <p className={cn(mc.meta, "mt-1")} id="manual-lyrics-locked-hint">

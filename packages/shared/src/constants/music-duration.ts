@@ -44,3 +44,41 @@ export function formatDurationOptionLabel(durationSec: number, planId: PlanId): 
 
   return labels[durationSec] ?? `${durationSec} сек`;
 }
+
+export function getDefaultDurationSecForPlan(planId: PlanId): number {
+  if (PLANS[planId].features.musicGeneration === "simplified") {
+    return FREE_TIER_DEFAULT_DURATION_SEC;
+  }
+
+  return 0;
+}
+
+export function formatDurationHintSec(durationSec: number): string {
+  if (durationSec <= 60) {
+    return `~${durationSec} сек`;
+  }
+
+  if (durationSec <= 120) {
+    return "~2 мин";
+  }
+
+  return "~2–3 мин";
+}
+
+export function buildLyricsDurationHint(
+  planId: PlanId,
+  selectedDurationSec: number,
+): string {
+  const effectiveDurationSec = resolveEffectiveDurationSecForPlan(planId, selectedDurationSec);
+  const durationLabel = formatDurationHintSec(effectiveDurationSec);
+
+  if (PLANS[planId].features.musicGeneration === "simplified") {
+    return `На тарифе Free AI создаёт короткий текст только под ${durationLabel}. На платных тарифах длина зависит от выбранной длительности трека.`;
+  }
+
+  if (selectedDurationSec === 0) {
+    return `AI создаст текст под ${durationLabel} — максимум для вашего тарифа (режим Auto на следующем шаге).`;
+  }
+
+  return `AI создаст текст под ${durationLabel} — длительность, которую вы выберете на следующем шаге.`;
+}
