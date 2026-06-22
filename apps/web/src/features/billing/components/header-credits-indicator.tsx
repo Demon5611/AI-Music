@@ -1,6 +1,11 @@
 "use client";
 
-import { formatCredits, resolveCreditsBalancePercent, type PlanId } from "@ai-music/shared";
+import {
+  canAffordTrackGeneration,
+  formatCredits,
+  resolveCreditsBalancePercent,
+  type PlanId,
+} from "@ai-music/shared";
 import type { CSSProperties } from "react";
 import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
 import { useAuthSession } from "@/shared/hooks/use-auth-ready";
@@ -57,23 +62,38 @@ export function HeaderCreditsIndicator({ className }: HeaderCreditsIndicatorProp
   }
 
   const { planId, planLabel, creditsBalance } = subscriptionQuery.data;
+  const isLowBalance = !canAffordTrackGeneration(creditsBalance);
   const { balanceLabel, fillPercent, barStyle, planLabel: label } = resolveIndicatorState(
     planId,
     planLabel,
     creditsBalance,
   );
+  const lowBalanceHint = isLowBalance ? ", недостаточно для генерации трека" : "";
 
   return (
     <div
-      aria-label={`${label}, ${balanceLabel} credits, ${fillPercent}% от лимита тарифа`}
+      aria-label={`${label}, ${balanceLabel} credits, ${fillPercent}% от лимита тарифа${lowBalanceHint}`}
       className={className ?? appShell.siteHeaderCredits}
-      title={`${label} · ${balanceLabel} credits · ${fillPercent}%`}
+      title={`${label} · ${balanceLabel} credits · ${fillPercent}%${lowBalanceHint}`}
     >
-      <span className={appShell.siteHeaderCreditsLabel}>
+      <span
+        className={
+          isLowBalance ? appShell.siteHeaderCreditsLabelLow : appShell.siteHeaderCreditsLabel
+        }
+      >
         {label} {balanceLabel} Credits
       </span>
-      <div className={appShell.siteHeaderCreditsBarTrack} style={barStyle}>
-        <div className={appShell.siteHeaderCreditsBarFill} />
+      <div
+        className={
+          isLowBalance ? appShell.siteHeaderCreditsBarTrackLow : appShell.siteHeaderCreditsBarTrack
+        }
+        style={barStyle}
+      >
+        <div
+          className={
+            isLowBalance ? appShell.siteHeaderCreditsBarFillLow : appShell.siteHeaderCreditsBarFill
+          }
+        />
         <span className={appShell.siteHeaderCreditsBarPercentTrack}>{fillPercent}%</span>
         <span className={appShell.siteHeaderCreditsBarPercentFill}>{fillPercent}%</span>
       </div>

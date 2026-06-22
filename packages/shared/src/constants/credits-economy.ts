@@ -35,3 +35,7 @@ export function formatCredits(value: number): string {
 export function formatCreditsFromUnits(units: CreditUnits): string {
   return formatCredits(unitsToCredits(units));
 }
+
+export function canAffordTrackGeneration(balance: number): boolean {
+  return balance >= unitsToCredits(OPERATION_COST_UNITS.generateTrack);
+}

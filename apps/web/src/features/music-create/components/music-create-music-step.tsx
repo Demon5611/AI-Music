@@ -18,6 +18,7 @@ import {
   FREE_TIER_DEFAULT_COMBO_STYLE,
   FREE_TIER_DEFAULT_DURATION_SEC,
   formatDurationOptionLabel,
+  canAffordTrackGeneration,
   formatCreditsFromUnits,
   getDurationOptionsForPlan,
   isComboStylePreset,
@@ -88,7 +89,7 @@ export function MusicCreateMusicStep({
   const allowedDurationOptions = getDurationOptionsForPlan(planId);
   const creditsBalance = subscriptionQuery.data?.creditsBalance ?? 0;
   const generationCostCredits = unitsToCredits(OPERATION_COST_UNITS.generateTrack);
-  const hasEnoughCredits = creditsBalance >= generationCostCredits;
+  const hasEnoughCredits = canAffordTrackGeneration(creditsBalance);
   const [durationNotice, setDurationNotice] = useState<string | null>(null);
 
   useEffect(() => {

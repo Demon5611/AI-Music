@@ -32,6 +32,11 @@
   --app-credits-bar-fill: #a3a3a3;
   --app-credits-bar-text-track: #525252;
   --app-credits-bar-text-fill: #fafafa;
+  --app-credits-low-text: #e11d48;
+  --app-credits-low-text-pulse: #fb7185;
+  --app-credits-low-bar-fill: #e11d48;
+  --app-credits-low-bar-border: rgba(225, 29, 72, 0.45);
+  --app-credits-low-bar-glow: rgba(225, 29, 72, 0.35);
 
   /* Music editor — stem label column (pastel on any app theme) */
   --editor-stem-vocal-bg: #93c5fd;
@@ -119,6 +124,39 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --animate-credits-low-pulse: app-credits-low-pulse 1.6s ease-in-out infinite;
+  --animate-credits-low-bar-pulse: app-credits-low-bar-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes app-credits-low-pulse {
+  0%,
+  100% {
+    color: var(--app-credits-low-text);
+  }
+
+  50% {
+    color: var(--app-credits-low-text-pulse);
+  }
+}
+
+@keyframes app-credits-low-bar-pulse {
+  0%,
+  100% {
+    border-color: var(--app-credits-low-bar-border);
+    box-shadow: 0 0 0 0 var(--app-credits-low-bar-glow);
+  }
+
+  50% {
+    border-color: var(--app-credits-low-text-pulse);
+    box-shadow: 0 0 6px 1px var(--app-credits-low-bar-glow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-credits-low-pulse,
+  .animate-credits-low-bar-pulse {
+    animation: none;
+  }
 }
 
 .dark {
@@ -149,6 +187,11 @@
   --app-credits-bar-fill: rgba(255, 255, 255, 0.38);
   --app-credits-bar-text-track: rgba(255, 255, 255, 0.62);
   --app-credits-bar-text-fill: #0a0a0a;
+  --app-credits-low-text: #fb7185;
+  --app-credits-low-text-pulse: #fda4af;
+  --app-credits-low-bar-fill: #f43f5e;
+  --app-credits-low-bar-border: rgba(251, 113, 133, 0.55);
+  --app-credits-low-bar-glow: rgba(244, 63, 94, 0.4);
 
   --editor-stem-label-text: #000000;
 

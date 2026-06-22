@@ -144,10 +144,16 @@ export const appShell = {
   themeTogglePlaceholder: "inline-block h-8 w-[5.75rem]",
   siteHeaderCredits: "hidden items-center gap-3 md:flex",
   siteHeaderCreditsLabel: "whitespace-nowrap text-sm text-[var(--app-text-muted)]",
+  siteHeaderCreditsLabelLow:
+    "animate-credits-low-pulse whitespace-nowrap text-sm text-[var(--app-credits-low-text)]",
   siteHeaderCreditsBarTrack:
     "relative h-5 w-16 shrink-0 overflow-hidden rounded-sm border border-[var(--app-credits-bar-track-border)] bg-[var(--app-credits-bar-track-bg)]",
+  siteHeaderCreditsBarTrackLow:
+    "animate-credits-low-bar-pulse relative h-5 w-16 shrink-0 overflow-hidden rounded-sm border border-[var(--app-credits-low-bar-border)] bg-[var(--app-credits-bar-track-bg)]",
   siteHeaderCreditsBarFill:
     "absolute inset-y-0 left-0 bg-[var(--app-credits-bar-fill)] transition-[width] duration-300 w-[var(--credits-fill-percent,0%)]",
+  siteHeaderCreditsBarFillLow:
+    "absolute inset-y-0 left-0 bg-[var(--app-credits-low-bar-fill)] transition-[width] duration-300 w-[var(--credits-fill-percent,0%)]",
   siteHeaderCreditsBarPercentTrack:
     "pointer-events-none absolute inset-0 z-10 flex items-center justify-center text-[10px] font-medium leading-none tabular-nums text-[var(--app-credits-bar-text-track)]",
   siteHeaderCreditsBarPercentFill:
