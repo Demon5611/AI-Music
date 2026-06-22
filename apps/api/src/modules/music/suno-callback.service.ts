@@ -1,5 +1,5 @@
 import { mapSunoMusicCallbackToStatus } from "@ai-music/ai-providers";
-import { sunoMusicCallbackSchema, type SunoMusicCallbackPayload } from "@ai-music/shared";
+import { logLoadControl, sunoMusicCallbackSchema, type SunoMusicCallbackPayload } from "@ai-music/shared";
 import { syncMusicGenerationRecord } from "./music-record.service.js";
 
 export async function handleSunoMusicCallback(payload: unknown): Promise<boolean> {
@@ -31,6 +31,14 @@ async function processSunoMusicCallback(payload: SunoMusicCallbackPayload): Prom
   );
 
   await syncMusicGenerationRecord(taskId, status);
+
+  logLoadControl("suno_callback_sync", {
+    taskId,
+    callbackType: payload.data.callbackType ?? null,
+    status: status.status,
+    rawStatus: status.rawStatus ?? null,
+    trackCount: tracks.length,
+  });
 
   return true;
 }

@@ -1,4 +1,9 @@
+/**
+ * Global Suno POST rate limit (sliding window). Shared via Redis when REDIS_URL is set.
+ * @see docs/music-generation-queue-load-control.md
+ */
 import { randomUUID } from "node:crypto";
+import { logLoadControl } from "@ai-music/shared";
 import { Redis } from "ioredis";
 
 export interface SunoRateLimiterConfig {
@@ -59,7 +64,9 @@ class InMemorySunoRateLimiter implements SunoRateLimiter {
   ) {}
 
   async acquire(): Promise<void> {
-    const deadline = Date.now() + this.maxWaitMs;
+    const startedAt = Date.now();
+    const deadline = startedAt + this.maxWaitMs;
+    let waitedMs = 0;
 
     while (Date.now() < deadline) {
       const now = Date.now();
@@ -67,13 +74,25 @@ class InMemorySunoRateLimiter implements SunoRateLimiter {
 
       if (this.timestamps.length < this.maxRequests) {
         this.timestamps.push(now);
+        logRateLimitAcquire(startedAt, waitedMs, "memory");
         return;
       }
 
       const oldest = this.timestamps[0] ?? now;
       const waitMs = Math.max(1, oldest + this.windowMs - now);
+      waitedMs += waitMs;
       await sleep(waitMs + jitterMs());
     }
+
+    logLoadControl(
+      "suno_rate_limit_timeout",
+      {
+        backend: "memory",
+        maxWaitMs: this.maxWaitMs,
+        waitedMs,
+      },
+      "error",
+    );
 
     throw new Error("Suno rate limiter wait timeout");
   }
@@ -99,11 +118,14 @@ class RedisSunoRateLimiter implements SunoRateLimiter {
   }
 
   async acquire(): Promise<void> {
-    const deadline = Date.now() + this.maxWaitMs;
+    const startedAt = Date.now();
+    const deadline = startedAt + this.maxWaitMs;
+    let waitedMs = 0;
 
     while (Date.now() < deadline) {
       const waitMs = await this.tryAcquireSlot();
       if (waitMs === 0) {
+        logRateLimitAcquire(startedAt, waitedMs, "redis");
         return;
       }
 
@@ -112,8 +134,19 @@ class RedisSunoRateLimiter implements SunoRateLimiter {
         break;
       }
 
+      waitedMs += cappedWait;
       await sleep(cappedWait + jitterMs());
     }
+
+    logLoadControl(
+      "suno_rate_limit_timeout",
+      {
+        backend: "redis",
+        maxWaitMs: this.maxWaitMs,
+        waitedMs,
+      },
+      "error",
+    );
 
     throw new Error("Suno rate limiter wait timeout");
   }
@@ -170,4 +203,22 @@ function sleep(ms: number): Promise<void> {
 
 function jitterMs(): number {
   return Math.floor(Math.random() * 150);
+}
+
+function logRateLimitAcquire(
+  startedAt: number,
+  waitedMs: number,
+  backend: "memory" | "redis",
+): void {
+  const totalMs = Date.now() - startedAt;
+
+  if (waitedMs <= 0) {
+    return;
+  }
+
+  logLoadControl("suno_rate_limit_acquire", {
+    backend,
+    waitedMs,
+    totalMs,
+  });
 }

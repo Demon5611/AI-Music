@@ -13,6 +13,7 @@ Always follow:
 - [.cursor/rules/backend-shared-packages.mdc](.cursor/rules/backend-shared-packages.mdc) — storage keys, credits ledger, Kits scope
 - [.cursor/rules/elevenlabs-ui-integration.mdc](.cursor/rules/elevenlabs-ui-integration.mdc) — ElevenLabs UI scope (preview/status only, not timeline)
 - [.cursor/rules/suno-voice-persona-contract.mdc](.cursor/rules/suno-voice-persona-contract.mdc) — Suno Voice persona id, sync ready, music generate payload
+- [.cursor/rules/music-generation-queue-load-control.mdc](.cursor/rules/music-generation-queue-load-control.mdc) — queue throughput, load logs, Suno rate limit
 
 ## Skills index
 
@@ -32,6 +33,7 @@ Reference files (read on demand, not upfront):
 
 - `music-provider-integration/references/sunoapi.md`
 - `music-provider-integration/references/suno-voice-flow.md` — две записи, consent, Suno persona
+- `docs/music-generation-queue-load-control.md` — BullMQ/Suno throughput, load logs, env knobs, backpressure
 - `music-provider-integration/references/kits-ai.md`
 - `credits-billing/references/pricing-model.md`
 - `docs/suno-voice-persona-source-of-truth.md` — persona voice_id, readyForMusicGeneration, когда переверифицировать

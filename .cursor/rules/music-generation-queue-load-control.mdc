@@ -1,0 +1,42 @@
+---
+description: Music generation queue load control — logs, env knobs, backpressure, agent ops
+globs:
+  - apps/api/src/modules/queue/**
+  - apps/worker/**
+  - packages/ai-providers/src/music/providers/suno-api/**
+  - packages/shared/src/load-control/**
+  - docs/music-generation-queue-load-control.md
+---
+
+# Music generation queue — load control
+
+Full spec: [docs/music-generation-queue-load-control.md](../../docs/music-generation-queue-load-control.md).
+
+## Before changing throughput
+
+1. Read the doc above (architecture, events, env table).
+2. Use **`logLoadControl`** from `@ai-music/shared` for new load-related logs — never ad-hoc `console.log` for queue/Suno submit metrics.
+3. Thresholds live in `packages/shared/src/load-control/constants.ts` — do not duplicate magic numbers in API/worker.
+4. Suno POST rate limiting: only via `getSunoRateLimiter()` in `suno-api.client.ts` `createTask`.
+5. Plan priority: `getQueuePriorityForUser` + BullMQ `priority` on enqueue — do not bypass.
+
+## Agent diagnostics
+
+```bash
+# Structured logs
+rg '"scope":"load-control"' 
+
+# Live queue depth
+curl -s localhost:3001/api/music/ops/status | jq .providerQueue
+```
+
+**Healthy:** `waiting` low, no `suno_rate_limit_timeout`, rare `queue_backpressure`.
+
+**Unhealthy:** sustained `waiting >= 50`, many `suno_rate_limit_retry`, `provider_job_lifecycle` phase failed.
+
+## Safe tuning order
+
+1. Ensure `REDIS_URL` shared by API + workers.
+2. Add worker process (horizontal) before raising `WORKER_PROVIDER_CONCURRENCY`.
+3. Never raise concurrency without Redis limiter (prod).
+4. Backpressure at 80 is intentional — raise threshold only with product approval.

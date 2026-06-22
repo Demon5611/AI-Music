@@ -12,6 +12,9 @@ Provider id: `sunoapi`. Implementation: `packages/ai-providers/src/music/provide
 | `suno-api.types.ts`      | Request/response shapes (internal only) |
 | `suno-api.errors.ts`     | Suno-specific error mapping             |
 | `suno-duration-hints.ts` | Duration via prompt/style hints         |
+| `suno-rate-limiter.ts`   | Shared Redis sliding window before POST |
+
+**Queue / throughput:** [docs/music-generation-queue-load-control.md](../../../../docs/music-generation-queue-load-control.md) — BullMQ, rate limit, logs, env.
 
 ## Product constraints
 
@@ -20,7 +23,7 @@ Provider id: `sunoapi`. Implementation: `packages/ai-providers/src/music/provide
 - Custom mode: `prompt` = lyrics; requires `style` + `title`.
 - `style` in custom mode: comma-separated tags, **5–8 optimal** (UI caps at 7 chips); first tags weigh most. Max 200 chars (V4) / 1000 chars (V4_5+); project UI limit 200.
 - Exact duration not supported — use `durationSec` hints in prompt/style.
-- `callBackUrl` required by API; **polling remains primary** completion path.
+- `callBackUrl` required by API; webhook syncs status when configured; polling is fallback.
 
 ## Flow
 

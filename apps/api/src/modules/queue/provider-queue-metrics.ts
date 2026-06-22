@@ -1,12 +1,24 @@
+/**
+ * BullMQ provider-jobs metrics, backpressure, and structured logging.
+ * @see docs/music-generation-queue-load-control.md
+ */
 import type { Queue } from "bullmq";
-import { PROVIDER_JOB_QUEUE_NAME, type ProviderJobPayload } from "@ai-music/shared";
+import {
+  logLoadControl,
+  PROVIDER_JOB_QUEUE_NAME,
+  PROVIDER_QUEUE_ALERT_THRESHOLD,
+  PROVIDER_QUEUE_BACKPRESSURE_THRESHOLD,
+  SUNO_SUBMIT_RATE_PER_SEC,
+  type ProviderJobPayload,
+} from "@ai-music/shared";
 import { ServiceUnavailableError } from "../../common/errors.js";
 import { getProviderJobQueue } from "./provider-job-queue.js";
 
-export const PROVIDER_QUEUE_BACKPRESSURE_THRESHOLD = 80;
-
-/** Suno submit throughput used for queue ETA (18 req / 10s). */
-export const SUNO_SUBMIT_RATE_PER_SEC = 1.8;
+export {
+  PROVIDER_QUEUE_ALERT_THRESHOLD,
+  PROVIDER_QUEUE_BACKPRESSURE_THRESHOLD,
+  SUNO_SUBMIT_RATE_PER_SEC,
+};
 
 export interface ProviderQueueMetrics {
   waiting: number;
@@ -48,24 +60,49 @@ export function estimateProviderQueueWaitSec(jobsAhead: number): number {
 }
 
 export async function assertProviderQueueCapacity(): Promise<void> {
-  const { waiting } = await getProviderQueueMetrics();
+  const metrics = await getProviderQueueMetrics();
 
-  if (waiting >= PROVIDER_QUEUE_BACKPRESSURE_THRESHOLD) {
-    const retryAfterSec = estimateProviderQueueWaitSec(waiting);
+  if (metrics.waiting >= PROVIDER_QUEUE_BACKPRESSURE_THRESHOLD) {
+    logLoadControl(
+      "queue_backpressure",
+      {
+        waiting: metrics.waiting,
+        active: metrics.active,
+        threshold: PROVIDER_QUEUE_BACKPRESSURE_THRESHOLD,
+        retryAfterSec: metrics.estimatedSubmitWaitSec,
+      },
+      "warn",
+    );
 
     throw new ServiceUnavailableError(
       "Очередь генерации перегружена. Попробуйте через несколько минут.",
-      retryAfterSec,
+      metrics.estimatedSubmitWaitSec,
     );
   }
 }
 
 export async function logProviderQueueMetrics(
+  source: "api" | "worker",
   queue: Queue<ProviderJobPayload> = getProviderJobQueue(),
 ): Promise<void> {
   const metrics = await getProviderQueueMetrics();
-  console.info(
-    `[${PROVIDER_JOB_QUEUE_NAME}] waiting=${metrics.waiting} active=${metrics.active} failed=${metrics.failed} etaSec=${metrics.estimatedSubmitWaitSec}`,
+  const level = metrics.waiting >= PROVIDER_QUEUE_ALERT_THRESHOLD ? "warn" : "info";
+
+  logLoadControl(
+    "queue_metrics",
+    {
+      source,
+      queue: PROVIDER_JOB_QUEUE_NAME,
+      waiting: metrics.waiting,
+      active: metrics.active,
+      delayed: metrics.delayed,
+      failed: metrics.failed,
+      completed: metrics.completed,
+      etaSec: metrics.estimatedSubmitWaitSec,
+      alertThreshold: PROVIDER_QUEUE_ALERT_THRESHOLD,
+      backpressureThreshold: PROVIDER_QUEUE_BACKPRESSURE_THRESHOLD,
+    },
+    level,
   );
 
   void queue;

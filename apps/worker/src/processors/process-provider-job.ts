@@ -2,6 +2,7 @@ import { createMusicService } from "@ai-music/ai-providers";
 import { prisma, refundCreditsOnce } from "@ai-music/db";
 import type { GenerateSongInput } from "@ai-music/ai-providers";
 import {
+  logLoadControl,
   OPERATION_COST_UNITS,
   type ProviderJobPayload,
 } from "@ai-music/shared";
@@ -47,6 +48,14 @@ async function processMusicGenerateJob(
         providerTaskId: result.taskId,
         status: "pending",
       },
+    });
+
+    logLoadControl("suno_submit", {
+      source: "worker",
+      jobType: "music_generate",
+      recordId: record.id,
+      userId: payload.userId,
+      taskId: result.taskId,
     });
   } catch (error) {
     await prisma.musicGeneration.update({

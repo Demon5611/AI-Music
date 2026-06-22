@@ -1,5 +1,5 @@
 import { prisma } from "@ai-music/db";
-import { PROVIDER_JOB_QUEUE_NAME, type ProviderJobPayload } from "@ai-music/shared";
+import { logLoadControl, PROVIDER_JOB_QUEUE_NAME, type ProviderJobPayload } from "@ai-music/shared";
 import { Worker } from "bullmq";
 import { processProviderJob } from "./processors/process-provider-job.js";
 
@@ -21,21 +21,37 @@ export function createProviderJobWorker() {
       const startedAt = Date.now();
       const waitMs = job.processedOn && job.timestamp ? job.processedOn - job.timestamp : null;
 
-      console.info(
-        `[provider-job] start type=${job.data.type} id=${job.id} waitMs=${waitMs ?? "n/a"}`,
-      );
+      logLoadControl("provider_job_lifecycle", {
+        phase: "start",
+        queue: PROVIDER_JOB_QUEUE_NAME,
+        jobId: job.id ?? null,
+        jobType: job.data.type,
+        userId: job.data.userId,
+        waitMs,
+        priority: job.opts.priority ?? null,
+      });
 
       try {
         await processProviderJob(job.data);
-        const durationMs = Date.now() - startedAt;
-        console.info(
-          `[provider-job] done type=${job.data.type} id=${job.id} durationMs=${durationMs}`,
-        );
+        logLoadControl("provider_job_lifecycle", {
+          phase: "done",
+          queue: PROVIDER_JOB_QUEUE_NAME,
+          jobId: job.id ?? null,
+          jobType: job.data.type,
+          durationMs: Date.now() - startedAt,
+        });
       } catch (error) {
-        const durationMs = Date.now() - startedAt;
-        console.error(
-          `[provider-job] failed type=${job.data.type} id=${job.id} durationMs=${durationMs}`,
-          error,
+        logLoadControl(
+          "provider_job_lifecycle",
+          {
+            phase: "failed",
+            queue: PROVIDER_JOB_QUEUE_NAME,
+            jobId: job.id ?? null,
+            jobType: job.data.type,
+            durationMs: Date.now() - startedAt,
+            error: error instanceof Error ? error.message : "unknown",
+          },
+          "error",
         );
         throw error;
       }

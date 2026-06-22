@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@ai-music/config": "workspace:*",
+    "@types/node": "^20.17.57",
     "eslint": "^9.28.0",
     "typescript": "^5.8.3"
   }

@@ -18,6 +18,10 @@ import { registerStorageRoutes } from "./modules/storage/routes.js";
 import { registerMusicRoutes } from "./modules/music/routes.js";
 import { registerMusicEditorRoutes } from "./modules/music-editor/routes.js";
 import { closeGenerationQueue } from "./modules/queue/generation-queue.js";
+import {
+  startLoadControlMetricsPolling,
+  stopLoadControlMetricsPolling,
+} from "./modules/queue/load-control-metrics-polling.js";
 
 const port = Number(process.env.API_PORT ?? 3001);
 
@@ -69,8 +73,10 @@ export async function buildApp() {
 
 async function main() {
   const app = await buildApp();
+  startLoadControlMetricsPolling();
 
   const shutdown = async () => {
+    stopLoadControlMetricsPolling();
     await closeGenerationQueue();
     await app.close();
     process.exit(0);

@@ -1,3 +1,4 @@
+import { logLoadControl } from "@ai-music/shared";
 import { MusicProviderUnavailableError } from "../../domain/errors/music-provider-unavailable.error.js";
 import { MusicRateLimitError } from "../../domain/errors/music-rate-limit.error.js";
 import {
@@ -81,6 +82,7 @@ export class SunoApiClient {
   }
 
   private async createTask(path: string, body: unknown): Promise<string> {
+    const submitStartedAt = Date.now();
     await getSunoRateLimiter().acquire();
 
     const data = await this.request<SunoTaskIdData>(path, {
@@ -91,6 +93,12 @@ export class SunoApiClient {
     if (!data.taskId) {
       throw mapSunoApiCodeToError(500, "Suno API did not return taskId");
     }
+
+    logLoadControl("suno_submit", {
+      path,
+      taskId: data.taskId,
+      durationMs: Date.now() - submitStartedAt,
+    });
 
     return data.taskId;
   }
@@ -111,6 +119,18 @@ export class SunoApiClient {
       } catch (error) {
         if (!this.shouldRetry(error, attempt, maxAttempts)) {
           throw error;
+        }
+
+        if (error instanceof MusicRateLimitError) {
+          logLoadControl(
+            "suno_rate_limit_retry",
+            {
+              path,
+              attempt: attempt + 1,
+              maxAttempts: maxAttempts + 1,
+            },
+            "warn",
+          );
         }
 
         await sleep(resolveRetryDelayMs(error, attempt));

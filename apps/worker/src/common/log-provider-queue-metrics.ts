@@ -1,4 +1,8 @@
-import { PROVIDER_JOB_QUEUE_NAME } from "@ai-music/shared";
+import {
+  logLoadControl,
+  PROVIDER_JOB_QUEUE_NAME,
+  type ProviderJobPayload,
+} from "@ai-music/shared";
 import { Queue } from "bullmq";
 
 function getRedisConnection() {
@@ -20,10 +24,31 @@ function getQueue(): Queue {
   return queue;
 }
 
+/** Worker-side queue metrics (same JSON format as API). See docs/music-generation-queue-load-control.md */
 export async function logProviderQueueMetrics(): Promise<void> {
-  const counts = await getQueue().getJobCounts("waiting", "active", "failed");
-  console.info(
-    `[${PROVIDER_JOB_QUEUE_NAME}] waiting=${counts.waiting ?? 0} active=${counts.active ?? 0} failed=${counts.failed ?? 0}`,
+  const counts = await getQueue().getJobCounts(
+    "waiting",
+    "active",
+    "delayed",
+    "failed",
+    "completed",
+  );
+
+  const waiting = counts.waiting ?? 0;
+  const active = counts.active ?? 0;
+
+  logLoadControl(
+    "queue_metrics",
+    {
+      source: "worker",
+      queue: PROVIDER_JOB_QUEUE_NAME,
+      waiting,
+      active,
+      delayed: counts.delayed ?? 0,
+      failed: counts.failed ?? 0,
+      completed: counts.completed ?? 0,
+    },
+    waiting >= 50 ? "warn" : "info",
   );
 }
 
