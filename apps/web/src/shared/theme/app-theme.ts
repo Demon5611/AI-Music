@@ -145,11 +145,13 @@ export const appShell = {
   siteHeaderCredits: "hidden items-center gap-3 md:flex",
   siteHeaderCreditsLabel: "whitespace-nowrap text-sm text-[var(--app-text-muted)]",
   siteHeaderCreditsBarTrack:
-    "relative flex h-5 w-16 shrink-0 items-center overflow-hidden rounded-full bg-[var(--app-hover-overlay)]",
+    "relative h-5 w-16 shrink-0 overflow-hidden rounded-sm border border-[var(--app-credits-bar-track-border)] bg-[var(--app-credits-bar-track-bg)]",
   siteHeaderCreditsBarFill:
-    "absolute inset-y-0 left-0 rounded-full bg-[var(--app-text-muted)] transition-[width] duration-300 w-[var(--credits-fill-percent,0%)]",
-  siteHeaderCreditsBarPercent:
-    "relative z-10 w-full text-center text-[10px] font-medium tabular-nums text-[var(--app-text)]",
+    "absolute inset-y-0 left-0 bg-[var(--app-credits-bar-fill)] transition-[width] duration-300 w-[var(--credits-fill-percent,0%)]",
+  siteHeaderCreditsBarPercentTrack:
+    "pointer-events-none absolute inset-0 z-10 flex items-center justify-center text-[10px] font-medium leading-none tabular-nums text-[var(--app-credits-bar-text-track)]",
+  siteHeaderCreditsBarPercentFill:
+    "pointer-events-none absolute inset-0 z-20 flex items-center justify-center text-[10px] font-medium leading-none tabular-nums text-[var(--app-credits-bar-text-fill)] [clip-path:var(--credits-fill-clip)]",
   siteHeaderCreditsSkeletonLabel: "h-4 w-28 rounded-md",
-  siteHeaderCreditsSkeletonBar: "h-5 w-16 rounded-full",
+  siteHeaderCreditsSkeletonBar: "h-5 w-16 rounded-sm",
 } as const;

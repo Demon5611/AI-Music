@@ -19,15 +19,19 @@ function resolveIndicatorState(
   planLabel: string;
   balanceLabel: string;
   fillPercent: number;
-  fillStyle: CSSProperties;
+  barStyle: CSSProperties;
 } {
   const fillPercent = resolveCreditsBalancePercent(balance, planId);
+  const unfilledPercent = 100 - fillPercent;
 
   return {
     planLabel,
     balanceLabel: formatCredits(balance),
     fillPercent,
-    fillStyle: { "--credits-fill-percent": `${fillPercent}%` } as CSSProperties,
+    barStyle: {
+      "--credits-fill-percent": `${fillPercent}%`,
+      "--credits-fill-clip": `inset(0 ${unfilledPercent}% 0 0)`,
+    } as CSSProperties,
   };
 }
 
@@ -53,7 +57,7 @@ export function HeaderCreditsIndicator({ className }: HeaderCreditsIndicatorProp
   }
 
   const { planId, planLabel, creditsBalance } = subscriptionQuery.data;
-  const { balanceLabel, fillPercent, fillStyle, planLabel: label } = resolveIndicatorState(
+  const { balanceLabel, fillPercent, barStyle, planLabel: label } = resolveIndicatorState(
     planId,
     planLabel,
     creditsBalance,
@@ -68,9 +72,10 @@ export function HeaderCreditsIndicator({ className }: HeaderCreditsIndicatorProp
       <span className={appShell.siteHeaderCreditsLabel}>
         {label} {balanceLabel} Credits
       </span>
-      <div className={appShell.siteHeaderCreditsBarTrack}>
-        <div className={appShell.siteHeaderCreditsBarFill} style={fillStyle} />
-        <span className={appShell.siteHeaderCreditsBarPercent}>{fillPercent}%</span>
+      <div className={appShell.siteHeaderCreditsBarTrack} style={barStyle}>
+        <div className={appShell.siteHeaderCreditsBarFill} />
+        <span className={appShell.siteHeaderCreditsBarPercentTrack}>{fillPercent}%</span>
+        <span className={appShell.siteHeaderCreditsBarPercentFill}>{fillPercent}%</span>
       </div>
     </div>
   );

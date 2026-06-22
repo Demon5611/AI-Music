@@ -27,6 +27,11 @@
     rgba(124, 58, 237, 0.12) 0%,
     transparent 70%
   );
+  --app-credits-bar-track-bg: #e5e5e5;
+  --app-credits-bar-track-border: rgba(0, 0, 0, 0.12);
+  --app-credits-bar-fill: #a3a3a3;
+  --app-credits-bar-text-track: #525252;
+  --app-credits-bar-text-fill: #fafafa;
 
   /* Music editor — stem label column (pastel on any app theme) */
   --editor-stem-vocal-bg: #93c5fd;
@@ -139,6 +144,11 @@
     #4c1d95 40%,
     transparent 70%
   );
+  --app-credits-bar-track-bg: #262626;
+  --app-credits-bar-track-border: rgba(255, 255, 255, 0.14);
+  --app-credits-bar-fill: rgba(255, 255, 255, 0.38);
+  --app-credits-bar-text-track: rgba(255, 255, 255, 0.62);
+  --app-credits-bar-text-fill: #0a0a0a;
 
   --editor-stem-label-text: #000000;
 
