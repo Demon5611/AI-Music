@@ -34,6 +34,7 @@ export { NotImplementedMusicProviderError } from "./domain/not-implemented.error
 export { SunoApiProvider, createSunoApiProvider } from "./providers/suno-api/suno-api.provider.js";
 export { SunoApiClient, toSunoModelId } from "./providers/suno-api/suno-api.client.js";
 export { createSunoApiClient } from "./providers/suno-api/create-suno-api-client.js";
+export { mapSunoMusicCallbackToStatus } from "./providers/suno-api/suno-api.mapper.js";
 export type { SunoApiClientConfig } from "./providers/suno-api/suno-api.client.js";
 export type {
   SunoMusicTaskRaw,

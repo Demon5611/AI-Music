@@ -11,10 +11,12 @@ import {
   getLyricsGenerationStatus,
   getMusicGenerationStatusForUser,
   getMusicHistory,
+  getMusicOpsStatus,
   getMusicTestStatus,
   removeMusicGenerationTrack,
   removeMusicGenerations,
 } from "./service.js";
+import { handleSunoMusicCallback } from "./suno-callback.service.js";
 
 interface GenerateBody {
   prompt: string;
@@ -52,6 +54,15 @@ interface DeleteHistoryBody {
 export async function registerMusicRoutes(app: FastifyInstance) {
   app.get("/api/music/test/status", async (_request, reply) => {
     return reply.send(getMusicTestStatus());
+  });
+
+  app.get("/api/music/ops/status", async (request, reply) => {
+    try {
+      return reply.send(await getMusicOpsStatus());
+    } catch (error) {
+      request.log.error(error);
+      return sendAppError(reply, error);
+    }
   });
 
   app.get("/api/music/history", { preHandler: requireAuth }, async (request, reply) => {
@@ -282,7 +293,16 @@ export async function registerMusicRoutes(app: FastifyInstance) {
   );
 
   app.post("/api/music/callback/suno", async (request, reply) => {
-    request.log.info({ body: request.body }, "Suno callback received");
-    return reply.send({ received: true });
+    try {
+      const accepted = await handleSunoMusicCallback(request.body);
+      if (!accepted) {
+        return reply.status(400).send({ error: "Invalid Suno callback payload" });
+      }
+
+      return reply.send({ received: true });
+    } catch (error) {
+      request.log.error(error, "Suno callback processing failed");
+      return reply.send({ received: true });
+    }
   });
 }

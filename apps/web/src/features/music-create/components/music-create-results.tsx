@@ -38,6 +38,8 @@ export function MusicCreateResults({
         <div className={mc.loaderWrap}>
           <MusicGenerationLoader
             isStarting={isGenerating}
+            queueEtaSec={status?.queueEtaSec}
+            queuePhase={status?.queuePhase}
             rawStatus={status?.rawStatus}
             status={status?.status}
             taskId={taskId}

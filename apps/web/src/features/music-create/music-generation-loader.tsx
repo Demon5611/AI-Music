@@ -29,6 +29,8 @@ interface MusicGenerationLoaderProps {
   status?: MusicGenerationRecordStatus;
   taskId?: string | null;
   isStarting?: boolean;
+  queuePhase?: string | null;
+  queueEtaSec?: number;
 }
 
 export function MusicGenerationLoader({
@@ -36,10 +38,18 @@ export function MusicGenerationLoader({
   status,
   taskId,
   isStarting = false,
+  queuePhase,
+  queueEtaSec,
 }: MusicGenerationLoaderProps) {
   const active = isStarting || Boolean(taskId);
-  const label = resolveMusicGenerationLabel(rawStatus, status, isStarting);
-  const progress = resolveMusicGenerationProgress(rawStatus, status, isStarting);
+  const label = resolveMusicGenerationLabel(
+    rawStatus,
+    status,
+    isStarting,
+    queuePhase,
+    queueEtaSec,
+  );
+  const progress = resolveMusicGenerationProgress(rawStatus, status, isStarting, queuePhase);
   const agentState = resolveMusicGenerationAgentState(rawStatus);
   const timerKey = isStarting ? "starting" : (taskId ?? "idle");
 

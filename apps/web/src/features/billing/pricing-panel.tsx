@@ -30,11 +30,11 @@ const PLAN_FEATURES: Record<PlanId, string[]> = {
     "Replace Sections",
     "WAV Export",
     "Version History",
-    "Priority Queue",
+    "Priority Queue — приоритет в нашей очереди",
   ],
   studio: [
     "Всё из Pro",
-    "Fastest Queue",
+    "Fastest Queue — самый высокий приоритет в нашей очереди",
     "Extended Version History",
     "More Stem Processing",
     "Early Access",

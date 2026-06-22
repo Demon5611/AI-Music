@@ -129,6 +129,7 @@ export type {
   MusicGenerateResponseDto,
   MusicLyricsGenerateResponseDto,
   MusicLyricsStatusResponseDto,
+  MusicQueuePhase,
   MusicStatusResponseDto,
 } from "./music-generation.js";
 

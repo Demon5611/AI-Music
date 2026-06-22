@@ -9,7 +9,9 @@ import { useApi } from "@/shared/providers/api-provider";
 import { invalidateCreditsBalance } from "@/features/billing/hooks/invalidate-credits-balance";
 import { checkContentAllowed, type MusicStatusResponseDto } from "@ai-music/shared";
 
-const POLL_INTERVAL_MS = 12_000;
+const POLL_INTERVAL_FAST_MS = 4_000;
+const POLL_INTERVAL_DEFAULT_MS = 12_000;
+const POLL_FAST_PHASE_MS = 90_000;
 
 const PARSE_OPTS = {
   includeUnauthorized: true,
@@ -50,6 +52,7 @@ export function useMusicGeneration() {
   const [statusLoadError, setStatusLoadError] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [activePollTaskId, setActivePollTaskId] = useState<string | null>(null);
+  const [pollStartedAt, setPollStartedAt] = useState<number | null>(null);
   const [status, setStatus] = useState<MusicStatusResponseDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -81,7 +84,24 @@ export function useMusicGeneration() {
     queryFn: () => api.music.status(activePollTaskId!),
     enabled: Boolean(activePollTaskId),
     isTerminal: isMusicStatusTerminal,
-    intervalMs: POLL_INTERVAL_MS,
+    intervalMs: POLL_INTERVAL_DEFAULT_MS,
+    resolveIntervalMs: (data) => {
+      if (!pollStartedAt) {
+        return POLL_INTERVAL_DEFAULT_MS;
+      }
+
+      const elapsedMs = Date.now() - pollStartedAt;
+      const hasStreamProgress =
+        data?.rawStatus === "FIRST_SUCCESS" ||
+        data?.rawStatus === "TEXT_SUCCESS" ||
+        Boolean(data?.tracks?.some((track) => track.audioUrl));
+
+      if (hasStreamProgress || elapsedMs >= POLL_FAST_PHASE_MS) {
+        return POLL_INTERVAL_DEFAULT_MS;
+      }
+
+      return POLL_INTERVAL_FAST_MS;
+    },
   });
 
   useEffect(() => {
@@ -122,24 +142,10 @@ export function useMusicGeneration() {
       setStatus(null);
       setTaskId(null);
       setActivePollTaskId(null);
+      setPollStartedAt(null);
 
       try {
         const voiceSampleId = input.voiceSampleId ?? undefined;
-
-        // #region agent log
-        fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-          body: JSON.stringify({
-            sessionId: "543522",
-            hypothesisId: "G-D",
-            location: "use-music-generation.ts:generate",
-            message: "music generate submit from UI",
-            data: { voiceSampleId: voiceSampleId ?? null },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
 
         const body = await api.music.generate({
           prompt: input.prompt,
@@ -160,6 +166,7 @@ export function useMusicGeneration() {
           rawStatus: "PENDING",
         });
         setActivePollTaskId(body.recordId);
+        setPollStartedAt(Date.now());
         void invalidateCreditsBalance(queryClient);
       } catch (generateError) {
         setError(parseApiError(generateError, "Music API error", PARSE_OPTS));

@@ -1,4 +1,5 @@
 import { MusicProviderUnavailableError } from "../../domain/errors/music-provider-unavailable.error.js";
+import { MusicRateLimitError } from "../../domain/errors/music-rate-limit.error.js";
 import {
   assertSunoApiKey,
   isRetryableNetworkError,
@@ -6,6 +7,7 @@ import {
   parseSunoEnvelope,
   toMusicTimeoutError,
 } from "./suno-api.errors.js";
+import { getSunoRateLimiter } from "./suno-rate-limiter.js";
 import type {
   SunoApiEnvelope,
   SunoExtendMusicRequest,
@@ -22,20 +24,24 @@ import type {
 
 const API_PREFIX = "/api/v1";
 const DEFAULT_RETRIES = 2;
+const RATE_LIMIT_RETRIES = 4;
 
 export interface SunoApiClientConfig {
   baseUrl: string;
   apiKey: string;
   timeoutMs: number;
   retries?: number;
+  rateLimitRetries?: number;
 }
 
 export class SunoApiClient {
   private readonly retries: number;
+  private readonly rateLimitRetries: number;
 
   constructor(private readonly config: SunoApiClientConfig) {
     assertSunoApiKey(config.apiKey);
     this.retries = config.retries ?? DEFAULT_RETRIES;
+    this.rateLimitRetries = config.rateLimitRetries ?? RATE_LIMIT_RETRIES;
   }
 
   generateMusic(body: SunoGenerateMusicRequest): Promise<string> {
@@ -75,6 +81,8 @@ export class SunoApiClient {
   }
 
   private async createTask(path: string, body: unknown): Promise<string> {
+    await getSunoRateLimiter().acquire();
+
     const data = await this.request<SunoTaskIdData>(path, {
       method: "POST",
       body: JSON.stringify(body),
@@ -93,16 +101,19 @@ export class SunoApiClient {
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {
     const url = `${this.config.baseUrl.replace(/\/$/, "")}${API_PREFIX}${path}`;
+    const maxAttempts = init.method === "POST" ? this.rateLimitRetries : this.retries;
 
-    for (let attempt = 0; attempt <= this.retries; attempt += 1) {
+    for (let attempt = 0; attempt <= maxAttempts; attempt += 1) {
       try {
         const response = await this.fetchWithTimeout(url, init);
         const envelope = await parseSunoEnvelope<T>(response);
         return envelope.data;
       } catch (error) {
-        if (!this.shouldRetry(error, attempt)) {
+        if (!this.shouldRetry(error, attempt, maxAttempts)) {
           throw error;
         }
+
+        await sleep(resolveRetryDelayMs(error, attempt));
       }
     }
 
@@ -154,9 +165,13 @@ export class SunoApiClient {
     }
   }
 
-  private shouldRetry(error: unknown, attempt: number): boolean {
-    if (attempt >= this.retries) {
+  private shouldRetry(error: unknown, attempt: number, maxAttempts: number): boolean {
+    if (attempt >= maxAttempts) {
       return false;
+    }
+
+    if (error instanceof MusicRateLimitError) {
+      return true;
     }
 
     if (isRetryableNetworkError(error)) {
@@ -169,6 +184,19 @@ export class SunoApiClient {
 
     return false;
   }
+}
+
+function resolveRetryDelayMs(error: unknown, attempt: number): number {
+  const baseMs = error instanceof MusicRateLimitError ? 2_000 : 500;
+  const exponential = baseMs * 2 ** attempt;
+  const jitter = Math.floor(Math.random() * 400);
+  return Math.min(exponential + jitter, 15_000);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 export function toSunoModelId(model: string): SunoModelId {

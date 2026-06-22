@@ -7,6 +7,12 @@ import {
   closeProviderJobWorker,
   createProviderJobWorker,
 } from "./provider-job.worker.js";
+import {
+  closeProviderQueueMetrics,
+  logProviderQueueMetrics,
+} from "./common/log-provider-queue-metrics.js";
+
+const QUEUE_METRICS_INTERVAL_MS = 60_000;
 
 async function main() {
   const generationWorker = createGenerationWorker();
@@ -30,9 +36,16 @@ async function main() {
 
   console.log("Worker started (generation + provider-jobs queues)");
 
+  void logProviderQueueMetrics();
+  const metricsTimer = setInterval(() => {
+    void logProviderQueueMetrics();
+  }, QUEUE_METRICS_INTERVAL_MS);
+
   const shutdown = async () => {
+    clearInterval(metricsTimer);
     await closeGenerationWorker(generationWorker);
     await closeProviderJobWorker(providerJobWorker);
+    await closeProviderQueueMetrics();
     process.exit(0);
   };
 

@@ -121,6 +121,29 @@ export function mapSunoMusicTaskToStatus(
   };
 }
 
+export function mapSunoMusicCallbackToStatus(
+  taskId: string,
+  callbackType: string | undefined,
+  tracks: SunoTrackRaw[],
+): GenerationStatusResult {
+  const rawStatus =
+    callbackType === "complete"
+      ? "SUCCESS"
+      : callbackType === "first"
+        ? "FIRST_SUCCESS"
+        : callbackType === "text"
+          ? "TEXT_SUCCESS"
+          : "PENDING";
+
+  const task: SunoMusicTaskRaw = {
+    taskId,
+    status: rawStatus,
+    response: { data: tracks },
+  };
+
+  return mapSunoMusicTaskToStatus(task);
+}
+
 export function mapSunoLyricsTaskToStatus(
   task: SunoLyricsTaskRaw,
 ): GenerationStatusResult {

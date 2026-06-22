@@ -4,8 +4,7 @@ import { resolveMusicProviderId } from "./domain/music-provider-id.js";
 export interface MusicProviderConfig {
   providerId: MusicProviderId;
   /**
-   * Required by Suno async API; polling remains the primary completion path.
-   * Webhook route can be added later without changing MusicService.
+   * Required by Suno async API. Webhook at SUNO_CALLBACK_URL syncs status; polling is fallback.
    */
   sunoCallbackUrl: string;
   sunoApiBaseUrl: string;

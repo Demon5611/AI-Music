@@ -2,6 +2,7 @@ import type {
   MusicGenerationRecordDto,
   MusicGenerationRecordStatus,
   MusicGenerationTrackDto,
+  MusicQueuePhase,
   MusicStatusResponseDto,
 } from "@ai-music/shared";
 import type {
@@ -42,6 +43,7 @@ export function toMusicStatusResponse(
   status: GenerationStatusResult,
   record: MusicGenerationWithTracks | null,
   apiBaseUrl: string,
+  queueMeta?: { queuePhase?: MusicQueuePhase; queueEtaSec?: number },
 ): MusicStatusResponseDto {
   return {
     recordId: record?.id ?? null,
@@ -49,6 +51,8 @@ export function toMusicStatusResponse(
     status: status.status,
     provider: status.provider,
     rawStatus: status.rawStatus,
+    queuePhase: queueMeta?.queuePhase,
+    queueEtaSec: queueMeta?.queueEtaSec,
     tracks: status.tracks?.map((track) => {
       const stored = record?.tracks.find(
         (item) => item.providerTrackId === track.id,

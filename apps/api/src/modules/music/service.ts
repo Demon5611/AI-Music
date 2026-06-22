@@ -14,12 +14,13 @@ import {
   syncMusicGenerationRecord,
 } from "./music-record.service.js";
 import { toMusicGenerationRecordDto, toMusicStatusResponse } from "./music-record.mapper.js";
+import { resolveMusicQueueEtaSec, resolveMusicQueuePhase } from "./music-queue-meta.js";
 import {
   buildPersonaSongInput,
   resolveMusicPersonaForUser,
   type MusicGenerateLogger,
 } from "./music-persona.js";
-import { BadRequestError, ForbiddenError, NotFoundError } from "../../common/errors.js";
+import { BadRequestError, ForbiddenError, NotFoundError, ServiceUnavailableError } from "../../common/errors.js";
 import { refundCredits, refundCreditsOnce, spendCredits } from "../credits/service.js";
 import {
   assertMaxDuration,
@@ -28,6 +29,7 @@ import {
   getUserEntitlements,
 } from "../billing/entitlements.service.js";
 import { enqueueProviderJob } from "../queue/provider-job-queue.js";
+import { assertProviderQueueCapacity, getProviderQueueMetrics } from "../queue/provider-queue-metrics.js";
 import {
   buildDurationAwareLyricsGenerationPrompt,
   checkContentAllowed,
@@ -64,6 +66,16 @@ export function getMusicTestStatus() {
   return {
     provider: resolveMusicProviderId(),
     configured: Boolean(config.sunoApiKey.trim()),
+  };
+}
+
+export async function getMusicOpsStatus() {
+  const base = getMusicTestStatus();
+  const queue = await getProviderQueueMetrics();
+
+  return {
+    ...base,
+    providerQueue: queue,
   };
 }
 
@@ -122,6 +134,7 @@ export async function generateMusicForUser(
     "Submitting Suno music generation with persona",
   );
 
+  await assertProviderQueueCapacity();
   await spendCredits(userId, OPERATION_COST_UNITS.generateTrack, "music_generate");
 
   const queuePlaceholder = `queue:${randomUUID()}`;
@@ -183,8 +196,16 @@ export async function getMusicGenerationStatusForUser(taskOrRecordId: string, us
   }
 
   const apiBaseUrl = resolveApiBaseUrl();
+  const queueMetrics = await getProviderQueueMetrics();
 
   if (record.providerTaskId.startsWith("queue:")) {
+    const queuePhase = resolveMusicQueuePhase(record, {
+      taskId: record.id,
+      status: "pending",
+      provider: resolveMusicProviderId(),
+      rawStatus: "QUEUED",
+    });
+
     return toMusicStatusResponse(
       {
         taskId: record.id,
@@ -194,27 +215,39 @@ export async function getMusicGenerationStatusForUser(taskOrRecordId: string, us
       },
       record,
       apiBaseUrl,
+      {
+        queuePhase,
+        queueEtaSec: resolveMusicQueueEtaSec(queuePhase, queueMetrics.waiting),
+      },
     );
   }
 
   if (record.status === "failed") {
-    return toMusicStatusResponse(
-      {
-        taskId: record.providerTaskId,
-        status: "failed",
-        provider: resolveMusicProviderId(),
-        errorMessage: record.errorMessage ?? undefined,
-        rawStatus: record.rawStatus ?? undefined,
-      },
-      record,
-      apiBaseUrl,
-    );
+    const failedStatus = {
+      taskId: record.providerTaskId,
+      status: "failed" as const,
+      provider: resolveMusicProviderId(),
+      errorMessage: record.errorMessage ?? undefined,
+      rawStatus: record.rawStatus ?? undefined,
+    };
+
+    return toMusicStatusResponse(failedStatus, record, apiBaseUrl, {
+      queuePhase: resolveMusicQueuePhase(record, failedStatus),
+    });
   }
 
   const status = await musicService.getGenerationStatus(record.providerTaskId);
   const synced = await syncMusicGenerationRecord(record.providerTaskId, status, userId);
+  const resolvedRecord = synced ?? record;
+  const queuePhase = resolveMusicQueuePhase(resolvedRecord, status);
 
-  return toMusicStatusResponse(status, synced ?? record, apiBaseUrl);
+  return toMusicStatusResponse(status, resolvedRecord, apiBaseUrl, {
+    queuePhase,
+    queueEtaSec:
+      queuePhase === "queued"
+        ? resolveMusicQueueEtaSec(queuePhase, queueMetrics.waiting)
+        : undefined,
+  });
 }
 
 async function findMusicGenerationRecord(id: string, userId?: string) {

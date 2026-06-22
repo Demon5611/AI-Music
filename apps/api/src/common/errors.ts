@@ -60,6 +60,15 @@ export class EditorOperationNotAllowedError extends AppError {
   }
 }
 
+export class ServiceUnavailableError extends AppError {
+  constructor(
+    message: string,
+    public readonly retryAfterSec?: number,
+  ) {
+    super(message, 503, "SERVICE_UNAVAILABLE");
+  }
+}
+
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }
@@ -69,10 +78,16 @@ export function sendAppError(
   error: unknown,
 ) {
   if (isAppError(error)) {
-    return reply.status(error.statusCode).send({
+    const body: Record<string, unknown> = {
       error: error.message,
       code: error.code,
-    });
+    };
+
+    if (error instanceof ServiceUnavailableError && error.retryAfterSec) {
+      body.retryAfterSec = error.retryAfterSec;
+    }
+
+    return reply.status(error.statusCode).send(body);
   }
 
   throw error;

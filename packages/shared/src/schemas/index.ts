@@ -60,3 +60,4 @@ export {
   SplitRegionOperationSchema,
 } from "./music-editor.js";
 export type { ParsedApplyOperationBody, ParsedEditOperation } from "./music-editor.js";
+export { sunoMusicCallbackSchema, type SunoMusicCallbackPayload } from "./suno-callback.js";

@@ -254,6 +254,10 @@ importers:
         version: 5.9.3
 
   packages/ai-providers:
+    dependencies:
+      ioredis:
+        specifier: ^5.6.1
+        version: 5.10.1
     devDependencies:
       '@ai-music/config':
         specifier: workspace:*

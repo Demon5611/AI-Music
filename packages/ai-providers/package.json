@@ -15,6 +15,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
+  "dependencies": {
+    "ioredis": "^5.6.1"
+  },
   "devDependencies": {
     "@ai-music/config": "workspace:*",
     "@types/node": "^20.17.57",

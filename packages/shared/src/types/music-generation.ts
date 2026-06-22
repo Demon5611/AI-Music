@@ -58,12 +58,16 @@ export interface MusicLyricsStatusResponseDto {
   lyricsDurationSec?: number;
 }
 
+export type MusicQueuePhase = "queued" | "submitted" | "processing" | "completed" | "failed";
+
 export interface MusicStatusResponseDto {
   recordId: string | null;
   taskId: string;
   status: MusicGenerationRecordStatus;
   provider: string;
   rawStatus?: string;
+  queuePhase?: MusicQueuePhase;
+  queueEtaSec?: number;
   tracks?: Array<{
     id: string;
     providerTrackId?: string;
