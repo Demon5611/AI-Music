@@ -142,4 +142,14 @@ export const appShell = {
     "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--app-hover-overlay)] text-[var(--app-text)]",
   themeToggleIcon: "h-3.5 w-3.5",
   themeTogglePlaceholder: "inline-block h-8 w-[5.75rem]",
+  siteHeaderCredits: "hidden items-center gap-3 md:flex",
+  siteHeaderCreditsLabel: "whitespace-nowrap text-sm text-[var(--app-text-muted)]",
+  siteHeaderCreditsBarTrack:
+    "relative flex h-5 w-16 shrink-0 items-center overflow-hidden rounded-full bg-[var(--app-hover-overlay)]",
+  siteHeaderCreditsBarFill:
+    "absolute inset-y-0 left-0 rounded-full bg-[var(--app-text-muted)] transition-[width] duration-300 w-[var(--credits-fill-percent,0%)]",
+  siteHeaderCreditsBarPercent:
+    "relative z-10 w-full text-center text-[10px] font-medium tabular-nums text-[var(--app-text)]",
+  siteHeaderCreditsSkeletonLabel: "h-4 w-28 rounded-md",
+  siteHeaderCreditsSkeletonBar: "h-5 w-16 rounded-full",
 } as const;

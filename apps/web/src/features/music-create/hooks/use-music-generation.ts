@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { useApi } from "@/shared/providers/api-provider";
+import { useInvalidateCreditsBalance } from "@/features/billing/hooks/invalidate-credits-balance";
 import { checkContentAllowed, type MusicStatusResponseDto } from "@ai-music/shared";
 
 const POLL_INTERVAL_MS = 12_000;
@@ -43,6 +44,7 @@ function resolveInputModerationError(input: GenerateSongInput): string | null {
 export function useMusicGeneration() {
   const api = useApi();
   const queryClient = useQueryClient();
+  const invalidateCreditsBalance = useInvalidateCreditsBalance();
   const router = useRouter();
 
   const [configured, setConfigured] = useState<boolean | null>(null);
@@ -102,10 +104,11 @@ export function useMusicGeneration() {
       void refreshHistory();
 
       if (body.status === "failed") {
+        void invalidateCreditsBalance();
         setError(body.errorMessage ?? "Music generation failed");
       }
     }
-  }, [statusQuery.data, statusQuery.error, refreshHistory]);
+  }, [statusQuery.data, statusQuery.error, refreshHistory, invalidateCreditsBalance]);
 
   const generate = useCallback(
     async (input: GenerateSongInput) => {
@@ -158,13 +161,14 @@ export function useMusicGeneration() {
           rawStatus: "PENDING",
         });
         setActivePollTaskId(body.recordId);
+        void invalidateCreditsBalance();
       } catch (generateError) {
         setError(parseApiError(generateError, "Music API error", PARSE_OPTS));
       } finally {
         setIsGenerating(false);
       }
     },
-    [api],
+    [api, invalidateCreditsBalance],
   );
 
   const openEditor = useCallback(

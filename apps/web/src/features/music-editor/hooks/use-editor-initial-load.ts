@@ -7,11 +7,14 @@ import {
   isEditorStemsReady,
   setCachedEditorState,
 } from "@/features/music-editor/utils/editor-session-cache";
+import { shouldInvalidateCreditsAfterEditorStateChange } from "@/features/billing/lib/should-invalidate-credits-after-editor-state";
+import { useInvalidateCreditsBalance } from "@/features/billing/hooks/invalidate-credits-balance";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
 import { useApi } from "@/shared/providers/api-provider";
 
 export function useEditorInitialLoad(songId: string) {
   const api = useApi();
+  const invalidateCreditsBalance = useInvalidateCreditsBalance();
   const hydrate = useAudioEditorStore((state) => state.hydrate);
   const setBusy = useAudioEditorStore((state) => state.setBusy);
   const setError = useAudioEditorStore((state) => state.setError);
@@ -34,11 +37,25 @@ export function useEditorInitialLoad(songId: string) {
       setBusy(!cachedState);
       setError(null);
 
+      const previous = {
+        songStatus: cachedState?.song.status ?? null,
+        pendingAction: cachedState?.song.pendingAction ?? null,
+      };
+
       try {
         const state = await api.musicEditor.getEditorState(songId);
 
         if (cancelled) {
           return;
+        }
+
+        const next = {
+          songStatus: state.song.status,
+          pendingAction: state.song.pendingAction ?? null,
+        };
+
+        if (shouldInvalidateCreditsAfterEditorStateChange(previous, next)) {
+          void invalidateCreditsBalance();
         }
 
         hydrate(state);
@@ -61,7 +78,7 @@ export function useEditorInitialLoad(songId: string) {
     return () => {
       cancelled = true;
     };
-  }, [api, hydrate, setBusy, setError, songId]);
+  }, [api, hydrate, invalidateCreditsBalance, setBusy, setError, songId]);
 
   return { title };
 }

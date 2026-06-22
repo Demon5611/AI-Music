@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { useApi } from "@/shared/providers/api-provider";
+import { useInvalidateCreditsBalance } from "@/features/billing/hooks/invalidate-credits-balance";
 
 const SCRIPT_POLL_INTERVAL_MS = 3_000;
 
@@ -18,6 +19,7 @@ function isScriptStatusTerminal(data: MusicLyricsStatusResponseDto | undefined):
 
 export function useVoiceRecordingScript(vocalGender: VocalGender | null) {
   const api = useApi();
+  const invalidateCreditsBalance = useInvalidateCreditsBalance();
   const [script, setScript] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -49,6 +51,7 @@ export function useVoiceRecordingScript(vocalGender: VocalGender | null) {
 
     if (body.status === "failed") {
       setError(body.errorMessage ?? "Генерация текста не удалась");
+      void invalidateCreditsBalance();
       return;
     }
 
@@ -60,7 +63,7 @@ export function useVoiceRecordingScript(vocalGender: VocalGender | null) {
 
     setScript(text);
     setError(null);
-  }, [statusQuery.data, statusQuery.error]);
+  }, [invalidateCreditsBalance, statusQuery.data, statusQuery.error]);
 
   const generateScript = useCallback(async () => {
     if (!vocalGender) {
@@ -79,12 +82,13 @@ export function useVoiceRecordingScript(vocalGender: VocalGender | null) {
       });
       setTaskId(body.taskId);
       lastGenderRef.current = vocalGender;
+      void invalidateCreditsBalance();
     } catch (generateError) {
       setError(parseApiError(generateError, "Не удалось сгенерировать текст"));
     } finally {
       setIsStarting(false);
     }
-  }, [api.music, vocalGender]);
+  }, [api.music, invalidateCreditsBalance, vocalGender]);
 
   useEffect(() => {
     if (!vocalGender) {

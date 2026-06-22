@@ -7,6 +7,7 @@ import {
 } from "@ai-music/shared";
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import { useApi } from "@/shared/providers/api-provider";
+import { useInvalidateCreditsBalance } from "@/features/billing/hooks/invalidate-credits-balance";
 import { PlanGatedWrap, usePlanGate } from "@/shared/ui/plan-gated";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
 import { me } from "@/features/music-editor/music-editor-classes";
@@ -23,6 +24,7 @@ export function ReplaceSectionPanel({
   disabled = false,
 }: ReplaceSectionPanelProps) {
   const api = useApi();
+  const invalidateCreditsBalance = useInvalidateCreditsBalance();
   const hydrate = useAudioEditorStore((state) => state.hydrate);
   const songPendingAction = useAudioEditorStore((state) => state.songPendingAction);
   const replaceGate = usePlanGate("replaceSections");
@@ -47,6 +49,7 @@ export function ReplaceSectionPanel({
       });
       hydrate(state);
       setPrompt("");
+      void invalidateCreditsBalance();
     } catch (submitError) {
       setError(parseApiError(submitError, "Не удалось заменить фрагмент"));
     } finally {

@@ -13,6 +13,7 @@ import { useEditorOperations } from "@/features/music-editor/hooks/use-editor-op
 import { useEditorPolling } from "@/features/music-editor/hooks/use-editor-polling";
 import { RegionToolbar } from "@/features/music-editor/region-toolbar";
 import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
+import { useInvalidateCreditsBalance } from "@/features/billing/hooks/invalidate-credits-balance";
 import { RenderButton } from "@/features/music-editor/render-button";
 import { SelectedContextPanel } from "@/features/music-editor/selected-context-panel";
 import { useAudioEditorStore } from "@/features/music-editor/store/audio-editor-store";
@@ -184,6 +185,7 @@ export function AudioEditor({ songId }: AudioEditorProps) {
 
 function AudioEditorContent({ songId }: AudioEditorProps) {
   const api = useApi();
+  const invalidateCreditsBalance = useInvalidateCreditsBalance();
   const subscriptionQuery = useSubscriptionQuery();
   const editorLevel = subscriptionQuery.data?.entitlements.features.editor ?? false;
   const lockedAdvancedOps = editorLevel === "lite";
@@ -237,6 +239,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
     try {
       const state = await api.musicEditor.retryStemSeparation(songId);
       hydrate(state);
+      void invalidateCreditsBalance();
     } catch (retryError) {
       const message = parseApiError(retryError, "Не удалось повторить разделение");
       setError(message);

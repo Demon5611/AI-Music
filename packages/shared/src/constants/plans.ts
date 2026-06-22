@@ -194,6 +194,18 @@ export function getPlanLabel(planId: PlanId): string {
   return PLANS[planId].label;
 }
 
+/** Share of plan monthly credits on balance, capped at 100% (rollover-safe). */
+export function resolveCreditsBalancePercent(balance: number, planId: PlanId): number {
+  const planLimit = PLANS[planId].monthlyCredits;
+
+  if (planLimit <= 0 || balance <= 0) {
+    return 0;
+  }
+
+  const rawPercent = (balance / planLimit) * 100;
+  return Math.min(100, Math.round(rawPercent));
+}
+
 export function getPlanFeatureTooltip(feature: keyof PlanFeatures): string {
   const requiredPlan = getMinimumPlanForFeature(feature);
   return `Доступно на тарифе ${getPlanLabel(requiredPlan)}`;

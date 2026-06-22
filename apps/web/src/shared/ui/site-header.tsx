@@ -7,6 +7,7 @@ import { useState } from "react";
 import { env } from "@/shared/config/env";
 import { appShell } from "@/shared/theme/app-theme";
 import { ThemeToggle } from "@/shared/ui/theme-toggle";
+import { HeaderCreditsIndicator } from "@/features/billing/components/header-credits-indicator";
 
 const NAV_ITEMS = [
   { href: "/music-create", label: "Music Create" },
@@ -96,6 +97,7 @@ export function SiteHeader() {
         <SiteHeaderNav className={appShell.siteHeaderNav} />
 
         <div className={appShell.siteHeaderActions}>
+          <HeaderCreditsIndicator />
           <ThemeToggle />
           <div className="hidden md:contents">
             {env.isClerkEnabled ? <ClerkAuthActions /> : <DevAuthBadge />}
@@ -130,6 +132,7 @@ export function SiteHeader() {
         <div className={appShell.siteHeaderNavMobile} id="site-header-mobile-nav">
           <SiteHeaderNav className="flex flex-col gap-0.5" onNavigate={closeMobileNav} />
           <div className="mt-3 border-t border-[var(--app-border-subtle)] pt-3 md:hidden">
+            <HeaderCreditsIndicator className="mb-3 flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between" />
             {env.isClerkEnabled ? <ClerkAuthActions compact /> : <DevAuthBadge />}
           </div>
         </div>

@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
+import { useInvalidateCreditsBalance } from "@/features/billing/hooks/invalidate-credits-balance";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { AiProcessingStatus } from "@/shared/ui/elevenlabs/ai-processing-status";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
@@ -77,6 +78,7 @@ export function MusicLyricsFromPrompt({
 }: MusicLyricsFromPromptProps) {
   const api = useApi();
   const authReady = useAuthReady();
+  const invalidateCreditsBalance = useInvalidateCreditsBalance();
   const subscriptionQuery = useSubscriptionQuery();
   const userQuery = useQuery({
     queryKey: ["users", "me"],
@@ -157,6 +159,17 @@ export function MusicLyricsFromPrompt({
     );
   }, [lyricsDurationSec, lyricsStatusQuery.data, lyricsTaskId, onApply]);
 
+  useEffect(() => {
+    const body = lyricsStatusQuery.data;
+    if (!lyricsTaskId || !body) {
+      return;
+    }
+
+    if (body.status === "failed") {
+      void invalidateCreditsBalance();
+    }
+  }, [invalidateCreditsBalance, lyricsStatusQuery.data, lyricsTaskId]);
+
   async function handleGenerate() {
     const prompt = lyricsBrief.trim();
 
@@ -182,6 +195,7 @@ export function MusicLyricsFromPrompt({
         durationSec: lyricsDurationSec,
       });
       setLyricsTaskId(body.taskId);
+      void invalidateCreditsBalance();
     } catch (generateError) {
       setSubmitError(parseApiError(generateError, "Не удалось сгенерировать текст"));
     } finally {
