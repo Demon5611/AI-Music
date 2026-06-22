@@ -35,7 +35,6 @@ const PLAN_FEATURES: Record<PlanId, string[]> = {
   studio: [
     "Всё из Pro",
     "Fastest Queue",
-    "Unlimited Projects",
     "Extended Version History",
     "More Stem Processing",
     "Early Access",
