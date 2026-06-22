@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import { usePollingQuery } from "@/shared/hooks/use-polling-query";
 import { useApi } from "@/shared/providers/api-provider";
-import { useInvalidateCreditsBalance } from "@/features/billing/hooks/invalidate-credits-balance";
+import { invalidateCreditsBalance } from "@/features/billing/hooks/invalidate-credits-balance";
 import { checkContentAllowed, type MusicStatusResponseDto } from "@ai-music/shared";
 
 const POLL_INTERVAL_MS = 12_000;
@@ -44,7 +44,6 @@ function resolveInputModerationError(input: GenerateSongInput): string | null {
 export function useMusicGeneration() {
   const api = useApi();
   const queryClient = useQueryClient();
-  const invalidateCreditsBalance = useInvalidateCreditsBalance();
   const router = useRouter();
 
   const [configured, setConfigured] = useState<boolean | null>(null);
@@ -77,6 +76,17 @@ export function useMusicGeneration() {
     await queryClient.invalidateQueries({ queryKey: ["music-history"] });
   }, [queryClient]);
 
+  const handleGenerationTerminal = useCallback(
+    async (failed: boolean) => {
+      await refreshHistory();
+
+      if (failed) {
+        await invalidateCreditsBalance(queryClient);
+      }
+    },
+    [queryClient, refreshHistory],
+  );
+
   const statusQuery = usePollingQuery({
     queryKey: ["music-status", activePollTaskId],
     queryFn: () => api.music.status(activePollTaskId!),
@@ -101,14 +111,14 @@ export function useMusicGeneration() {
 
     if (body.status === "completed" || body.status === "failed") {
       setActivePollTaskId(null);
-      void refreshHistory();
+      const failed = body.status === "failed";
+      void handleGenerationTerminal(failed);
 
-      if (body.status === "failed") {
-        void invalidateCreditsBalance();
+      if (failed) {
         setError(body.errorMessage ?? "Music generation failed");
       }
     }
-  }, [statusQuery.data, statusQuery.error, refreshHistory, invalidateCreditsBalance]);
+  }, [statusQuery.data, statusQuery.error, handleGenerationTerminal]);
 
   const generate = useCallback(
     async (input: GenerateSongInput) => {
@@ -161,14 +171,14 @@ export function useMusicGeneration() {
           rawStatus: "PENDING",
         });
         setActivePollTaskId(body.recordId);
-        void invalidateCreditsBalance();
+        void invalidateCreditsBalance(queryClient);
       } catch (generateError) {
         setError(parseApiError(generateError, "Music API error", PARSE_OPTS));
       } finally {
         setIsGenerating(false);
       }
     },
-    [api, invalidateCreditsBalance],
+    [api, queryClient],
   );
 
   const openEditor = useCallback(
