@@ -76,17 +76,6 @@ export function useMusicGeneration() {
     await queryClient.invalidateQueries({ queryKey: ["music-history"] });
   }, [queryClient]);
 
-  const handleGenerationTerminal = useCallback(
-    async (failed: boolean) => {
-      await refreshHistory();
-
-      if (failed) {
-        await invalidateCreditsBalance(queryClient);
-      }
-    },
-    [queryClient, refreshHistory],
-  );
-
   const statusQuery = usePollingQuery({
     queryKey: ["music-status", activePollTaskId],
     queryFn: () => api.music.status(activePollTaskId!),
@@ -111,14 +100,14 @@ export function useMusicGeneration() {
 
     if (body.status === "completed" || body.status === "failed") {
       setActivePollTaskId(null);
-      const failed = body.status === "failed";
-      void handleGenerationTerminal(failed);
+      void queryClient.invalidateQueries({ queryKey: ["music-history"] });
 
-      if (failed) {
+      if (body.status === "failed") {
+        void invalidateCreditsBalance(queryClient);
         setError(body.errorMessage ?? "Music generation failed");
       }
     }
-  }, [statusQuery.data, statusQuery.error, handleGenerationTerminal]);
+  }, [queryClient, statusQuery.data, statusQuery.error]);
 
   const generate = useCallback(
     async (input: GenerateSongInput) => {
