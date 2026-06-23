@@ -14,6 +14,7 @@ import {
   ensureSongForTrack,
   getCurrentVersion,
   getSongOriginalAudio,
+  getSongRegionReplacementAudio,
   getSongStemAudio,
   getSongVersionAudio,
   kickoffStemSeparation,
@@ -293,6 +294,26 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
           request.userId!,
           request.params.songId,
           request.params.stemType,
+        );
+        return reply
+          .header("Content-Type", contentType)
+          .header("Cache-Control", "private, max-age=3600")
+          .send(buffer);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: { songId: string; regionId: string } }>(
+    "/api/music/songs/:songId/regions/:regionId/replacement/audio",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const { buffer, contentType } = await getSongRegionReplacementAudio(
+          request.userId!,
+          request.params.songId,
+          request.params.regionId,
         );
         return reply
           .header("Content-Type", contentType)

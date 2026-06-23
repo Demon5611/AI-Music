@@ -132,4 +132,7 @@ export const me = {
   voiceModelPaginationLabel: "text-center text-[0.8125rem] text-[var(--app-text-muted)]",
   dialogActions: "mt-3 flex justify-end gap-2",
   replacePromptInput: appShell.fieldTextarea,
+  replaceProgressStatus:
+    "mb-3 rounded-xl border border-indigo-500/25 bg-indigo-500/8 p-3",
+  replaceProgressHint: "mt-2 text-[0.8125rem] text-[var(--app-text-muted)]",
 } as const;

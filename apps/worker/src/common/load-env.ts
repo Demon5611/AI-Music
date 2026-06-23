@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const envPaths = [
-  resolve(currentDir, "../../../.env"),
+  resolve(currentDir, "../../../../.env"),
   resolve(process.cwd(), ".env"),
 ];
 

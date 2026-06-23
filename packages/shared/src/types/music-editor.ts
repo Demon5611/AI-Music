@@ -126,6 +126,7 @@ export interface SongRegionDto {
   startMs: number;
   endMs: number;
   orderIndex: number;
+  replacementAudioUrl: string | null;
 }
 
 export interface SongVersionDto {
@@ -146,6 +147,7 @@ export interface SongDto {
   sourceTrackId: string;
   stemSeparationNotice?: string | null;
   pendingAction?: string | null;
+  pendingRegionId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

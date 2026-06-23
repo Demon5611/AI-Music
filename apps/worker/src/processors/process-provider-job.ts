@@ -85,12 +85,12 @@ async function processReplaceSectionJob(
   });
 
   if (!song?.pendingPrompt) {
-    return;
+    throw new Error("Replace section job missing pending prompt");
   }
 
   const region = song.regions.find((item) => item.id === payload.regionId);
   if (!region) {
-    return;
+    throw new Error("Replace section region not found");
   }
 
   const sourceTrack = await prisma.musicGenerationTrack.findUnique({
@@ -98,7 +98,7 @@ async function processReplaceSectionJob(
   });
 
   if (!sourceTrack?.providerTrackId) {
-    return;
+    throw new Error("Replace section source track missing providerTrackId");
   }
 
   const musicService = createMusicService();
@@ -114,4 +114,37 @@ async function processReplaceSectionJob(
     where: { id: song.id },
     data: { pendingTaskId: result.taskId },
   });
+}
+
+export async function cleanupFailedReplaceSectionJob(
+  payload: Extract<ProviderJobPayload, { type: "replace_section" }>,
+): Promise<void> {
+  const song = await prisma.song.findFirst({
+    where: { id: payload.songId, userId: payload.userId },
+    select: {
+      id: true,
+      pendingAction: true,
+      pendingRegionId: true,
+    },
+  });
+
+  if (!song || song.pendingAction !== "replace_section") {
+    return;
+  }
+
+  await prisma.song.update({
+    where: { id: song.id },
+    data: {
+      pendingAction: null,
+      pendingRegionId: null,
+      pendingPrompt: null,
+      pendingTaskId: null,
+    },
+  });
+
+  await refundCreditsOnce(
+    payload.userId,
+    OPERATION_COST_UNITS.replaceSection,
+    `replace_section_refund:${payload.songId}:${payload.regionId}`,
+  ).catch(() => undefined);
 }

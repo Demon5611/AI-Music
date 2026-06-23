@@ -12,6 +12,7 @@ import { getCurrentVersion, getSongForUser } from "./song-editor.service.js";
 import { enqueueProviderJob } from "../queue/provider-job-queue.js";
 
 const PENDING_REPLACE_ACTION = "replace_section";
+const REPLACE_SECTION_STALE_MS = 20_000;
 
 export async function startReplaceSection(
   userId: string,
@@ -100,6 +101,13 @@ export async function tickReplaceSection(userId: string, songId: string) {
   }
 
   if (!song.pendingTaskId) {
+    const staleMs = Date.now() - song.updatedAt.getTime();
+    if (staleMs >= REPLACE_SECTION_STALE_MS) {
+      await clearReplacePending(song.id);
+      await refundReplaceSection(userId, song.id, song.pendingRegionId ?? "unknown");
+      return getSongForUser(userId, songId);
+    }
+
     return song;
   }
 

@@ -7,6 +7,7 @@ import {
   closeProviderJobWorker,
   createProviderJobWorker,
 } from "./provider-job.worker.js";
+import { cleanupFailedReplaceSectionJob } from "./processors/process-provider-job.js";
 import {
   closeProviderQueueMetrics,
   logProviderQueueMetrics,
@@ -30,8 +31,14 @@ async function main() {
     console.log(`Provider job completed: ${job.id}`);
   });
 
-  providerJobWorker.on("failed", (job, error) => {
+  providerJobWorker.on("failed", async (job, error) => {
     console.error(`Provider job failed: ${job?.id ?? "unknown"}`, error);
+
+    if (job?.data.type === "replace_section") {
+      await cleanupFailedReplaceSectionJob(job.data).catch((cleanupError) => {
+        console.error("Replace section cleanup failed", cleanupError);
+      });
+    }
   });
 
   console.log("Worker started (generation + provider-jobs queues)");

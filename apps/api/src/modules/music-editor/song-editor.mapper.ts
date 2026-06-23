@@ -85,6 +85,7 @@ function toSongDto(song: Song, apiBaseUrl: string): SongDto {
     sourceTrackId: song.sourceTrackId,
     stemSeparationNotice: song.stemSeparationNotice,
     pendingAction: song.pendingAction,
+    pendingRegionId: song.pendingRegionId,
     createdAt: song.createdAt.toISOString(),
     updatedAt: song.updatedAt.toISOString(),
   };
@@ -99,7 +100,15 @@ function toStemDtos(song: SongWithRelations, apiBaseUrl: string): SongStemDto[] 
   }));
 }
 
-function toRegionDtos(regions: SongRegion[]): SongRegionDto[] {
+function buildRegionReplacementAudioUrl(
+  songId: string,
+  regionId: string,
+  apiBaseUrl: string,
+): string {
+  return `${apiBaseUrl}/api/music/songs/${songId}/regions/${regionId}/replacement/audio`;
+}
+
+function toRegionDtos(songId: string, regions: SongRegion[], apiBaseUrl: string): SongRegionDto[] {
   return regions
     .slice()
     .sort((left, right) => left.orderIndex - right.orderIndex)
@@ -109,6 +118,9 @@ function toRegionDtos(regions: SongRegion[]): SongRegionDto[] {
       startMs: region.startMs,
       endMs: region.endMs,
       orderIndex: region.orderIndex,
+      replacementAudioUrl: region.replacementAudioKey
+        ? buildRegionReplacementAudioUrl(songId, region.id, apiBaseUrl)
+        : null,
     }));
 }
 
@@ -227,7 +239,7 @@ export function toEditorStateDto(
   return {
     song: toSongDto(song, apiBaseUrl),
     stems: toStemDtos(song, apiBaseUrl),
-    regions: toRegionDtos(song.regions),
+    regions: toRegionDtos(song.id, song.regions, apiBaseUrl),
     tracks,
     operations,
     undoneOperations,

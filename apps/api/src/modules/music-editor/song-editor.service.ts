@@ -386,6 +386,23 @@ export async function getSongOriginalAudio(
   return { buffer, contentType: "audio/mpeg" };
 }
 
+export async function getSongRegionReplacementAudio(
+  userId: string,
+  songId: string,
+  regionId: string,
+): Promise<{ buffer: Buffer; contentType: string }> {
+  const song = await getSongForUser(userId, songId);
+  const region = song.regions.find((item) => item.id === regionId);
+
+  if (!region?.replacementAudioKey) {
+    throw new NotFoundError("Region replacement audio not found");
+  }
+
+  const buffer = await getStorageService().get(region.replacementAudioKey);
+
+  return { buffer, contentType: "audio/mpeg" };
+}
+
 export async function getSongVersionAudio(
   userId: string,
   songId: string,
