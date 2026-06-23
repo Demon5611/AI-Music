@@ -1,6 +1,5 @@
 interface EditorCreditsSnapshot {
   songStatus: string | null;
-  pendingAction: string | null;
 }
 
 export function shouldInvalidateCreditsAfterEditorStateChange(
@@ -12,13 +11,6 @@ export function shouldInvalidateCreditsAfterEditorStateChange(
   }
 
   if (previous.songStatus === "separating_stems" && next.songStatus === "ready") {
-    return true;
-  }
-
-  if (
-    previous.pendingAction === "replace_section" &&
-    next.pendingAction !== "replace_section"
-  ) {
     return true;
   }
 

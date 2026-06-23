@@ -278,54 +278,12 @@ export function resolveRegionPlaybackGainDb(
   return muted ? SILENT_GAIN_DB : gainDb;
 }
 
-function trimBufferToDuration(buffer: AudioBuffer, durationSec: number): AudioBuffer {
-  const targetLength = Math.max(1, Math.floor(durationSec * buffer.sampleRate));
-
-  if (buffer.length === targetLength) {
-    return buffer;
-  }
-
-  const trimmed = new AudioBuffer({
-    length: targetLength,
-    numberOfChannels: buffer.numberOfChannels,
-    sampleRate: buffer.sampleRate,
-  });
-
-  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
-    const input = buffer.getChannelData(channel);
-    const output = trimmed.getChannelData(channel);
-
-    for (let index = 0; index < targetLength; index += 1) {
-      output[index] = input[index] ?? 0;
-    }
-  }
-
-  return trimmed;
-}
-
-function resolveRegionClipBuffer(
-  source: TimelineStemSource,
-  region: SongRegionDto,
-  audioBuffer: AudioBuffer,
-  durationSec: number,
-  replacementBuffersByRegionId: Map<string, AudioBuffer>,
-): AudioBuffer {
-  const replacementBuffer = replacementBuffersByRegionId.get(region.id);
-
-  if (replacementBuffer) {
-    return trimBufferToDuration(replacementBuffer, durationSec);
-  }
-
-  return audioBuffer;
-}
-
 export function buildRegionTrack(
   source: TimelineStemSource,
   audioBuffer: AudioBuffer,
   regions: SongRegionDto[],
   operations: EditOperation[],
   mixPreview?: RegionMixPreviewOverlay,
-  replacementBuffersByRegionId: Map<string, AudioBuffer> = new Map(),
 ): ClipTrack {
   let cursorSec = 0;
   const trackRegions = resolveTrackRegions(source.id, regions, operations);
@@ -339,20 +297,10 @@ export function buildRegionTrack(
       operations,
       mixPreview,
     );
-    const hasReplacement = replacementBuffersByRegionId.has(region.id);
-    const isVocalReplacementPreview = source.id === "vocal" && hasReplacement;
-    const clipGain = isVocalReplacementPreview ? 0 : dbToGain(clipGainDb);
-    const regionClipBuffer = resolveRegionClipBuffer(
-      source,
-      region,
-      audioBuffer,
-      durationSec,
-      replacementBuffersByRegionId,
-    );
-    const usesReplacementClip = hasReplacement;
-    const clip = hasFade && !usesReplacementClip
+    const clipGain = dbToGain(clipGainDb);
+    const clip = hasFade
       ? createClipFromSeconds({
-          audioBuffer: bakeRegionFadeIntoBuffer(regionClipBuffer, region, fadeEnvelope),
+          audioBuffer: bakeRegionFadeIntoBuffer(audioBuffer, region, fadeEnvelope),
           startTime: cursorSec,
           offset: 0,
           duration: durationSec,
@@ -361,9 +309,9 @@ export function buildRegionTrack(
           color: REGION_COLORS[region.label],
         })
       : createClipFromSeconds({
-          audioBuffer: regionClipBuffer,
+          audioBuffer,
           startTime: cursorSec,
-          offset: usesReplacementClip ? 0 : region.startMs / 1000,
+          offset: region.startMs / 1000,
           duration: durationSec,
           gain: clipGain,
           name: selectRegionLabel(region),

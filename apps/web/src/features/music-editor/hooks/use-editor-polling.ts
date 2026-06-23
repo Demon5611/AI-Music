@@ -14,23 +14,18 @@ export function useEditorPolling(songId: string) {
   const hydrate = useAudioEditorStore((store) => store.hydrate);
   const setError = useAudioEditorStore((store) => store.setError);
   const songStatus = useAudioEditorStore((store) => store.songStatus);
-  const songPendingAction = useAudioEditorStore((store) => store.songPendingAction);
   const isStemProcessing =
     songStatus === "separating_stems" || songStatus === "pending_stems";
-  const isReplaceProcessing = songPendingAction === "replace_section";
-  const shouldPoll = isStemProcessing || isReplaceProcessing;
 
   const refresh = useCallback(async () => {
     const previous = {
       songStatus: useAudioEditorStore.getState().songStatus,
-      pendingAction: useAudioEditorStore.getState().songPendingAction,
     };
 
     try {
       const state = await api.musicEditor.getEditorState(songId);
       const next = {
         songStatus: state.song.status,
-        pendingAction: state.song.pendingAction ?? null,
       };
 
       if (shouldInvalidateCreditsAfterEditorStateChange(previous, next)) {
@@ -44,7 +39,7 @@ export function useEditorPolling(songId: string) {
   }, [api, hydrate, invalidateCreditsBalance, setError, songId]);
 
   useEffect(() => {
-    if (!shouldPoll) {
+    if (!isStemProcessing) {
       return;
     }
 
@@ -55,7 +50,7 @@ export function useEditorPolling(songId: string) {
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(timer);
-  }, [refresh, shouldPoll]);
+  }, [isStemProcessing, refresh]);
 
   return { refresh, isProcessing: isStemProcessing };
 }

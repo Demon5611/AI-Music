@@ -360,20 +360,6 @@ async function refreshStaleVerificationPhrase(
   // Phrase already stored for UI — Suno often stops echoing validateInfo on poll.
   // This is not expiration; only explicit verify failure or user restart should reset.
   if (sample.sunoValidatePhrase?.trim()) {
-    // #region agent log
-    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-      body: JSON.stringify({
-        sessionId: "543522",
-        hypothesisId: "B-fix",
-        location: "suno-voice.service.ts:refreshStaleVerificationPhrase",
-        message: "skip stale refresh — phrase in DB",
-        data: { sampleId: sample.id, taskId },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     return null;
   }
 
@@ -665,25 +651,6 @@ export async function getSunoVoiceCloneStatus(userId: string, sampleId: string) 
   let sample = await loadOwnedSample(userId, sampleId);
   const statusBefore = sample.voiceCloneStatus;
   sample = await syncSunoVoiceTaskStatus(sample);
-  // #region agent log
-  fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-    body: JSON.stringify({
-      sessionId: "543522",
-      hypothesisId: "B",
-      location: "suno-voice.service.ts:getSunoVoiceCloneStatus",
-      message: "status sync result",
-      data: {
-        sampleId,
-        statusBefore,
-        statusAfter: sample.voiceCloneStatus,
-        voiceCloneError: sample.voiceCloneError,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
   return toVoiceSampleDtoWithPersonaCheck(sample, resolvePersonaVoiceId);
 }
 
@@ -938,26 +905,6 @@ export async function submitSunoVoiceVerification(
 
   let generateTaskId: string;
   const cloneStyle = vocalGender ? buildSunoVoiceCloneStyle(vocalGender) : null;
-
-  // #region agent log
-  fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-    body: JSON.stringify({
-      sessionId: "543522",
-      hypothesisId: "G-A",
-      location: "suno-voice.service.ts:verifySunoVoice",
-      message: "verify submit clone style",
-      data: {
-        sampleId: sample.id,
-        durationSec: input.durationSec ?? sample.durationSec,
-        vocalGender,
-        cloneStyle,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
 
   try {
     generateTaskId = await voice.generateCustomVoice({

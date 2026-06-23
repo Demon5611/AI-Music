@@ -15,8 +15,6 @@ import {
   isStemSeparationTimedOut,
   persistOriginalAudioAsStems,
 } from "./stem-separation.js";
-import { tickReplaceSection } from "./replace-section.service.js";
-
 export async function ensureSongForTrack(userId: string, trackId: string) {
   await assertFeature(userId, "editor");
 
@@ -332,14 +330,7 @@ async function persistStemResult(userId: string, songId: string, result: StemRes
 }
 
 export async function refreshEditorProgress(userId: string, songId: string) {
-  let song = await getSongForUser(userId, songId);
-
-  if (song.pendingAction === "replace_section") {
-    song = await tickReplaceSection(userId, songId);
-    if (song.pendingAction === "replace_section") {
-      return song;
-    }
-  }
+  const song = await getSongForUser(userId, songId);
 
   const reconciled = await reconcileStoredStems(userId, song);
 
@@ -382,23 +373,6 @@ export async function getSongOriginalAudio(
   }
 
   const buffer = await getStorageService().get(song.audioStorageKey);
-
-  return { buffer, contentType: "audio/mpeg" };
-}
-
-export async function getSongRegionReplacementAudio(
-  userId: string,
-  songId: string,
-  regionId: string,
-): Promise<{ buffer: Buffer; contentType: string }> {
-  const song = await getSongForUser(userId, songId);
-  const region = song.regions.find((item) => item.id === regionId);
-
-  if (!region?.replacementAudioKey) {
-    throw new NotFoundError("Region replacement audio not found");
-  }
-
-  const buffer = await getStorageService().get(region.replacementAudioKey);
 
   return { buffer, contentType: "audio/mpeg" };
 }

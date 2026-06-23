@@ -50,8 +50,6 @@ interface AudioEditorState {
   currentVersionId: string | null;
   versions: EditorStateDto["versions"];
   songStatus: EditorStateDto["song"]["status"] | null;
-  songPendingAction: string | null;
-  songPendingRegionId: string | null;
   editorNotice: string | null;
   durationMs: number;
   isBusy: boolean;
@@ -196,8 +194,6 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
   currentVersionId: null,
   versions: [],
   songStatus: null,
-  songPendingAction: null,
-  songPendingRegionId: null,
   editorNotice: null,
   durationMs: 0,
   isBusy: false,
@@ -241,8 +237,6 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
         currentVersionId: state.currentVersionId,
         versions: state.versions,
         songStatus: state.song.status,
-        songPendingAction: state.song.pendingAction ?? null,
-        songPendingRegionId: state.song.pendingRegionId ?? null,
         editorNotice: state.song.stemSeparationNotice ?? null,
         durationMs: state.song.durationMs ?? 0,
         selectedRegionId,

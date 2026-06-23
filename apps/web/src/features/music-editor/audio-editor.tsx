@@ -6,7 +6,6 @@ import { clearCachedEditorState } from "@/features/music-editor/utils/editor-ses
 import { useClientMounted } from "@/shared/hooks/use-client-mounted";
 import { EditorStemNotice } from "@/features/music-editor/editor-stem-notice";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
-import { ReplaceSectionPanel } from "@/features/music-editor/replace-section-panel";
 import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
 import { EditorHeader } from "@/features/music-editor/editor-header";
 import { useEditorOperations } from "@/features/music-editor/hooks/use-editor-operations";
@@ -375,12 +374,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
         </div>
 
         <div className={me.sideColumn}>
-          <ReplaceSectionPanel
-            disabled={controlsDisabled}
-            selectedRegionId={selectedRegionId}
-            songId={songId}
-          />
-
           <EditHistoryPanel
             disabled={controlsDisabled}
             operations={operations}

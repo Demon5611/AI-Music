@@ -257,7 +257,7 @@ Feature: `apps/web/src/features/admin/` (или `dev-admin/`)
 | ---- | --------- |
 | **free** | 30 сек, combo-style only, lyrics limit 360, simplified generation, editor closed |
 | **starter** | длительности > 30, ручной style, editor basic ops, lyrics по duration |
-| **pro** | stem separation, advanced editor, replace sections |
+| **pro** | stem separation, advanced editor |
 | **creator** | voice transfer limit, priority queue (когда реализовано), album cover (когда реализовано) |
 
 После admin override plan:

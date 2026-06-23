@@ -84,8 +84,6 @@ function toSongDto(song: Song, apiBaseUrl: string): SongDto {
     audioUrl: buildSongAudioUrl(song, apiBaseUrl),
     sourceTrackId: song.sourceTrackId,
     stemSeparationNotice: song.stemSeparationNotice,
-    pendingAction: song.pendingAction,
-    pendingRegionId: song.pendingRegionId,
     createdAt: song.createdAt.toISOString(),
     updatedAt: song.updatedAt.toISOString(),
   };
@@ -100,15 +98,7 @@ function toStemDtos(song: SongWithRelations, apiBaseUrl: string): SongStemDto[] 
   }));
 }
 
-function buildRegionReplacementAudioUrl(
-  songId: string,
-  regionId: string,
-  apiBaseUrl: string,
-): string {
-  return `${apiBaseUrl}/api/music/songs/${songId}/regions/${regionId}/replacement/audio`;
-}
-
-function toRegionDtos(songId: string, regions: SongRegion[], apiBaseUrl: string): SongRegionDto[] {
+function toRegionDtos(regions: SongRegion[]): SongRegionDto[] {
   return regions
     .slice()
     .sort((left, right) => left.orderIndex - right.orderIndex)
@@ -118,9 +108,6 @@ function toRegionDtos(songId: string, regions: SongRegion[], apiBaseUrl: string)
       startMs: region.startMs,
       endMs: region.endMs,
       orderIndex: region.orderIndex,
-      replacementAudioUrl: region.replacementAudioKey
-        ? buildRegionReplacementAudioUrl(songId, region.id, apiBaseUrl)
-        : null,
     }));
 }
 
@@ -160,7 +147,8 @@ function isStoredEditOperation(value: unknown): value is EditOperation {
     return false;
   }
 
-  return (value as { type: string }).type !== "REPLACE_VOCAL";
+  return (value as { type: string }).type !== "REPLACE_VOCAL"
+    && (value as { type: string }).type !== "REPLACE_SECTION";
 }
 
 export function parseOperations(operations: DbEditOperation[]): EditOperation[] {
@@ -239,7 +227,7 @@ export function toEditorStateDto(
   return {
     song: toSongDto(song, apiBaseUrl),
     stems: toStemDtos(song, apiBaseUrl),
-    regions: toRegionDtos(song.id, song.regions, apiBaseUrl),
+    regions: toRegionDtos(song.regions),
     tracks,
     operations,
     undoneOperations,

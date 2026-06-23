@@ -174,20 +174,6 @@ export function SunoVoiceVerifyFlow({
   }, []);
 
   const startPolling = useCallback((debugReason: string) => {
-    // #region agent log
-    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-      body: JSON.stringify({
-        sessionId: "543522",
-        hypothesisId: "B-C",
-        location: "suno-voice-verify-flow.tsx:startPolling",
-        message: "startPolling",
-        data: { debugReason, sampleId },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     pollCountRef.current = 0;
     setPollRequested(true);
   }, [sampleId]);
@@ -254,26 +240,6 @@ export function SunoVoiceVerifyFlow({
 
     setSample(statusQuery.data);
 
-    // #region agent log
-    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-      body: JSON.stringify({
-        sessionId: "543522",
-        hypothesisId: "B",
-        location: "suno-voice-verify-flow.tsx:poll:status",
-        message: "poll status update",
-        data: {
-          sampleId,
-          voiceCloneStatus: statusQuery.data.voiceCloneStatus,
-          voiceCloneError: statusQuery.data.voiceCloneError,
-          pollCount: pollCountRef.current,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     if (
       statusQuery.data.voiceCloneStatus !== "failed" ||
       isVoiceCloneCancelled(statusQuery.data)
@@ -321,20 +287,6 @@ export function SunoVoiceVerifyFlow({
     let cancelled = false;
 
     async function bootstrap() {
-      // #region agent log
-      fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-        body: JSON.stringify({
-          sessionId: "543522",
-          hypothesisId: "A-D",
-          location: "suno-voice-verify-flow.tsx:bootstrap:start",
-          message: "bootstrap started",
-          data: { sampleId, bootstrappedRef: bootstrappedSampleIdRef.current },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
       setIsBootstrapping(true);
       setError(null);
 
@@ -346,27 +298,6 @@ export function SunoVoiceVerifyFlow({
         }
 
         setSample(current);
-
-        // #region agent log
-        fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-          body: JSON.stringify({
-            sessionId: "543522",
-            hypothesisId: "A-B-C",
-            location: "suno-voice-verify-flow.tsx:bootstrap:status",
-            message: "bootstrap initial status",
-            data: {
-              sampleId,
-              voiceCloneStatus: current.voiceCloneStatus,
-              voiceCloneError: current.voiceCloneError,
-              recoverable: isRecoverableVoiceCloneFailure(current),
-              willAutoPrepare: shouldAutoPrepare(current.voiceCloneStatus),
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
 
         if (isVoiceSampleReadyForGeneration(current)) {
           handleVoiceReady();
@@ -416,20 +347,6 @@ export function SunoVoiceVerifyFlow({
           setError(parseApiError(bootstrapError, VOICE_SETUP_ERROR));
         }
       } finally {
-        // #region agent log
-        fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-          body: JSON.stringify({
-            sessionId: "543522",
-            hypothesisId: "H-bootstrap",
-            location: "suno-voice-verify-flow.tsx:bootstrap:finally",
-            message: "bootstrap finished",
-            data: { sampleId, cancelled, bootstrapped: bootstrappedSampleIdRef.current === sampleId },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
         setIsBootstrapping(false);
       }
     }
@@ -442,20 +359,6 @@ export function SunoVoiceVerifyFlow({
   }, [authReady, handleVoiceReady, sampleId, startPolling]);
 
   async function handleVerifySubmit() {
-    // #region agent log
-    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-      body: JSON.stringify({
-        sessionId: "543522",
-        hypothesisId: "E",
-        location: "suno-voice-verify-flow.tsx:handleVerifySubmit",
-        message: "verify submit invoked",
-        data: { sampleId },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     if (!sampleId) {
       setError("Не указан образец голоса");
       return;
@@ -563,43 +466,10 @@ export function SunoVoiceVerifyFlow({
   }
 
   function handleStartPrepare() {
-    // #region agent log
-    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-      body: JSON.stringify({
-        sessionId: "543522",
-        hypothesisId: "A-fix",
-        location: "suno-voice-verify-flow.tsx:handleStartPrepare",
-        message: "start prepare clicked",
-        data: { sampleId },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     runPrepare(false, "start-prepare:processing");
   }
 
   function handleRetryPrepare() {
-    // #region agent log
-    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-      body: JSON.stringify({
-        sessionId: "543522",
-        hypothesisId: "D",
-        location: "suno-voice-verify-flow.tsx:handleRetryPrepare",
-        message: "retry prepare clicked",
-        data: {
-          sampleId,
-          isRetryingPrepare,
-          voiceCloneStatus: resolvedSample?.voiceCloneStatus ?? null,
-          hasPhrase: Boolean(resolvedSample?.sunoValidatePhrase?.trim()),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     if (!sampleId || isRetryingPrepare) {
       return;
     }

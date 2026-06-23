@@ -39,7 +39,6 @@ export function useEditorInitialLoad(songId: string) {
 
       const previous = {
         songStatus: cachedState?.song.status ?? null,
-        pendingAction: cachedState?.song.pendingAction ?? null,
       };
 
       try {
@@ -51,7 +50,6 @@ export function useEditorInitialLoad(songId: string) {
 
         const next = {
           songStatus: state.song.status,
-          pendingAction: state.song.pendingAction ?? null,
         };
 
         if (shouldInvalidateCreditsAfterEditorStateChange(previous, next)) {

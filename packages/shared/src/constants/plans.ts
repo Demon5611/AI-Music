@@ -16,7 +16,6 @@ export interface PlanFeatures {
   lyricsGeneration: boolean;
   editor: EditorLevel;
   stemSeparation: boolean;
-  replaceSections: boolean;
   wavExport: boolean;
   priorityQueue: boolean;
   versionHistory: VersionHistoryLevel;
@@ -91,7 +90,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       lyricsGeneration: true,
       editor: "lite",
       stemSeparation: false,
-      replaceSections: false,
       wavExport: true,
       priorityQueue: false,
       versionHistory: false,
@@ -113,7 +111,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       lyricsGeneration: true,
       editor: "advanced",
       stemSeparation: true,
-      replaceSections: true,
       wavExport: true,
       priorityQueue: true,
       versionHistory: "standard",
@@ -135,7 +132,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       lyricsGeneration: true,
       editor: "advanced",
       stemSeparation: true,
-      replaceSections: true,
       wavExport: true,
       priorityQueue: true,
       versionHistory: "extended",

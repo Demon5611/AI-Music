@@ -52,31 +52,6 @@ export async function resolveMusicPersonaForUser(
 
   await assertSunoPersonaAvailable(persona, log);
 
-  const fallbackUsed = Boolean(
-    voiceSampleId?.trim() && voiceSampleId.trim() !== persona.voiceSampleId,
-  );
-
-  // #region agent log
-  fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "543522" },
-    body: JSON.stringify({
-      sessionId: "543522",
-      hypothesisId: "G-D",
-      location: "music-persona.ts:resolveMusicPersonaForUser",
-      message: "persona resolved for music generate",
-      data: {
-        userId,
-        requestedVoiceSampleId: voiceSampleId?.trim() || null,
-        resolvedVoiceSampleId: persona.voiceSampleId,
-        personaId: persona.personaId,
-        fallbackUsed,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   log?.info(
     {
       userId,

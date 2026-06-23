@@ -27,7 +27,6 @@ const PLAN_FEATURES: Record<PlanId, string[]> = {
     "До 3 минут трек",
     "Music Editor Advanced",
     "Stem Separation",
-    "Replace Sections",
     "WAV Export",
     "Version History",
     "Priority Queue — приоритет в нашей очереди",

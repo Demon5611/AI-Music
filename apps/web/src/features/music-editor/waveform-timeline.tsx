@@ -17,7 +17,6 @@ import { PlaylistClipLabelBridge } from "@/features/music-editor/playlist-clip-l
 import { PlaylistPlayheadRestoreBridge } from "@/features/music-editor/playlist-playhead-restore-bridge";
 import { PlaylistRegionBridge } from "@/features/music-editor/playlist-region-bridge";
 import { PlaylistSelectedRegionHighlight } from "@/features/music-editor/playlist-selected-region-highlight";
-import { PlaylistRegionStatusBridge } from "@/features/music-editor/playlist-region-status-bridge";
 import { PlaylistTimelineSelectionBridge } from "@/features/music-editor/playlist-timeline-selection-bridge";
 import { TransportControls } from "@/features/music-editor/transport-controls";
 import {
@@ -624,11 +623,6 @@ export function WaveformTimeline({
                 containerRef={playlistShellRef}
                 regionsLayoutKey={regionsLayoutKey}
                 selectedRegionId={selectedRegionId}
-              />
-              <PlaylistRegionStatusBridge
-                containerRef={playlistShellRef}
-                regions={regions}
-                regionsLayoutKey={regionsLayoutKey}
               />
               <PlaylistClipLabelBridge
                 containerRef={playlistShellRef}

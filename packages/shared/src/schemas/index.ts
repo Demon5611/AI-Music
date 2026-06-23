@@ -47,7 +47,6 @@ export type CreateCheckoutSessionInput = z.infer<typeof createCheckoutSessionSch
 
 export {
   ApplyOperationBodySchema,
-  ReplaceSectionRequestSchema,
   DeleteRegionOperationSchema,
   DuplicateRegionOperationSchema,
   EditOperationSchema,

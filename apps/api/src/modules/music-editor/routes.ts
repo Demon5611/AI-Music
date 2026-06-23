@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { ApplyOperationBodySchema, ReplaceSectionRequestSchema } from "@ai-music/shared";
+import { ApplyOperationBodySchema } from "@ai-music/shared";
 import { requireAuth } from "../../common/require-auth.js";
 import { sendAppError } from "../../common/errors.js";
 import { assertFeature } from "../billing/entitlements.service.js";
@@ -14,14 +14,12 @@ import {
   ensureSongForTrack,
   getCurrentVersion,
   getSongOriginalAudio,
-  getSongRegionReplacementAudio,
   getSongStemAudio,
   getSongVersionAudio,
   kickoffStemSeparation,
   refreshEditorProgress,
   retryStemSeparation,
 } from "./song-editor.service.js";
-import { startReplaceSection } from "./replace-section.service.js";
 import { toEditorStateDto, toRenderJobDto, parseOperations } from "./song-editor.mapper.js";
 async function buildEditorResponse(userId: string, songId: string) {
   await assertFeature(userId, "editor");
@@ -91,30 +89,6 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
     async (request, reply) => {
       try {
         await retryStemSeparation(request.userId!, request.params.songId);
-        return reply.send(await buildEditorResponse(request.userId!, request.params.songId));
-      } catch (error) {
-        return sendAppError(reply, error);
-      }
-    },
-  );
-
-  app.post<{ Params: { songId: string; regionId: string }; Body: unknown }>(
-    "/api/music/:songId/regions/:regionId/replace",
-    { preHandler: requireAuth },
-    async (request, reply) => {
-      const parsed = ReplaceSectionRequestSchema.safeParse(request.body);
-
-      if (!parsed.success) {
-        return reply.status(400).send({ error: parsed.error.flatten() });
-      }
-
-      try {
-        await startReplaceSection(
-          request.userId!,
-          request.params.songId,
-          request.params.regionId,
-          parsed.data.prompt,
-        );
         return reply.send(await buildEditorResponse(request.userId!, request.params.songId));
       } catch (error) {
         return sendAppError(reply, error);
@@ -294,26 +268,6 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
           request.userId!,
           request.params.songId,
           request.params.stemType,
-        );
-        return reply
-          .header("Content-Type", contentType)
-          .header("Cache-Control", "private, max-age=3600")
-          .send(buffer);
-      } catch (error) {
-        return sendAppError(reply, error);
-      }
-    },
-  );
-
-  app.get<{ Params: { songId: string; regionId: string } }>(
-    "/api/music/songs/:songId/regions/:regionId/replacement/audio",
-    { preHandler: requireAuth },
-    async (request, reply) => {
-      try {
-        const { buffer, contentType } = await getSongRegionReplacementAudio(
-          request.userId!,
-          request.params.songId,
-          request.params.regionId,
         );
         return reply
           .header("Content-Type", contentType)

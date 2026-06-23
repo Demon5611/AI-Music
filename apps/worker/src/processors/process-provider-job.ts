@@ -12,9 +12,6 @@ export async function processProviderJob(payload: ProviderJobPayload): Promise<v
     case "music_generate":
       await processMusicGenerateJob(payload);
       return;
-    case "replace_section":
-      await processReplaceSectionJob(payload);
-      return;
     case "stem_separation":
     case "lyrics_generate":
       return;
@@ -74,77 +71,4 @@ async function processMusicGenerateJob(
 
     throw error;
   }
-}
-
-async function processReplaceSectionJob(
-  payload: Extract<ProviderJobPayload, { type: "replace_section" }>,
-) {
-  const song = await prisma.song.findFirst({
-    where: { id: payload.songId, userId: payload.userId },
-    include: { regions: true },
-  });
-
-  if (!song?.pendingPrompt) {
-    throw new Error("Replace section job missing pending prompt");
-  }
-
-  const region = song.regions.find((item) => item.id === payload.regionId);
-  if (!region) {
-    throw new Error("Replace section region not found");
-  }
-
-  const sourceTrack = await prisma.musicGenerationTrack.findUnique({
-    where: { id: song.sourceTrackId },
-  });
-
-  if (!sourceTrack?.providerTrackId) {
-    throw new Error("Replace section source track missing providerTrackId");
-  }
-
-  const musicService = createMusicService();
-  const result = await musicService.extendSong({
-    audioId: sourceTrack.providerTrackId,
-    prompt: song.pendingPrompt,
-    continueAtSec: Math.max(1, Math.floor(region.startMs / 1000)),
-    style: song.prompt.slice(0, 120),
-    title: song.title,
-  });
-
-  await prisma.song.update({
-    where: { id: song.id },
-    data: { pendingTaskId: result.taskId },
-  });
-}
-
-export async function cleanupFailedReplaceSectionJob(
-  payload: Extract<ProviderJobPayload, { type: "replace_section" }>,
-): Promise<void> {
-  const song = await prisma.song.findFirst({
-    where: { id: payload.songId, userId: payload.userId },
-    select: {
-      id: true,
-      pendingAction: true,
-      pendingRegionId: true,
-    },
-  });
-
-  if (!song || song.pendingAction !== "replace_section") {
-    return;
-  }
-
-  await prisma.song.update({
-    where: { id: song.id },
-    data: {
-      pendingAction: null,
-      pendingRegionId: null,
-      pendingPrompt: null,
-      pendingTaskId: null,
-    },
-  });
-
-  await refundCreditsOnce(
-    payload.userId,
-    OPERATION_COST_UNITS.replaceSection,
-    `replace_section_refund:${payload.songId}:${payload.regionId}`,
-  ).catch(() => undefined);
 }

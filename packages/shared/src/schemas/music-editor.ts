@@ -92,16 +92,6 @@ export const FadeOperationSchema = z.object({
   rangeEndMs: z.number().int().min(1).optional(),
 });
 
-export const ReplaceSectionOperationSchema = z.object({
-  type: z.literal("REPLACE_SECTION"),
-  regionId: z.string().min(1),
-  prompt: z.string().min(1).max(500),
-});
-
-export const ReplaceSectionRequestSchema = z.object({
-  prompt: z.string().min(1).max(500),
-});
-
 export const EditOperationSchema = z.preprocess(
   normalizeLegacyEditOperation,
   z.discriminatedUnion("type", [
@@ -117,7 +107,6 @@ export const EditOperationSchema = z.preprocess(
     ResizeRegionOperationSchema,
     ResizeTrackRegionOperationSchema,
     FadeOperationSchema,
-    ReplaceSectionOperationSchema,
   ]),
 );
 
