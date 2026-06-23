@@ -247,26 +247,6 @@ export function useEditorOperations() {
 
       setPreviewMute(trackId, muted);
 
-      // #region agent log
-      fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "8d61d1" },
-        body: JSON.stringify({
-          sessionId: "8d61d1",
-          hypothesisId: "A-D",
-          location: "use-editor-operations.ts:muteTrack",
-          message: "mute operation requested",
-          data: {
-            trackId,
-            muted,
-            regionId,
-            currentTimeMs: useAudioEditorStore.getState().currentTimeMs,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => undefined);
-      // #endregion
-
       void applyOperation({
         type: "MUTE_TRACK",
         trackId,

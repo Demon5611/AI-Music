@@ -208,26 +208,6 @@ export function resolveRegionPlaybackGainDb(
 
   if (previewState) {
     if (previewState.muted) {
-      // #region agent log
-      fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "8d61d1" },
-        body: JSON.stringify({
-          sessionId: "8d61d1",
-          runId: "post-fix",
-          hypothesisId: "F-solo-removed",
-          location: "waveform-playlist-utils.ts:resolveRegionPlaybackGainDb",
-          message: "mute via preview state",
-          data: {
-            trackId,
-            regionId,
-            selectedRegionId: mixPreview?.selectedRegionId ?? null,
-            gainDb: SILENT_GAIN_DB,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => undefined);
-      // #endregion
       return SILENT_GAIN_DB;
     }
 

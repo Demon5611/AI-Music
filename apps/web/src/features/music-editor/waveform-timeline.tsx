@@ -139,24 +139,6 @@ function PlaylistTrackStateBridge({ sources }: { sources: TimelineStemSource[] }
       controlsRef.current.setTrackSolo(index, false);
       controlsRef.current.setTrackVolume(index, dbToGain(0));
     });
-
-    // #region agent log
-    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "8d61d1" },
-      body: JSON.stringify({
-        sessionId: "8d61d1",
-        hypothesisId: "E",
-        location: "waveform-timeline.tsx:PlaylistTrackStateBridge",
-        message: "playlist track controls reset",
-        data: {
-          sourceIds: sources.map((source) => source.id),
-          trackCount: tracks.length,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => undefined);
-    // #endregion
   }, [isReady, sources, tracks]);
 
   return null;
