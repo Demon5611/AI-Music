@@ -121,7 +121,6 @@ export function useEditorOperations() {
   const setBusy = useAudioEditorStore((state) => state.setBusy);
   const setError = useAudioEditorStore((state) => state.setError);
   const setPreviewMute = useAudioEditorStore((state) => state.setPreviewMute);
-  const setPreviewSolo = useAudioEditorStore((state) => state.setPreviewSolo);
   const setPreviewGain = useAudioEditorStore((state) => state.setPreviewGain);
   const syncPreviewTracksFromOperations = useAudioEditorStore(
     (state) => state.syncPreviewTracksFromOperations,
@@ -248,6 +247,26 @@ export function useEditorOperations() {
 
       setPreviewMute(trackId, muted);
 
+      // #region agent log
+      fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "8d61d1" },
+        body: JSON.stringify({
+          sessionId: "8d61d1",
+          hypothesisId: "A-D",
+          location: "use-editor-operations.ts:muteTrack",
+          message: "mute operation requested",
+          data: {
+            trackId,
+            muted,
+            regionId,
+            currentTimeMs: useAudioEditorStore.getState().currentTimeMs,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => undefined);
+      // #endregion
+
       void applyOperation({
         type: "MUTE_TRACK",
         trackId,
@@ -256,27 +275,6 @@ export function useEditorOperations() {
       });
     },
     [applyOperation, setError, setPreviewMute],
-  );
-
-  const soloTrack = useCallback(
-    (trackId: EditorTrackId, solo: boolean) => {
-      const regionId = ensureSelectedRegionId();
-
-      if (!regionId) {
-        setError("Выберите регион на timeline");
-        return;
-      }
-
-      setPreviewSolo(trackId, solo);
-
-      void applyOperation({
-        type: "SOLO_TRACK",
-        trackId,
-        regionId,
-        solo,
-      });
-    },
-    [applyOperation, setError, setPreviewSolo],
   );
 
   const splitRegion = useCallback(() => {
@@ -545,7 +543,6 @@ export function useEditorOperations() {
     setVolume,
     adjustVolume,
     muteTrack,
-    soloTrack,
     splitRegion,
     duplicateRegion,
     resizeRegion,

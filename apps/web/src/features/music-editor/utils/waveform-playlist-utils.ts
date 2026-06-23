@@ -190,47 +190,11 @@ const SILENT_GAIN_DB = -80;
 export interface RegionMixPreviewState {
   gainDb: number;
   muted: boolean;
-  solo: boolean;
 }
 
 export interface RegionMixPreviewOverlay {
   selectedRegionId: string | null;
   previewTracks: Record<EditorTrackId, RegionMixPreviewState>;
-}
-
-function resolveActiveSoloTrackIdForRegion(
-  regionId: string,
-  operations: EditOperation[],
-): EditorTrackId | null {
-  let soloTrackId: EditorTrackId | null = null;
-
-  for (const operation of operations) {
-    if (!("regionId" in operation) || operation.regionId !== regionId) {
-      continue;
-    }
-
-    if (operation.type !== "SOLO_TRACK") {
-      continue;
-    }
-
-    if (operation.solo) {
-      soloTrackId = operation.trackId;
-      continue;
-    }
-
-    if (operation.trackId === soloTrackId) {
-      soloTrackId = null;
-    }
-  }
-
-  return soloTrackId;
-}
-
-function resolvePreviewSoloTrackId(overlay: RegionMixPreviewOverlay): EditorTrackId | null {
-  return (
-    (["vocal", "instrumental"] as const).find((trackId) => overlay.previewTracks[trackId].solo) ??
-    null
-  );
 }
 
 export function resolveRegionPlaybackGainDb(
@@ -242,16 +206,28 @@ export function resolveRegionPlaybackGainDb(
   const previewState =
     mixPreview?.selectedRegionId === regionId ? mixPreview.previewTracks[trackId] : null;
 
-  const soloTrackId = previewState
-    ? resolvePreviewSoloTrackId(mixPreview!)
-    : resolveActiveSoloTrackIdForRegion(regionId, operations);
-
-  if (soloTrackId !== null && trackId !== soloTrackId) {
-    return SILENT_GAIN_DB;
-  }
-
   if (previewState) {
     if (previewState.muted) {
+      // #region agent log
+      fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "8d61d1" },
+        body: JSON.stringify({
+          sessionId: "8d61d1",
+          runId: "post-fix",
+          hypothesisId: "F-solo-removed",
+          location: "waveform-playlist-utils.ts:resolveRegionPlaybackGainDb",
+          message: "mute via preview state",
+          data: {
+            trackId,
+            regionId,
+            selectedRegionId: mixPreview?.selectedRegionId ?? null,
+            gainDb: SILENT_GAIN_DB,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => undefined);
+      // #endregion
       return SILENT_GAIN_DB;
     }
 

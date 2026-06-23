@@ -150,7 +150,7 @@ function buildMixPreviewSignature(mixPreview?: RegionMixPreviewOverlay): string 
       .map((trackId) => {
         const state = mixPreview.previewTracks[trackId];
 
-        return [trackId, state.gainDb, state.muted, state.solo].join(":");
+        return [trackId, state.gainDb, state.muted].join(":");
       })
       .join("|"),
   ].join("::");
@@ -200,6 +200,29 @@ export function useRegionPlaylistTracks(
       .filter((track): track is ClipTrack => track !== null);
 
     lastStableTracksRef.current = nextTracks;
+    // #region agent log
+    fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "8d61d1" },
+      body: JSON.stringify({
+        sessionId: "8d61d1",
+        hypothesisId: "B-E",
+        location: "use-region-playlist-tracks.ts:tracks-built",
+        message: "timeline tracks rebuilt with clip gains",
+        data: {
+          mixPreviewSignature,
+          clipGains: nextTracks.map((track) => ({
+            trackId: track.id,
+            clips: track.clips.map((clip) => ({
+              clipId: clip.id,
+              gain: clip.gain,
+            })),
+          })),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => undefined);
+    // #endregion
     return nextTracks;
   }, [
     buffersBySourceId,

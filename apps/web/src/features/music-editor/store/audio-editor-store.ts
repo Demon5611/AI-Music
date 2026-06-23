@@ -8,7 +8,6 @@ import {
 export interface PreviewTrackState {
   gainDb: number;
   muted: boolean;
-  solo: boolean;
 }
 
 export interface PlaybackController {
@@ -88,10 +87,8 @@ interface AudioEditorState {
 
   setPreviewGain: (trackId: EditorTrackId, gainDb: number) => void;
   setPreviewMute: (trackId: EditorTrackId, muted: boolean) => void;
-  setPreviewSolo: (trackId: EditorTrackId, solo: boolean) => void;
   syncPreviewTracksFromOperations: () => void;
   togglePreviewMute: (trackId: EditorTrackId) => void;
-  togglePreviewSolo: (trackId: EditorTrackId) => void;
 
   setStemMedia: (media: StemMediaElements) => void;
 
@@ -106,7 +103,6 @@ interface AudioEditorState {
 const DEFAULT_PREVIEW: PreviewTrackState = {
   gainDb: 0,
   muted: false,
-  solo: false,
 };
 
 function resolveSelectedRegionId(
@@ -146,7 +142,6 @@ export function resolvePreviewTracks(
   const resolveTrack = (trackId: EditorTrackId): PreviewTrackState => {
     let gainDb = 0;
     let muted = false;
-    let solo = false;
 
     if (selectedRegionId) {
       for (const operation of operations) {
@@ -161,17 +156,12 @@ export function resolvePreviewTracks(
         if (operation.type === "MUTE_TRACK" && operation.trackId === trackId) {
           muted = operation.muted;
         }
-
-        if (operation.type === "SOLO_TRACK" && operation.trackId === trackId) {
-          solo = operation.solo;
-        }
       }
     }
 
     return {
       gainDb,
       muted,
-      solo,
     };
   };
 
@@ -227,6 +217,34 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
         current.selectedRegionId,
       );
       const selectedTrackId = resolveDefaultTrackId(state.tracks, current.selectedTrackId);
+      const previewTracks = resolvePreviewTracks(state.operations, selectedRegionId);
+      const muteOps = state.operations.filter(
+        (op) => op.type === "MUTE_TRACK" && op.muted,
+      );
+
+      // #region agent log
+      fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "8d61d1" },
+        body: JSON.stringify({
+          sessionId: "8d61d1",
+          hypothesisId: "C-D",
+          location: "audio-editor-store.ts:hydrate",
+          message: "editor hydrated preview tracks",
+          data: {
+            selectedRegionId,
+            previewTracks,
+            muteOpsCount: muteOps.length,
+            muteOps: muteOps.map((op) =>
+              op.type === "MUTE_TRACK"
+                ? { trackId: op.trackId, regionId: op.regionId, muted: op.muted }
+                : null,
+            ),
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => undefined);
+      // #endregion
 
       return {
         songId: state.song.id,
@@ -241,7 +259,7 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
         durationMs: state.song.durationMs ?? 0,
         selectedRegionId,
         selectedTrackId,
-        previewTracks: resolvePreviewTracks(state.operations, selectedRegionId),
+        previewTracks,
         error: null,
       };
     });
@@ -314,30 +332,34 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
       },
     })),
   setPreviewMute: (trackId, muted) =>
-    set((state) => ({
-      previewTracks: {
-        ...state.previewTracks,
-        [trackId]: { ...state.previewTracks[trackId], muted },
-      },
-    })),
-  setPreviewSolo: (trackId, solo) =>
-    set((state) => ({
-      previewTracks: {
-        vocal: {
-          ...state.previewTracks.vocal,
-          solo: trackId === "vocal" ? solo : solo ? false : state.previewTracks.vocal.solo,
+    set((state) => {
+      // #region agent log
+      fetch("http://127.0.0.1:7689/ingest/393e7dad-6c29-4254-ab78-3b3c45dc5137", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "8d61d1" },
+        body: JSON.stringify({
+          sessionId: "8d61d1",
+          hypothesisId: "C",
+          location: "audio-editor-store.ts:setPreviewMute",
+          message: "preview mute updated",
+          data: {
+            trackId,
+            muted,
+            selectedRegionId: state.selectedRegionId,
+            previewTracks: state.previewTracks,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => undefined);
+      // #endregion
+
+      return {
+        previewTracks: {
+          ...state.previewTracks,
+          [trackId]: { ...state.previewTracks[trackId], muted },
         },
-        instrumental: {
-          ...state.previewTracks.instrumental,
-          solo:
-            trackId === "instrumental"
-              ? solo
-              : solo
-                ? false
-                : state.previewTracks.instrumental.solo,
-        },
-      },
-    })),
+      };
+    }),
   syncPreviewTracksFromOperations: () =>
     set((state) => ({
       previewTracks: resolvePreviewTracks(state.operations, state.selectedRegionId),
@@ -352,23 +374,6 @@ export const useAudioEditorStore = create<AudioEditorState>((set, get) => ({
         },
       },
     })),
-  togglePreviewSolo: (trackId) =>
-    set((state) => {
-      const isSolo = !state.previewTracks[trackId].solo;
-
-      return {
-        previewTracks: {
-          vocal: {
-            ...state.previewTracks.vocal,
-            solo: trackId === "vocal" ? isSolo : false,
-          },
-          instrumental: {
-            ...state.previewTracks.instrumental,
-            solo: trackId === "instrumental" ? isSolo : false,
-          },
-        },
-      };
-    }),
 
   setStemMedia: (media) => set({ stemMedia: media }),
 
