@@ -23,12 +23,11 @@ interface TrackLaneProps {
   regionSelected: boolean;
   onVolumeCommit: (trackId: EditorTrackId, gainDb: number) => void;
   onMuteToggle: (trackId: EditorTrackId, muted: boolean) => void;
-  onSoloToggle: (trackId: EditorTrackId, solo: boolean) => void;
 }
 
 const TRACK_TOOLTIPS: Record<AudioTrackDto["id"], string> = {
-  vocal: "Дорожка вокала. Громкость, mute и solo применяются к выбранному региону",
-  instrumental: "Музыкальная дорожка. Громкость, mute и solo применяются к выбранному региону",
+  vocal: "Дорожка вокала. Громкость и mute применяются к выбранному региону",
+  instrumental: "Музыкальная дорожка. Громкость и mute применяются к выбранному региону",
 };
 
 function stopRowSelection(event: MouseEvent | PointerEvent) {
@@ -71,7 +70,6 @@ export function TrackLane({
   regionSelected,
   onVolumeCommit,
   onMuteToggle,
-  onSoloToggle,
 }: TrackLaneProps) {
   const linkedTracks = useAudioEditorStore((state) => state.linkedTracks);
   const selectedTrackId = useAudioEditorStore((state) => state.selectedTrackId);
@@ -160,7 +158,7 @@ export function TrackLane({
         onClick={stopRowSelection}
         onPointerDown={stopRowSelection}
       >
-        <Tooltip align="start" content="Отключить эту дорожку в выбранном регионе" side="bottom">
+        <Tooltip align="start" content="mute" side="bottom">
           <button
             className={preview.muted ? me.laneToggleActive : me.laneToggle}
             disabled={controlsDisabled}
@@ -173,22 +171,6 @@ export function TrackLane({
             onPointerDown={stopRowSelection}
           >
             M
-          </button>
-        </Tooltip>
-
-        <Tooltip content="Слушать только эту дорожку в выбранном регионе" side="bottom">
-          <button
-            className={preview.solo ? me.laneToggleActive : me.laneToggle}
-            disabled={controlsDisabled}
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              selectTrackForControls();
-              onSoloToggle(track.id, !preview.solo);
-            }}
-            onPointerDown={stopRowSelection}
-          >
-            S
           </button>
         </Tooltip>
 

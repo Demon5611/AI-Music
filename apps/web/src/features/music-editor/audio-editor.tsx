@@ -206,7 +206,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
     setVolume,
     adjustVolume,
     muteTrack,
-    soloTrack,
     splitRegion,
     duplicateRegion,
     fadeRegion,
@@ -350,7 +349,6 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
                   regionSelected={Boolean(selectedRegionId)}
                   track={track}
                   onMuteToggle={muteTrack}
-                  onSoloToggle={soloTrack}
                   onVolumeCommit={setVolume}
                 />
               ))}
