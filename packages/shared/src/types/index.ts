@@ -133,6 +133,8 @@ export type {
   MusicStatusResponseDto,
 } from "./music-generation.js";
 
+export type { TimedLyricsLine, TimedLyricsResponseDto } from "./timed-lyrics.js";
+
 export type {
   ApplyOperationBody,
   AudioTrackDto,

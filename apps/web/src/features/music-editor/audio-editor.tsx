@@ -6,6 +6,7 @@ import { clearCachedEditorState } from "@/features/music-editor/utils/editor-ses
 import { useClientMounted } from "@/shared/hooks/use-client-mounted";
 import { EditorStemNotice } from "@/features/music-editor/editor-stem-notice";
 import { EditHistoryPanel } from "@/features/music-editor/edit-history-panel";
+import { EditorKaraokePanel } from "@/features/music-editor/editor-karaoke-panel";
 import { EditorHelpPanel } from "@/features/music-editor/editor-help-panel";
 import { EditorHeader } from "@/features/music-editor/editor-header";
 import { useEditorOperations } from "@/features/music-editor/hooks/use-editor-operations";
@@ -196,6 +197,8 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const operations = useAudioEditorStore((state) => state.operations);
   const versions = useAudioEditorStore((state) => state.versions);
   const songStatus = useAudioEditorStore((state) => state.songStatus);
+  const sourceTrackId = useAudioEditorStore((state) => state.sourceTrackId);
+  const sourceLyricsText = useAudioEditorStore((state) => state.sourceLyricsText);
   const editorNotice = useAudioEditorStore((state) => state.editorNotice);
   const selectedRegionId = useAudioEditorStore((state) => state.selectedRegionId);
   const setSelectedRegion = useAudioEditorStore((state) => state.setSelectedRegion);
@@ -379,11 +382,15 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
             onUndo={() => void undo()}
           />
 
+          <EditorKaraokePanel />
+
           <RenderButton
             disabled={controlsDisabled}
             isRendering={isRendering}
             renderError={renderError}
             songTitle={title || "track"}
+            sourceLyricsText={sourceLyricsText}
+            sourceTrackId={sourceTrackId}
             versions={versions}
             onRender={() => void handleRender()}
           />

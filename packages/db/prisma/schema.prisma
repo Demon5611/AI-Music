@@ -122,6 +122,7 @@ model MusicGenerationTrack {
   audioSourceUrl    String?  @map("audio_source_url")
   imageSourceUrl    String?  @map("image_source_url")
   lyricsText        String?  @map("lyrics_text")
+  timedLyricsJson   Json?    @map("timed_lyrics_json")
   createdAt         DateTime @default(now()) @map("created_at")
 
   musicGeneration MusicGeneration @relation(fields: [musicGenerationId], references: [id], onDelete: Cascade)

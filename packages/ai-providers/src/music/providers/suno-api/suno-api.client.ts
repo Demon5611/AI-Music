@@ -18,6 +18,8 @@ import type {
   SunoModelId,
   SunoMusicTaskRaw,
   SunoTaskIdData,
+  SunoTimestampedLyricsDataRaw,
+  SunoTimestampedLyricsRequest,
   SunoUploadCoverRequest,
   SunoVocalRemovalRequest,
   SunoVocalRemovalTaskRaw,
@@ -61,6 +63,10 @@ export class SunoApiClient {
     return this.createTask("/generate/extend", body);
   }
 
+  getTimestampedLyrics(body: SunoTimestampedLyricsRequest): Promise<SunoTimestampedLyricsDataRaw> {
+    return this.postImmediate("/generate/get-timestamped-lyrics", body);
+  }
+
   separateVocals(body: SunoVocalRemovalRequest): Promise<string> {
     return this.createTask("/vocal-removal/generate", body);
   }
@@ -101,6 +107,15 @@ export class SunoApiClient {
     });
 
     return data.taskId;
+  }
+
+  private async postImmediate<T>(path: string, body: unknown): Promise<T> {
+    await getSunoRateLimiter().acquire();
+
+    return this.request<T>(path, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
   }
 
   private async fetchTask<T>(path: string): Promise<T> {

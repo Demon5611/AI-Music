@@ -12,6 +12,8 @@ import type {
   GenerationStatusResult,
   SeparateStemsInput,
   StemResult,
+  TimestampedLyricsInput,
+  TimestampedLyricsResult,
 } from "./music.types.js";
 
 /**
@@ -38,6 +40,8 @@ export interface MusicProvider {
   separateStems?(input: SeparateStemsInput): Promise<StemResult>;
 
   getStemSeparationStatus?(taskId: string): Promise<StemResult>;
+
+  getTimestampedLyrics?(input: TimestampedLyricsInput): Promise<TimestampedLyricsResult>;
 
   addVocals?(input: AddVocalsInput): Promise<AudioResult>;
 

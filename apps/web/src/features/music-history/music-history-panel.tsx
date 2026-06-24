@@ -3,9 +3,9 @@
 import type { MusicGenerationRecordDto } from "@ai-music/shared";
 import { useMemo, useState } from "react";
 import { CollapsibleLyrics } from "@/shared/ui/collapsible-lyrics";
+import { AudioPreviewPlayer } from "@/shared/ui/elevenlabs";
 import { mtk } from "@/shared/theme/music-track-classes";
 import { buildAudioDownloadFilename } from "@/shared/lib/build-audio-download-filename";
-import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
 import { DownloadAudioButton } from "@/shared/ui/download-audio-button";
 import { formatTrackTitleValue } from "@/entities/track";
@@ -192,7 +192,15 @@ export function MusicHistoryPanel({
                   </div>
                 </div>
                 {track.audioUrl ? (
-                  <AuthenticatedAudio className={mtk.player} src={track.audioUrl} />
+                  <AudioPreviewPlayer
+                    className={mtk.player}
+                    karaoke={{
+                      trackId: track.id,
+                      defaultExpanded: false,
+                      lyricsText: track.lyricsText,
+                    }}
+                    src={track.audioUrl}
+                  />
                 ) : null}
                 {item.type === "song" && track.audioUrl && onOpenEditor ? (
                   <button
@@ -205,9 +213,6 @@ export function MusicHistoryPanel({
                       ? "Открываем редактор..."
                       : "Open Editor"}
                   </button>
-                ) : null}
-                {track.lyricsText ? (
-                  <CollapsibleLyrics defaultExpanded={false} text={track.lyricsText} />
                 ) : null}
               </div>
             ))}

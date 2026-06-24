@@ -9,7 +9,7 @@ import type {
   SongVersionDto,
 } from "@ai-music/shared";
 import { normalizeLegacyEditOperation } from "@ai-music/shared";
-import type { Prisma, Song, SongRegion, SongStem, SongVersion } from "@ai-music/db";
+import type { Prisma, Song, SongRegion, SongStem, SongVersion, MusicGenerationTrack } from "@ai-music/db";
 import { resolveApiBaseUrl } from "../music/music-record.service.js";
 
 export type DbEditOperation = Prisma.EditOperationGetPayload<object>;
@@ -19,6 +19,7 @@ export type SongVersionWithOperations = SongVersion & {
 };
 
 type SongWithRelations = Song & {
+  sourceTrack?: Pick<MusicGenerationTrack, "lyricsText"> | null;
   stems: SongStem[];
   regions: SongRegion[];
   versions: SongVersionWithOperations[];
@@ -74,7 +75,7 @@ function buildRenderAudioUrl(songId: string, versionId: string, apiBaseUrl: stri
   return `${apiBaseUrl}/api/music/songs/${songId}/versions/${versionId}/audio`;
 }
 
-function toSongDto(song: Song, apiBaseUrl: string): SongDto {
+function toSongDto(song: SongWithRelations, apiBaseUrl: string): SongDto {
   return {
     id: song.id,
     title: song.title,
@@ -83,6 +84,7 @@ function toSongDto(song: Song, apiBaseUrl: string): SongDto {
     durationMs: song.durationMs,
     audioUrl: buildSongAudioUrl(song, apiBaseUrl),
     sourceTrackId: song.sourceTrackId,
+    sourceLyricsText: song.sourceTrack?.lyricsText ?? null,
     stemSeparationNotice: song.stemSeparationNotice,
     createdAt: song.createdAt.toISOString(),
     updatedAt: song.updatedAt.toISOString(),

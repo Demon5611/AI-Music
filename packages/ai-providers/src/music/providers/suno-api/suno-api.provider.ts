@@ -10,6 +10,8 @@ import type {
   GenerationStatusResult,
   SeparateStemsInput,
   StemResult,
+  TimestampedLyricsInput,
+  TimestampedLyricsResult,
 } from "../../domain/music.types.js";
 import { resolveMusicProviderConfig, type MusicProviderConfig } from "../../music-config.js";
 import { createSunoApiClient } from "./create-suno-api-client.js";
@@ -23,6 +25,7 @@ import type {
 import { applySunoDurationHints } from "./suno-duration-hints.js";
 import { stripPersonaConflictingStyleTags } from "./suno-persona-style.js";
 import { mapSunoVocalRemovalTaskToStemResult } from "./suno-vocal-removal.mapper.js";
+import { mapSunoTimestampedLyricsData } from "./suno-timestamped-lyrics.mapper.js";
 
 const PROVIDER_ID = "sunoapi" as const;
 
@@ -123,6 +126,25 @@ export class SunoApiProvider implements MusicProvider {
   async getStemSeparationStatus(taskId: string): Promise<StemResult> {
     const task = await this.getClient().getVocalRemovalDetails(taskId);
     return mapSunoVocalRemovalTaskToStemResult(task);
+  }
+
+  async getTimestampedLyrics(input: TimestampedLyricsInput): Promise<TimestampedLyricsResult> {
+    const data = await this.getClient().getTimestampedLyrics({
+      taskId: input.taskId,
+      audioId: input.audioId,
+    });
+
+    const result = mapSunoTimestampedLyricsData(data);
+
+    if (result.lines.length === 0) {
+      throw new MusicProviderError(
+        "Timestamped lyrics are not available for this track",
+        "TIMESTAMPED_LYRICS_UNAVAILABLE",
+        PROVIDER_ID,
+      );
+    }
+
+    return result;
   }
 
   private getClient(): SunoApiClient {

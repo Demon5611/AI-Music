@@ -137,6 +137,7 @@ export interface SongDto {
   durationMs: number | null;
   audioUrl: string | null;
   sourceTrackId: string;
+  sourceLyricsText: string | null;
   stemSeparationNotice?: string | null;
   createdAt: string;
   updatedAt: string;

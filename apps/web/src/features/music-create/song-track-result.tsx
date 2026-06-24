@@ -1,6 +1,5 @@
 "use client";
 
-import { CollapsibleLyrics } from "@/shared/ui/collapsible-lyrics";
 import { mtk } from "@/shared/theme/music-track-classes";
 import { buildAudioDownloadFilename } from "@/shared/lib/build-audio-download-filename";
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
@@ -69,7 +68,14 @@ export function SongTrackResult({
           ) : null}
         </div>
       </div>
-      <AudioPreviewPlayer className={mtk.player} src={audioUrl} />
+      <AudioPreviewPlayer
+        className={mtk.player}
+        karaoke={{
+          trackId,
+          lyricsText,
+        }}
+        src={audioUrl}
+      />
       {trackId && onOpenEditor ? (
         <button
           className={mtk.editorLink}
@@ -80,7 +86,6 @@ export function SongTrackResult({
           {isOpeningEditor ? "Открываем редактор..." : "Open Editor"}
         </button>
       ) : null}
-      {lyricsText ? <CollapsibleLyrics text={lyricsText} /> : null}
     </div>
   );
 }

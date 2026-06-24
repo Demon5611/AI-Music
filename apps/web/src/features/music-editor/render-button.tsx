@@ -1,7 +1,7 @@
 "use client";
 
 import type { SongVersionDto } from "@ai-music/shared";
-import { AuthenticatedAudio } from "@/shared/ui/authenticated-audio";
+import { AudioPreviewPlayer } from "@/shared/ui/elevenlabs";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { DownloadAudioButton } from "@/features/music-editor/download-audio-button";
 import { me } from "@/features/music-editor/music-editor-classes";
@@ -11,6 +11,8 @@ interface RenderButtonProps {
   isRendering: boolean;
   renderError: string | null;
   songTitle: string;
+  sourceTrackId: string | null;
+  sourceLyricsText: string | null;
   versions: SongVersionDto[];
   onRender: () => void;
 }
@@ -20,6 +22,8 @@ export function RenderButton({
   isRendering,
   renderError,
   songTitle,
+  sourceTrackId,
+  sourceLyricsText,
   versions,
   onRender,
 }: RenderButtonProps) {
@@ -69,7 +73,15 @@ export function RenderButton({
       {latestRendered?.renderedAudioUrl ? (
         <div className={me.renderResult}>
           <p className={me.renderStatus}>Version {latestRendered.versionNumber} ready</p>
-          <AuthenticatedAudio className={me.player} src={latestRendered.renderedAudioUrl} />
+          <AudioPreviewPlayer
+            className={me.player}
+            karaoke={{
+              trackId: sourceTrackId ?? undefined,
+              defaultExpanded: false,
+              lyricsText: sourceLyricsText,
+            }}
+            src={latestRendered.renderedAudioUrl}
+          />
           <Tooltip content="Скачать готовый MP3">
             <DownloadAudioButton
               audioUrl={latestRendered.renderedAudioUrl}

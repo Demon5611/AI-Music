@@ -26,6 +26,7 @@ const PLAN_FEATURES: Record<PlanId, string[]> = {
   pro: [
     "До 3 минут трек",
     "Music Editor Advanced",
+    "Karaoke Sync — текст в такт музыке",
     "Stem Separation",
     "WAV Export",
     "Version History",

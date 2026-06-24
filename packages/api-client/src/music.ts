@@ -4,6 +4,7 @@ import type {
   MusicLyricsGenerateResponseDto,
   MusicLyricsStatusResponseDto,
   MusicStatusResponseDto,
+  TimedLyricsResponseDto,
 } from "@ai-music/shared";
 import type { ApiClient } from "./client.js";
 
@@ -50,5 +51,14 @@ export function createMusicApi(client: ApiClient) {
       }),
     deleteTrack: (trackId: string) =>
       client.delete<{ deleted: boolean }>(`/api/music/tracks/${trackId}`),
+    getTimedLyrics: (trackId: string) =>
+      client.get<TimedLyricsResponseDto>(
+        `/api/music/tracks/${encodeURIComponent(trackId)}/timed-lyrics`,
+      ),
+    fetchTimedLyrics: (trackId: string) =>
+      client.post<TimedLyricsResponseDto>(
+        `/api/music/tracks/${encodeURIComponent(trackId)}/timed-lyrics`,
+        {},
+      ),
   };
 }

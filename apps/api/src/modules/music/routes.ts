@@ -16,6 +16,10 @@ import {
   removeMusicGenerationTrack,
   removeMusicGenerations,
 } from "./service.js";
+import {
+  fetchTimedLyricsForTrack,
+  getTimedLyricsForTrack,
+} from "./timed-lyrics.service.js";
 import { handleSunoMusicCallback } from "./suno-callback.service.js";
 
 interface GenerateBody {
@@ -122,6 +126,32 @@ export async function registerMusicRoutes(app: FastifyInstance) {
           .send(buffer);
       } catch (error) {
         return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: { trackId: string } }>(
+    "/api/music/tracks/:trackId/timed-lyrics",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const result = await getTimedLyricsForTrack(request.userId!, request.params.trackId);
+        return reply.send(result);
+      } catch (error) {
+        return sendMusicError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { trackId: string } }>(
+    "/api/music/tracks/:trackId/timed-lyrics",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const result = await fetchTimedLyricsForTrack(request.userId!, request.params.trackId);
+        return reply.send(result);
+      } catch (error) {
+        return sendMusicError(reply, error);
       }
     },
   );

@@ -1,112 +1,48 @@
 # PRO: идеи привилегий для аудитории 10–16 лет
 
-Документ фиксирует продуктовые рекомендации по усилению тарифа **Pro** без перегруза интерфейса.
-Ориентир — возможности Suno API ([API updates](https://sunoapi.org/ru/api-updates), [документация](https://docs.sunoapi.org/)) и текущая модель тарифов в `packages/shared/src/constants/plans.ts`.
+Документ фиксирует согласованный список Pro-привилегий и реализацию **Karaoke Sync**.
 
-## Принцип
+## Итоговый список Pro
 
-Не добавлять в Pro «ещё больше API-кнопок». Для аудитории 10–16 лет лучше продаются простые вау-сценарии:
+| # | Буллет на pricing | Статус |
+| - | ----------------- | ------ |
+| 1 | До 3 минут треков | Есть |
+| 2 | Мой голос в песнях | Есть |
+| 3 | Редактор куплетов и припевов | Есть (Advanced Editor) |
+| 4 | Karaoke Sync — текст в такт музыке | **Реализовано** |
+| 5 | Разделение вокала и музыки | Есть |
+| 6 | Priority Queue | Есть |
+| 7 | 50 версий истории | Есть |
 
-- мой голос
-- мой припев
-- сделать клип
-- караоке
-- ремикснуть
-- доделать трек
+## Karaoke Sync — поведение
 
----
+- Toggle **«Караоке: вкл/выкл»** (состояние в `localStorage`, ключ `karaoke-enabled`)
+- **Pro gate** на первый fetch; Free видит disabled toggle + ссылку на `/pricing`
+- **Один Suno-запрос на trackId**: `POST /api/music/tracks/:id/timed-lyrics` только при cache miss
+- Повторные открытия экранов — только `GET`, без credits и без Suno
+- Стоимость: `OPERATION_COST_UNITS.karaokeLyrics` = 0.5 credits (ledger spend/refund)
 
-## Что добавить в Pro в первую очередь
+### Где доступно
 
-### 1. Smart Extend в редакторе
+- Music Create (результаты генерации)
+- History
+- Editor (панель + render preview), sync с timeline `currentTimeMs`
 
-Не отдельный сложный экран, а кнопки на выбранном блоке:
+## Smart Extend
 
-- «Продлить припев»
-- «Добавить куплет»
-- «Сделать outro»
+Не в Pro. API `POST /api/music/extend` остаётся в коде, но не продаётся.
 
-Ложится на текущий timeline и использует Suno Extend. Для подростков понятнее, чем «extend from timestamp».
+## Phase 2
 
-### 2. Karaoke / Lyrics Sync
+- Lyrics video / mp4 export
+- Remix / Cover UI
+- Voice presets pack
 
-Pro-фича: синхронный текст поверх проигрывания, подсветка строк, экспорт «lyrics video». Timestamped lyrics у Suno востребованы для интерактивных сценариев. UX: одна кнопка «Показать текст как караоке».
+## Ключевые файлы
 
-### 3. Voice Persona Pack
-
-Уже есть «свой голос», но в Pro можно упаковать привлекательнее:
-
-- несколько приватных voice persona
-- быстрый выбор: «мой голос / мягче / энергичнее»
-- история удачных голосовых пресетов
-
-**Важно:** для 10–16 лет обязательны проверка согласия, приватность и запрет публичной галереи голосов.
-
-### 4. Remix / Cover Mode
-
-Кнопка «Сделать версию в стиле: pop / hyperpop / rock / phonk / anime intro». Ближе к поведению подростков: не «настроить модель», а быстро получить альтернативную версию. Cover/Restyle продавать как Pro «Remix Lab».
-
-### 5. One-Click Short Video
-
-Не полноценный видеоредактор. Просто «Сделать клип 15–30 сек»: обложка, waveform, synced lyrics, экспорт mp4. Для 10–16 одна из самых привлекательных функций — результат можно показать друзьям.
-
-### 6. Advanced Stems без перегруза
-
-Сейчас Pro уже имеет Stem Separation. Можно сделать «Stem Boost»:
-
-- отдельно vocal / instrumental
-- mute / solo
-- заменить вокал
-- добавить вокал
-- добавить инструментал
-
-В UI — не 10 методов API, а 3 действия: «Убрать голос», «Заменить голос», «Добавить инструмент».
-
----
-
-## Как упаковать Pro на странице тарифов
-
-Текущий Pro выглядит технически («Music Editor Advanced», «Stem Separation», «Version History»). Переименовать в более пользовательские выгоды:
-
-- До 3 минут треков
-- Редактор припевов и куплетов
-- Мой голос в песнях
-- Karaoke lyrics + видео-клип
-- Разделение вокала и музыки
-- Priority Queue
-- 50 версий истории
-
-**Studio** оставить для тяжёлых пользователей: больше credits, unlimited projects, fastest queue, больше stem/video/render операций, early access.
-
----
-
-## Приоритет для аудитории 10–16
-
-| Приоритет | Фича |
-| --------- | ---- |
-| Высокий | Мой голос |
-| Высокий | Быстрый ремикс |
-| Высокий | Караоке / текст |
-| Высокий | Короткий клип |
-| Средний | Доделать припев (Smart Extend) |
-| Средний | Простое шаринг-превью |
-
-**Не делать акцент:** API access, сложные настройки моделей, профессиональный микшер, десятки параметров генерации.
-
----
-
-## Риски и ограничения
-
-| Идея | Риск | Митигация |
-| ---- | ---- | --------- |
-| Voice Persona для подростков | Безопасность, misuse | Приватность, consent flow, запрет чужих голосов |
-| Short Video | Разрастание в видеоредактор | Только шаблонный экспорт 15–30 сек |
-| Remix / Cover | Авторские права | «Новая версия твоего трека», не «как конкретный артист» |
-
----
-
-## Связанные файлы
-
-- `apps/web/src/features/billing/pricing-panel.tsx` — UI тарифов
-- `packages/shared/src/constants/plans.ts` — entitlements и лимиты планов
-- `packages/shared/src/constants/credits-economy.ts` — стоимость операций в credits
+- `packages/shared/src/constants/plans.ts` — `karaokeSync`
+- `packages/shared/src/constants/credits-economy.ts` — `karaokeLyrics`
+- `apps/api/src/modules/music/timed-lyrics.service.ts`
+- `packages/ai-providers/.../suno-api.client.ts` — `getTimestampedLyrics`
+- `apps/web/src/shared/ui/karaoke/` — UI
+- `apps/web/src/features/billing/pricing-panel.tsx`

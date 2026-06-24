@@ -129,3 +129,22 @@ export interface SunoVocalRemovalTaskRaw {
   errorMessage?: string | null;
   response?: SunoVocalRemovalResponseRaw | null;
 }
+
+export interface SunoTimestampedLyricsRequest {
+  taskId: string;
+  audioId: string;
+}
+
+export interface SunoAlignedWordRaw {
+  word: string;
+  startS: number;
+  endS: number;
+  success?: boolean;
+}
+
+export interface SunoTimestampedLyricsDataRaw {
+  alignedWords?: SunoAlignedWordRaw[];
+  waveformData?: number[];
+  hootCer?: number;
+  isStreamed?: boolean;
+}

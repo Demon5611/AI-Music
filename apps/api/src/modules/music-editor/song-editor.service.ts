@@ -71,6 +71,9 @@ export async function getSongForUser(userId: string, songId: string) {
   const song = await prisma.song.findUnique({
     where: { id: songId },
     include: {
+      sourceTrack: {
+        select: { lyricsText: true },
+      },
       stems: true,
       regions: true,
       versions: {

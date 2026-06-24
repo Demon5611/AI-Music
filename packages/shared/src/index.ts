@@ -4,6 +4,7 @@ export * from "./constants/index.js";
 export * from "./entitlements/index.js";
 export * from "./utils/region-selection.js";
 export * from "./utils/region-fade.js";
+export * from "./utils/timed-lyrics.js";
 export * from "./storage/keys.js";
 export * from "./content-moderation/index.js";
 export * from "./load-control/index.js";

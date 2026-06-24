@@ -36,6 +36,21 @@ export interface ExtendSongInput {
   title?: string;
 }
 
+export interface TimestampedLyricsInput {
+  taskId: string;
+  audioId: string;
+}
+
+export interface TimestampedLyricsLine {
+  startSec: number;
+  endSec: number;
+  text: string;
+}
+
+export interface TimestampedLyricsResult {
+  lines: TimestampedLyricsLine[];
+}
+
 export interface GeneratedTrack {
   id: string;
   title: string;

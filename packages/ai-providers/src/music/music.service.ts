@@ -8,6 +8,8 @@ import type {
   GenerationStatusResult,
   SeparateStemsInput,
   StemResult,
+  TimestampedLyricsInput,
+  TimestampedLyricsResult,
 } from "./domain/music.types.js";
 import { createMusicProviderFactory, type MusicProviderFactory } from "./music-provider.factory.js";
 
@@ -73,6 +75,16 @@ export class MusicService {
     }
 
     return provider.getStemSeparationStatus(taskId);
+  }
+
+  getTimestampedLyrics(input: TimestampedLyricsInput): Promise<TimestampedLyricsResult> {
+    const provider = this.providerFactory.getProvider();
+
+    if (!provider.getTimestampedLyrics) {
+      throw new Error("Active music provider does not support timestamped lyrics");
+    }
+
+    return provider.getTimestampedLyrics(input);
   }
 }
 
