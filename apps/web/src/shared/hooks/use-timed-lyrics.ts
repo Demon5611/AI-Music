@@ -7,6 +7,19 @@ import { useInvalidateCreditsBalance } from "@/features/billing/hooks/invalidate
 
 export const timedLyricsQueryKey = (trackId: string) => ["timed-lyrics", trackId] as const;
 
+function getApiErrorStatus(error: unknown): number | undefined {
+  if (error instanceof ApiError) {
+    return error.status;
+  }
+
+  if (typeof error === "object" && error !== null && "status" in error) {
+    const status = (error as { status: unknown }).status;
+    return typeof status === "number" ? status : undefined;
+  }
+
+  return undefined;
+}
+
 export function useTimedLyrics(trackId: string | undefined, karaokeEnabled: boolean) {
   const api = useApi();
   const invalidateCreditsBalance = useInvalidateCreditsBalance();
@@ -16,6 +29,7 @@ export function useTimedLyrics(trackId: string | undefined, karaokeEnabled: bool
     enabled: Boolean(trackId && karaokeEnabled),
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,
+    refetchOnMount: (query) => (query.state.status === "error" ? "always" : true),
     queryFn: async () => {
       if (!trackId) {
         throw new Error("Track id is required");
@@ -24,9 +38,11 @@ export function useTimedLyrics(trackId: string | undefined, karaokeEnabled: bool
       try {
         return await api.music.getTimedLyrics(trackId);
       } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
+        if (getApiErrorStatus(error) === 404) {
           const fetched = await api.music.fetchTimedLyrics(trackId);
-          await invalidateCreditsBalance();
+          if (!fetched.cached) {
+            await invalidateCreditsBalance();
+          }
           return fetched;
         }
 

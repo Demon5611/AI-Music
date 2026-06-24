@@ -1,7 +1,12 @@
 import { MusicProviderError } from "@ai-music/ai-providers";
 import type { FastifyReply } from "fastify";
+import { isAppError, sendAppError } from "../../common/errors.js";
 
 export function sendMusicError(reply: FastifyReply, error: unknown) {
+  if (isAppError(error)) {
+    return sendAppError(reply, error);
+  }
+
   if (error instanceof MusicProviderError) {
     return reply.status(error.statusCode).send({
       error: error.message,
