@@ -9,6 +9,7 @@ import { buildAudioDownloadFilename } from "@/shared/lib/build-audio-download-fi
 import { DeleteIconButton } from "@/shared/ui/delete-icon-button";
 import { DownloadAudioButton } from "@/shared/ui/download-audio-button";
 import { formatTrackTitleValue } from "@/entities/track";
+import { GenerationAlbumCoverSection } from "@/shared/ui/track-cover/generation-album-cover-section";
 import { cn } from "@/lib/utils";
 
 interface MusicHistoryPanelProps {
@@ -161,6 +162,16 @@ export function MusicHistoryPanel({
                 </div>
               </div>
             </div>
+
+            {item.type === "song" && item.tracks.length > 0 ? (
+              <GenerationAlbumCoverSection
+                albumCoverImages={item.albumCoverImages}
+                defaultImageUrl={item.tracks[0]?.imageUrl}
+                generationId={item.id}
+                selectedAlbumCoverUrl={item.selectedAlbumCoverUrl}
+                title={itemTitle}
+              />
+            ) : null}
 
             {item.tracks.map((track) => (
               <div className={mtk.historyTrack} key={track.id}>

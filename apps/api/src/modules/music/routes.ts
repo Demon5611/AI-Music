@@ -20,6 +20,11 @@ import {
   fetchTimedLyricsForTrack,
   getTimedLyricsForTrack,
 } from "./timed-lyrics.service.js";
+import {
+  fetchAlbumCoverForGeneration,
+  getAlbumCoverForGeneration,
+  selectAlbumCoverForGeneration,
+} from "./album-cover.service.js";
 import { handleSunoMusicCallback } from "./suno-callback.service.js";
 
 interface GenerateBody {
@@ -53,6 +58,10 @@ interface LyricsStatusQuery {
 
 interface DeleteHistoryBody {
   ids: string[];
+}
+
+interface SelectAlbumCoverBody {
+  imageUrl: string;
 }
 
 export async function registerMusicRoutes(app: FastifyInstance) {
@@ -149,6 +158,61 @@ export async function registerMusicRoutes(app: FastifyInstance) {
     async (request, reply) => {
       try {
         const result = await fetchTimedLyricsForTrack(request.userId!, request.params.trackId);
+        return reply.send(result);
+      } catch (error) {
+        return sendMusicError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: { generationId: string } }>(
+    "/api/music/generations/:generationId/album-cover",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const result = await getAlbumCoverForGeneration(
+          request.userId!,
+          request.params.generationId,
+        );
+        return reply.send(result);
+      } catch (error) {
+        return sendMusicError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { generationId: string } }>(
+    "/api/music/generations/:generationId/album-cover",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const result = await fetchAlbumCoverForGeneration(
+          request.userId!,
+          request.params.generationId,
+        );
+        return reply.send(result);
+      } catch (error) {
+        return sendMusicError(reply, error);
+      }
+    },
+  );
+
+  app.patch<{ Params: { generationId: string }; Body: SelectAlbumCoverBody }>(
+    "/api/music/generations/:generationId/album-cover",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const imageUrl = request.body.imageUrl?.trim();
+
+      if (!imageUrl) {
+        return reply.status(400).send({ error: "imageUrl is required" });
+      }
+
+      try {
+        const result = await selectAlbumCoverForGeneration(
+          request.userId!,
+          request.params.generationId,
+          imageUrl,
+        );
         return reply.send(result);
       } catch (error) {
         return sendMusicError(reply, error);

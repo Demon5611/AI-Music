@@ -450,7 +450,7 @@ export function VoiceUploadPanel({
         <>
           <h1 className={appShell.formPageTitle}>Запись голоса</h1>
           <p className={appShell.formPageDescription}>
-            Запишите или загрузите напев {recommendedDurationLabel} — на верификации фраза Suno
+            Запишите или загрузите напев {recommendedDurationLabel} — на верификации фраза
             короткая, поэтому тембр задаётся здесь. Допустимо {durationHint}.
           </p>
         </>

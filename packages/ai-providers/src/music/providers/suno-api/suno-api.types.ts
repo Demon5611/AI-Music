@@ -148,3 +148,18 @@ export interface SunoTimestampedLyricsDataRaw {
   hootCer?: number;
   isStreamed?: boolean;
 }
+
+export interface SunoAlbumCoverGenerateRequest {
+  taskId: string;
+  callBackUrl: string;
+}
+
+export interface SunoAlbumCoverTaskRaw {
+  taskId: string;
+  parentTaskId?: string;
+  successFlag?: number;
+  errorMessage?: string | null;
+  response?: {
+    images?: string[];
+  } | null;
+}

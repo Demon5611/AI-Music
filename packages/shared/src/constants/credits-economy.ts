@@ -8,6 +8,7 @@ export const OPERATION_COST_UNITS = {
   stemSeparation: 10_000,
   wavExport: 400,
   karaokeLyrics: 500,
+  albumCover: 400,
 } as const;
 
 export const FULL_PRODUCTION_FLOW_UNITS =

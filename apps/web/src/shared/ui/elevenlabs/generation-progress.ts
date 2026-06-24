@@ -5,7 +5,7 @@ export const GENERATION_STATUS_LABELS: Record<GenerationJob["status"], string> =
   preprocessing_voice: "Подготовка голоса",
   generating_lyrics: "Генерация текста",
   generating_song: "Генерация музыки",
-  converting_voice: "Voice transfer (Kits)",
+  converting_voice: "Обработка голоса",
   uploading_result: "Сохранение результата",
   completed: "Готово",
   failed: "Ошибка",

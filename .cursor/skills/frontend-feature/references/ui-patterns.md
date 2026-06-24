@@ -90,9 +90,11 @@ Not ElevenLabs UI. Styles: Tailwind via `me` from `music-editor-classes.ts`.
 
 | Шаг | Компонент | Сообщение пользователю |
 |-----|-----------|------------------------|
-| Главная | `VoiceUploadPanel` | Свободный сэмпл; предупредить, что дальше будет фраза Suno |
-| `/consent` | `SunoVoiceVerifyPanel` | Фраза от Suno, запись **напевом** |
+| Главная | `VoiceUploadPanel` | Свободный сэмпл; предупредить, что дальше будет короткая фраза верификации |
+| `/consent` | `SunoVoiceVerifyPanel` | Фраза от AI Music, запись **напевом** |
 | `/music-create` | `MusicCreatePanel` | Генерация только после `voiceCloneStatus: ready` |
+
+**Брендинг в UI:** не упоминать Suno/Kits/ElevenLabs в пользовательских строках — только AI Music или нейтральные формулировки. См. [frontend-architecture.mdc](../../../rules/frontend-architecture.mdc).
 
 На главной не обещать «голос готов» до прохождения `/consent`.
 

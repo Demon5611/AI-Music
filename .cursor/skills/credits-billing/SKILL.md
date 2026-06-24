@@ -45,7 +45,7 @@ Change Suno costs here only; do not duplicate magic numbers in routes.
 Example flow: `apps/api/src/modules/generations/service.ts` — spend → create job → enqueue; refund if enqueue fails. Worker refunds on processor failure.
 
 Suno MVP costs: Generate Text 400, Generate Track 12000, Stem Separation 10000,
-Replace Section 5000, WAV Export 400. Render version MP3 is local ffmpeg and free in MVP.
+WAV Export 400. Render version MP3 is local ffmpeg and free in MVP.
 
 ## Stripe (target flow)
 

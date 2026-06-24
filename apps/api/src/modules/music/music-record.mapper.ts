@@ -5,6 +5,7 @@ import type {
   MusicQueuePhase,
   MusicStatusResponseDto,
 } from "@ai-music/shared";
+import { parseAlbumCoverImagesJson } from "@ai-music/shared";
 import type {
   GeneratedTrack,
   GenerationStatusResult,
@@ -33,7 +34,9 @@ export function toMusicGenerationRecordDto(
     rawStatus: record.rawStatus,
     errorMessage: record.errorMessage,
     lyrics: parseLyricsResult(record.lyricsResult),
-    tracks: record.tracks.map((track) => toMusicTrackDto(track, apiBaseUrl)),
+    tracks: record.tracks.map((track) => toMusicTrackDto(record, track, apiBaseUrl)),
+    albumCoverImages: parseAlbumCoverImagesJson(record.albumCoverImagesJson) ?? [],
+    selectedAlbumCoverUrl: record.selectedAlbumCoverUrl,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };
@@ -64,20 +67,25 @@ export function toMusicStatusResponse(
         canDelete: Boolean(stored?.id),
         title: track.title,
         audioUrl: resolveTrackPlaybackUrl(record, track, apiBaseUrl),
-        imageUrl: track.imageUrl,
+        imageUrl: record?.selectedAlbumCoverUrl ?? track.imageUrl,
         durationSec: track.durationSec,
         lyricsText: track.lyricsText,
       };
     }),
     lyrics: status.lyrics,
     errorMessage: status.errorMessage,
+    albumCoverImages: parseAlbumCoverImagesJson(record?.albumCoverImagesJson) ?? [],
+    selectedAlbumCoverUrl: record?.selectedAlbumCoverUrl ?? null,
   };
 }
 
 function toMusicTrackDto(
+  record: MusicGenerationWithTracks,
   track: MusicGenerationTrack,
   apiBaseUrl: string,
 ): MusicGenerationTrackDto {
+  const imageUrl = record.selectedAlbumCoverUrl ?? track.imageSourceUrl;
+
   return {
     id: track.id,
     providerTrackId: track.providerTrackId,
@@ -86,7 +94,7 @@ function toMusicTrackDto(
     audioUrl: track.audioStorageKey
       ? `${apiBaseUrl}/api/music/tracks/${track.id}/audio`
       : track.audioSourceUrl,
-    imageUrl: track.imageSourceUrl,
+    imageUrl,
     lyricsText: track.lyricsText,
   };
 }

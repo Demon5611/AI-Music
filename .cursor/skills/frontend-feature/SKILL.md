@@ -57,6 +57,7 @@ Entry panel — композиция only (~150–200 строк). См. `music-
 - Never trust client credit balance for gating — show API balance, server enforces.
 - **Polling:** `usePollingQuery` from `@/shared/hooks/use-polling-query` until terminal status.
 - **Errors:** `parseApiError(error, fallback)` from `@/shared/lib/parse-api-error`.
+- **User-facing copy:** no vendor names (Suno, Kits, ElevenLabs) in UI strings — use **AI Music** or neutral wording. Internal code names are fine.
 
 ## Styling rules
 
@@ -88,6 +89,7 @@ Add `"use client"` when using hooks, browser APIs, or event handlers.
 - [ ] usePollingQuery for server polling (if needed)
 - [ ] Loading/empty states (Skeleton or LoadingPanel)
 - [ ] No inline styles
+- [ ] User-facing copy without vendor names (AI Music / neutral)
 - [ ] Entry file < 500 lines; functions < 50 lines
 - [ ] Shared schemas for forms match @ai-music/shared
 ```

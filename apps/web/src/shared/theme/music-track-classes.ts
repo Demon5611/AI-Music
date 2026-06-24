@@ -40,4 +40,26 @@ export const mtk = {
   historyTrackHeader: "flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3",
   historyTrackMeta: "flex flex-wrap items-baseline gap-2",
   historyTrackTitle: "text-xs text-[var(--app-text)]",
+  coverRow: "flex min-w-0 gap-3",
+  coverImage: "h-20 w-20 shrink-0 rounded-lg border border-[var(--app-border-subtle)] object-cover",
+  coverImageInner: "h-full w-full object-cover",
+  coverPlaceholder:
+    "flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-dashed border-[var(--app-border-default)] bg-[var(--app-hover-overlay)] text-[0.625rem] uppercase tracking-wide text-[var(--app-text-muted)]",
+  coverPanel: "flex min-w-0 flex-1 flex-col gap-2",
+  coverVariants: "flex flex-wrap gap-2",
+  coverVariantButton:
+    "overflow-hidden rounded-md border border-[var(--app-border-default)] p-0 transition-colors hover:border-violet-500/50",
+  coverVariantButtonActive: "border-violet-500 ring-1 ring-violet-500/40",
+  coverVariantImage: "h-12 w-12 object-cover",
+  coverActionButton: `${appShell.btnSecondaryOutline} px-3 py-1.5 text-xs`,
+  coverHint: `text-xs ${appShell.textMuted}`,
+  coverImageButton:
+    "h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-[var(--app-border-subtle)] p-0 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50",
+  coverLightboxBackdrop:
+    "fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4",
+  coverLightboxToolbar: "absolute right-4 top-4 flex items-center gap-2",
+  coverLightboxImage: "max-h-[85vh] max-w-full object-contain",
+  coverLightboxClose:
+    "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-black/40 text-white transition-colors hover:bg-black/60",
+  coverLightboxDownload: `${appShell.btnSecondaryOutline} border-white/20 bg-black/40 px-4 py-2 text-sm text-white hover:bg-black/60`,
 } as const;

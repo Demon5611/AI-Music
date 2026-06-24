@@ -36,6 +36,12 @@ export interface ExtendSongInput {
   title?: string;
 }
 
+export interface AlbumCoverStatusResult {
+  status: "pending" | "processing" | "completed" | "failed";
+  images: string[];
+  errorMessage?: string;
+}
+
 export interface TimestampedLyricsInput {
   taskId: string;
   audioId: string;

@@ -1,4 +1,5 @@
 import type {
+  AlbumCoverResponseDto,
   MusicGenerateResponseDto,
   MusicGenerationRecordDto,
   MusicLyricsGenerateResponseDto,
@@ -59,6 +60,20 @@ export function createMusicApi(client: ApiClient) {
       client.post<TimedLyricsResponseDto>(
         `/api/music/tracks/${encodeURIComponent(trackId)}/timed-lyrics`,
         {},
+      ),
+    getAlbumCover: (generationId: string) =>
+      client.get<AlbumCoverResponseDto>(
+        `/api/music/generations/${encodeURIComponent(generationId)}/album-cover`,
+      ),
+    fetchAlbumCover: (generationId: string) =>
+      client.post<AlbumCoverResponseDto>(
+        `/api/music/generations/${encodeURIComponent(generationId)}/album-cover`,
+        {},
+      ),
+    selectAlbumCover: (generationId: string, imageUrl: string) =>
+      client.patch<AlbumCoverResponseDto>(
+        `/api/music/generations/${encodeURIComponent(generationId)}/album-cover`,
+        { imageUrl },
       ),
   };
 }

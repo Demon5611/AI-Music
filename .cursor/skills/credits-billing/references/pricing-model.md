@@ -32,7 +32,6 @@ Free tier: `FREE_DEMO_CREDITS = 50` on first auth sync (`sync-auth-user.ts`).
 | Generate Text | `OPERATION_COST_UNITS.generateText` | 400 | 0.4 |
 | Generate Track | `OPERATION_COST_UNITS.generateTrack` | 12000 | 12 |
 | Stem Separation | `OPERATION_COST_UNITS.stemSeparation` | 10000 | 10 |
-| Replace Section | `OPERATION_COST_UNITS.replaceSection` | 5000 | 5 |
 | WAV Export | `OPERATION_COST_UNITS.wavExport` | 400 | 0.4 |
 
 Store per-job cost in `GenerationJob.creditsCostUnits` for accurate refunds.

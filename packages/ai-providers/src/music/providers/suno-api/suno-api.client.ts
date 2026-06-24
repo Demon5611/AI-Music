@@ -11,6 +11,8 @@ import {
 import { getSunoRateLimiter } from "./suno-rate-limiter.js";
 import type {
   SunoApiEnvelope,
+  SunoAlbumCoverGenerateRequest,
+  SunoAlbumCoverTaskRaw,
   SunoExtendMusicRequest,
   SunoGenerateLyricsRequest,
   SunoGenerateMusicRequest,
@@ -83,6 +85,14 @@ export class SunoApiClient {
     return this.fetchTask(`/lyrics/record-info?taskId=${encodeURIComponent(taskId)}`);
   }
 
+  generateAlbumCover(body: SunoAlbumCoverGenerateRequest): Promise<string> {
+    return this.submitCoverGenerate(body);
+  }
+
+  getAlbumCoverDetails(taskId: string): Promise<SunoAlbumCoverTaskRaw | null> {
+    return this.fetchTask(`/suno/cover/record-info?taskId=${encodeURIComponent(taskId)}`);
+  }
+
   getRemainingCredits(): Promise<number> {
     return this.request<number>("/get-credits", { method: "GET" });
   }
@@ -107,6 +117,47 @@ export class SunoApiClient {
     });
 
     return data.taskId;
+  }
+
+  private async submitCoverGenerate(body: SunoAlbumCoverGenerateRequest): Promise<string> {
+    const path = "/suno/cover/generate";
+    const submitStartedAt = Date.now();
+    await getSunoRateLimiter().acquire();
+
+    const url = `${this.config.baseUrl.replace(/\/$/, "")}${API_PREFIX}${path}`;
+    const response = await this.fetchWithTimeout(url, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+
+    const rawBody = await response.text();
+    let parsed: SunoApiEnvelope<SunoTaskIdData>;
+
+    try {
+      parsed = JSON.parse(rawBody) as SunoApiEnvelope<SunoTaskIdData>;
+    } catch {
+      throw new MusicProviderUnavailableError(
+        "sunoapi",
+        `Suno API returned non-JSON response: HTTP ${response.status}`,
+      );
+    }
+
+    const taskId = parsed.data?.taskId?.trim();
+    const isDuplicateCover =
+      parsed.code === 400 || parsed.code === 409;
+
+    if (taskId && (parsed.code === 200 || isDuplicateCover)) {
+      logLoadControl("suno_submit", {
+        path,
+        taskId,
+        durationMs: Date.now() - submitStartedAt,
+        duplicateCover: isDuplicateCover,
+      });
+
+      return taskId;
+    }
+
+    throw mapSunoApiCodeToError(parsed.code, parsed.msg || "Suno API error");
   }
 
   private async postImmediate<T>(path: string, body: unknown): Promise<T> {

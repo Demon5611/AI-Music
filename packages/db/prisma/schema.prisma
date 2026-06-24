@@ -102,6 +102,9 @@ model MusicGeneration {
   rawStatus      String?  @map("raw_status")
   errorMessage   String?  @map("error_message")
   lyricsResult   Json?    @map("lyrics_result")
+  albumCoverImagesJson     Json?    @map("album_cover_images_json")
+  albumCoverTaskId         String?  @map("album_cover_task_id")
+  selectedAlbumCoverUrl    String?  @map("selected_album_cover_url")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

@@ -24,7 +24,6 @@ Source of truth: `packages/shared/src/constants/credits-economy.ts`.
 | Generate Text | 0.4 | 400 |
 | Generate Track | 12 | 12000 |
 | Stem Separation | 10 | 10000 |
-| Replace Section | 5 | 5000 |
 | WAV Export | 0.4 | 400 |
 | Full Production Flow | 27.4 | 27400 |
 
@@ -67,7 +66,6 @@ MVP margin math uses the conservative Small package price: `$0.005 / credit`.
 | Stem separation retry | no double charge; refund failure once |
 | Split, move, fade, undo, redo | free, entitlement-only |
 | Render version MP3 | free local ffmpeg operation |
-| Replace Section | reserved Suno cost, bill when implemented |
 | WAV Export | reserved Suno cost, bill when implemented |
 
 ## Agent checklist

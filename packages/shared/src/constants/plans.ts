@@ -15,6 +15,7 @@ export interface PlanFeatures {
   voiceReplace: boolean;
   lyricsGeneration: boolean;
   karaokeSync: boolean;
+  albumCover: boolean;
   editor: EditorLevel;
   stemSeparation: boolean;
   wavExport: boolean;
@@ -90,6 +91,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       voiceReplace: true,
       lyricsGeneration: true,
       karaokeSync: false,
+      albumCover: false,
       editor: "lite",
       stemSeparation: false,
       wavExport: true,
@@ -112,6 +114,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       voiceReplace: true,
       lyricsGeneration: true,
       karaokeSync: true,
+      albumCover: true,
       editor: "advanced",
       stemSeparation: true,
       wavExport: true,
@@ -134,6 +137,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       voiceReplace: true,
       lyricsGeneration: true,
       karaokeSync: true,
+      albumCover: true,
       editor: "advanced",
       stemSeparation: true,
       wavExport: true,

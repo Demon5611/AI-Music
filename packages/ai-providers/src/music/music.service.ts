@@ -1,4 +1,5 @@
 import type {
+  AlbumCoverStatusResult,
   ExtendSongInput,
   ExtendSongResult,
   GenerateLyricsInput,
@@ -85,6 +86,26 @@ export class MusicService {
     }
 
     return provider.getTimestampedLyrics(input);
+  }
+
+  generateAlbumCover(providerTaskId: string): Promise<{ taskId: string }> {
+    const provider = this.providerFactory.getProvider();
+
+    if (!provider.generateAlbumCover) {
+      throw new Error("Active music provider does not support album cover generation");
+    }
+
+    return provider.generateAlbumCover(providerTaskId);
+  }
+
+  getAlbumCoverStatus(taskId: string): Promise<AlbumCoverStatusResult> {
+    const provider = this.providerFactory.getProvider();
+
+    if (!provider.getAlbumCoverStatus) {
+      throw new Error("Active music provider does not support album cover status");
+    }
+
+    return provider.getAlbumCoverStatus(taskId);
   }
 }
 

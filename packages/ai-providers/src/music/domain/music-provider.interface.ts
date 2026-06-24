@@ -2,6 +2,7 @@ import type { MusicProviderId } from "./music-provider-id.js";
 import type {
   AddInstrumentalInput,
   AddVocalsInput,
+  AlbumCoverStatusResult,
   AudioResult,
   ExtendSongInput,
   ExtendSongResult,
@@ -42,6 +43,10 @@ export interface MusicProvider {
   getStemSeparationStatus?(taskId: string): Promise<StemResult>;
 
   getTimestampedLyrics?(input: TimestampedLyricsInput): Promise<TimestampedLyricsResult>;
+
+  generateAlbumCover?(providerTaskId: string): Promise<{ taskId: string }>;
+
+  getAlbumCoverStatus?(taskId: string): Promise<AlbumCoverStatusResult>;
 
   addVocals?(input: AddVocalsInput): Promise<AudioResult>;
 

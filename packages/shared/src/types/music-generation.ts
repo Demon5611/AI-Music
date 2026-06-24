@@ -30,6 +30,8 @@ export interface MusicGenerationRecordDto {
   errorMessage: string | null;
   lyrics: Array<{ title: string; text: string }> | null;
   tracks: MusicGenerationTrackDto[];
+  albumCoverImages: string[];
+  selectedAlbumCoverUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,4 +82,6 @@ export interface MusicStatusResponseDto {
   }>;
   lyrics?: Array<{ title: string; text: string }>;
   errorMessage?: string;
+  albumCoverImages?: string[];
+  selectedAlbumCoverUrl?: string | null;
 }

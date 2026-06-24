@@ -133,6 +133,8 @@ export type {
   MusicStatusResponseDto,
 } from "./music-generation.js";
 
+export type { AlbumCoverResponseDto } from "./album-cover.js";
+
 export type {
   TimedLyricsDisplayLine,
   TimedLyricsLine,

@@ -12,6 +12,7 @@ import type {
   StemResult,
   TimestampedLyricsInput,
   TimestampedLyricsResult,
+  AlbumCoverStatusResult,
 } from "../../domain/music.types.js";
 import { resolveMusicProviderConfig, type MusicProviderConfig } from "../../music-config.js";
 import { createSunoApiClient } from "./create-suno-api-client.js";
@@ -26,6 +27,7 @@ import { applySunoDurationHints } from "./suno-duration-hints.js";
 import { stripPersonaConflictingStyleTags } from "./suno-persona-style.js";
 import { mapSunoVocalRemovalTaskToStemResult } from "./suno-vocal-removal.mapper.js";
 import { mapSunoTimestampedLyricsData } from "./suno-timestamped-lyrics.mapper.js";
+import { mapSunoAlbumCoverTaskToStatus } from "./suno-album-cover.mapper.js";
 
 const PROVIDER_ID = "sunoapi" as const;
 
@@ -145,6 +147,20 @@ export class SunoApiProvider implements MusicProvider {
     }
 
     return result;
+  }
+
+  async generateAlbumCover(providerTaskId: string): Promise<{ taskId: string }> {
+    const taskId = await this.getClient().generateAlbumCover({
+      taskId: providerTaskId,
+      callBackUrl: this.config.sunoCallbackUrl,
+    });
+
+    return { taskId };
+  }
+
+  async getAlbumCoverStatus(taskId: string): Promise<AlbumCoverStatusResult> {
+    const task = await this.getClient().getAlbumCoverDetails(taskId);
+    return mapSunoAlbumCoverTaskToStatus(task);
   }
 
   private getClient(): SunoApiClient {
