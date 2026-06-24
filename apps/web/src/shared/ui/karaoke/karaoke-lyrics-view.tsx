@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useMemo } from "react";
 import type { TimedLyricsLine, TimedLyricsWord } from "@ai-music/shared";
 import {
+  expandTimedLyricsLines,
   groupWordsToDisplayLines,
+  isTimedLyricsSectionMarker,
   resolveTimedWordState,
 } from "@ai-music/shared";
 import { karaokeUi } from "@/shared/ui/karaoke/karaoke-classes";
@@ -23,18 +25,31 @@ function KaraokeLineLyricsView({
   lines: TimedLyricsLine[];
   currentTimeSec: number;
 }) {
+  const displayLines = useMemo(() => expandTimedLyricsLines(lines), [lines]);
+
   return (
     <div className={karaokeUi.lines}>
-      {lines.map((line, index) => {
+      {displayLines.map((line, index) => {
+        if (isTimedLyricsSectionMarker(line.text)) {
+          return (
+            <p
+              key={`line-${index}-${line.text}`}
+              className={karaokeUi.sectionMarker}
+            >
+              {line.text}
+            </p>
+          );
+        }
+
         const isActive =
           currentTimeSec >= line.startSec &&
-          (index === lines.length - 1
+          (index === displayLines.length - 1
             ? currentTimeSec <= line.endSec + 0.25
             : currentTimeSec < line.endSec);
 
         return (
           <p
-            key={`${line.startSec}-${line.endSec}-${line.text}`}
+            key={`line-${index}-${line.text}`}
             className={cn(karaokeUi.line, isActive ? karaokeUi.lineActive : undefined)}
           >
             {line.text}
@@ -56,13 +71,27 @@ function KaraokeWordLyricsView({
 
   return (
     <div className={karaokeUi.lines}>
-      {displayLines.map((line) => {
+      {displayLines.map((line, lineIndex) => {
+        const isSectionLabel =
+          line.words.length === 1 && isTimedLyricsSectionMarker(line.words[0]?.text ?? "");
+
+        if (isSectionLabel) {
+          return (
+            <p
+              key={`word-line-${lineIndex}-${line.words[0]?.text}`}
+              className={karaokeUi.sectionMarker}
+            >
+              {line.words[0]?.text}
+            </p>
+          );
+        }
+
         const isLineActive =
           currentTimeSec >= line.startSec && currentTimeSec < line.endSec + 0.05;
 
         return (
           <p
-            key={`${line.startSec}-${line.endSec}-${line.words.map((word) => word.text).join("-")}`}
+            key={`word-line-${lineIndex}-${line.words.map((word) => word.text).join("-")}`}
             className={cn(
               karaokeUi.wordLine,
               isLineActive ? karaokeUi.wordLineActive : undefined,

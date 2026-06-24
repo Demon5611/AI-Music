@@ -18,7 +18,7 @@ export const mtk = {
   resultDuration: `text-xs ${appShell.textMuted}`,
   editorLink:
     "mt-3 rounded-lg bg-violet-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60",
-  player: "w-full",
+  player: "w-full min-w-0",
   meta: `mt-1.5 text-xs ${appShell.textMuted}`,
   error: "text-sm text-rose-400",
   historyList: "flex flex-col gap-3",
@@ -36,7 +36,7 @@ export const mtk = {
   historyBadge:
     "shrink-0 rounded-full bg-[var(--app-hover-overlay)] px-2 py-0.5 text-xs text-[var(--app-text)]",
   historyMeta: `text-xs ${appShell.textMuted}`,
-  historyTrack: "flex flex-col gap-1.5 border-t border-[var(--app-border-subtle)] pt-2",
+  historyTrack: "flex min-w-0 flex-col gap-1.5 border-t border-[var(--app-border-subtle)] pt-2",
   historyTrackHeader: "flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3",
   historyTrackMeta: "flex flex-wrap items-baseline gap-2",
   historyTrackTitle: "text-xs text-[var(--app-text)]",

@@ -12,19 +12,63 @@ export interface AlignedLyricsWord {
 }
 
 const SECTION_MARKER_PATTERN = /^\[[^\]]+\]$/;
+const INLINE_SECTION_PATTERN = /(\[[^\]]+\])/g;
 
-function isSectionMarker(text: string): boolean {
+export function isTimedLyricsSectionMarker(text: string): boolean {
   return SECTION_MARKER_PATTERN.test(text.trim());
 }
 
+export function splitWordText(text: string): string[] {
+  const result: string[] = [];
+
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      continue;
+    }
+
+    const tokens = line
+      .split(INLINE_SECTION_PATTERN)
+      .map((token) => token.trim())
+      .filter((token) => token.length > 0);
+
+    result.push(...tokens);
+  }
+
+  return result;
+}
+
+function normalizeTimedWordsForDisplay(words: TimedLyricsWord[]): TimedLyricsWord[] {
+  const result: TimedLyricsWord[] = [];
+
+  for (const word of words) {
+    for (const part of splitWordText(word.text)) {
+      result.push({
+        text: part,
+        startSec: word.startSec,
+        endSec: word.endSec,
+      });
+    }
+  }
+
+  return result;
+}
+
 export function mapAlignedWordsToTimedWords(words: AlignedLyricsWord[]): TimedLyricsWord[] {
-  return words
-    .map((item) => ({
-      text: item.word.trim(),
-      startSec: item.startS,
-      endSec: item.endS,
-    }))
-    .filter((item) => item.text.length > 0 && !isSectionMarker(item.text));
+  const result: TimedLyricsWord[] = [];
+
+  for (const item of words) {
+    for (const part of splitWordText(item.word)) {
+      result.push({
+        text: part,
+        startSec: item.startS,
+        endSec: item.endS,
+      });
+    }
+  }
+
+  return result;
 }
 
 export function groupAlignedWordsToLines(words: AlignedLyricsWord[]): TimedLyricsLine[] {
@@ -36,6 +80,7 @@ export function groupAlignedWordsToLines(words: AlignedLyricsWord[]): TimedLyric
 }
 
 export function groupWordsToDisplayLines(words: TimedLyricsWord[]): TimedLyricsDisplayLine[] {
+  const normalizedWords = normalizeTimedWordsForDisplay(words);
   const lines: TimedLyricsDisplayLine[] = [];
   let currentWords: TimedLyricsWord[] = [];
   let lineStart = 0;
@@ -54,36 +99,55 @@ export function groupWordsToDisplayLines(words: TimedLyricsWord[]): TimedLyricsD
     currentWords = [];
   };
 
-  for (const item of words) {
-    const segments = item.text.split("\n");
+  const pushSectionLine = (item: TimedLyricsWord) => {
+    flush();
+    lines.push({
+      startSec: item.startSec,
+      endSec: item.endSec,
+      words: [item],
+    });
+  };
 
-    for (let index = 0; index < segments.length; index += 1) {
-      const segment = segments[index]?.trim() ?? "";
-
-      if (index > 0) {
-        flush();
-      }
-
-      if (!segment) {
-        continue;
-      }
-
-      if (currentWords.length === 0) {
-        lineStart = item.startSec;
-      }
-
-      currentWords.push({
-        text: segment,
-        startSec: item.startSec,
-        endSec: item.endSec,
-      });
-      lineEnd = item.endSec;
+  for (const item of normalizedWords) {
+    if (isTimedLyricsSectionMarker(item.text)) {
+      pushSectionLine(item);
+      continue;
     }
+
+    if (currentWords.length === 0) {
+      lineStart = item.startSec;
+    }
+
+    currentWords.push(item);
+    lineEnd = item.endSec;
   }
 
   flush();
 
   return lines;
+}
+
+export function expandTimedLyricsLines(lines: TimedLyricsLine[]): TimedLyricsLine[] {
+  const expanded: TimedLyricsLine[] = [];
+
+  for (const line of lines) {
+    const parts = splitWordText(line.text);
+
+    if (parts.length <= 1) {
+      expanded.push(line);
+      continue;
+    }
+
+    for (const text of parts) {
+      expanded.push({
+        startSec: line.startSec,
+        endSec: line.endSec,
+        text,
+      });
+    }
+  }
+
+  return expanded;
 }
 
 function parseTimedLyricsLine(item: unknown): TimedLyricsLine | null {
