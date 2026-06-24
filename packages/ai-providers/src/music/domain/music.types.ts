@@ -49,6 +49,11 @@ export interface TimestampedLyricsLine {
 
 export interface TimestampedLyricsResult {
   lines: TimestampedLyricsLine[];
+  words: Array<{
+    text: string;
+    startSec: number;
+    endSec: number;
+  }>;
 }
 
 export interface GeneratedTrack {

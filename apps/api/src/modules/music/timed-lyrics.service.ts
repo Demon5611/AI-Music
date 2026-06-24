@@ -3,8 +3,9 @@ import { createMusicService } from "@ai-music/ai-providers";
 import { prisma, Prisma } from "@ai-music/db";
 import {
   OPERATION_COST_UNITS,
-  parseTimedLyricsJson,
-  type TimedLyricsLine,
+  parseTimedLyricsCache,
+  serializeTimedLyricsCache,
+  type TimedLyricsPayload,
   type TimedLyricsResponseDto,
 } from "@ai-music/shared";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
@@ -17,8 +18,24 @@ type TrackWithGeneration = Prisma.MusicGenerationTrackGetPayload<{
   include: { musicGeneration: true };
 }>;
 
-function resolveCachedLines(track: TrackWithGeneration): TimedLyricsLine[] | null {
-  return parseTimedLyricsJson(track.timedLyricsJson);
+function resolveCachedPayload(track: TrackWithGeneration): TimedLyricsPayload | null {
+  return parseTimedLyricsCache(track.timedLyricsJson);
+}
+
+function hasWordLevelCache(payload: TimedLyricsPayload | null): boolean {
+  return Boolean(payload?.lines.length && payload.words?.length);
+}
+
+function hasLineLevelCache(payload: TimedLyricsPayload | null): boolean {
+  return Boolean(payload?.lines.length);
+}
+
+function toResponseDto(payload: TimedLyricsPayload, cached: boolean): TimedLyricsResponseDto {
+  return {
+    lines: payload.lines,
+    words: payload.words,
+    cached,
+  };
 }
 
 function assertKaraokeEligibleTrack(track: TrackWithGeneration): void {
@@ -48,6 +65,33 @@ async function loadTrackForUser(userId: string, trackId: string): Promise<TrackW
   return track;
 }
 
+async function fetchAndPersistTimedLyrics(
+  track: TrackWithGeneration,
+): Promise<TimedLyricsPayload> {
+  if (!musicService.getTimestampedLyrics) {
+    throw new BadRequestError("Karaoke Sync недоступен для текущего music provider");
+  }
+
+  const result = await musicService.getTimestampedLyrics({
+    taskId: track.musicGeneration.providerTaskId,
+    audioId: track.providerTrackId,
+  });
+
+  const payload: TimedLyricsPayload = {
+    lines: result.lines,
+    words: result.words,
+  };
+
+  await prisma.musicGenerationTrack.update({
+    where: { id: track.id },
+    data: {
+      timedLyricsJson: serializeTimedLyricsCache(payload) as unknown as Prisma.InputJsonValue,
+    },
+  });
+
+  return payload;
+}
+
 export async function getTimedLyricsForTrack(
   userId: string,
   trackId: string,
@@ -55,13 +99,13 @@ export async function getTimedLyricsForTrack(
   const track = await loadTrackForUser(userId, trackId);
   assertKaraokeEligibleTrack(track);
 
-  const lines = resolveCachedLines(track);
+  const payload = resolveCachedPayload(track);
 
-  if (!lines || lines.length === 0) {
+  if (!hasLineLevelCache(payload) || !payload) {
     throw new NotFoundError("Timed lyrics not cached for this track");
   }
 
-  return { lines, cached: true };
+  return toResponseDto(payload, true);
 }
 
 export async function fetchTimedLyricsForTrack(
@@ -73,14 +117,18 @@ export async function fetchTimedLyricsForTrack(
   const track = await loadTrackForUser(userId, trackId);
   assertKaraokeEligibleTrack(track);
 
-  const cachedLines = resolveCachedLines(track);
+  const cachedPayload = resolveCachedPayload(track);
 
-  if (cachedLines && cachedLines.length > 0) {
-    return { lines: cachedLines, cached: true };
+  if (hasWordLevelCache(cachedPayload) && cachedPayload) {
+    return toResponseDto(cachedPayload, true);
   }
 
+  const isWordUpgrade = hasLineLevelCache(cachedPayload);
   const spendReason = `karaoke_lyrics:${trackId}:${randomUUID()}`;
-  await spendCredits(userId, OPERATION_COST_UNITS.karaokeLyrics, spendReason);
+
+  if (!isWordUpgrade) {
+    await spendCredits(userId, OPERATION_COST_UNITS.karaokeLyrics, spendReason);
+  }
 
   try {
     const freshTrack = await prisma.musicGenerationTrack.findUnique({
@@ -88,41 +136,32 @@ export async function fetchTimedLyricsForTrack(
       include: { musicGeneration: true },
     });
 
-    const freshLines = freshTrack ? resolveCachedLines(freshTrack) : null;
+    const freshPayload = freshTrack ? resolveCachedPayload(freshTrack) : null;
 
-    if (freshLines && freshLines.length > 0) {
+    if (hasWordLevelCache(freshPayload) && freshPayload) {
+      if (!isWordUpgrade) {
+        await refundCredits(
+          userId,
+          OPERATION_COST_UNITS.karaokeLyrics,
+          `karaoke_lyrics_duplicate:${spendReason}`,
+        ).catch(() => undefined);
+      }
+
+      return toResponseDto(freshPayload, true);
+    }
+
+    const trackForFetch = freshTrack ?? track;
+    const payload = await fetchAndPersistTimedLyrics(trackForFetch);
+
+    return toResponseDto(payload, isWordUpgrade);
+  } catch (error) {
+    if (!isWordUpgrade) {
       await refundCredits(
         userId,
         OPERATION_COST_UNITS.karaokeLyrics,
-        `karaoke_lyrics_duplicate:${spendReason}`,
+        `karaoke_lyrics_failed:${spendReason}`,
       ).catch(() => undefined);
-
-      return { lines: freshLines, cached: true };
     }
-
-    if (!musicService.getTimestampedLyrics) {
-      throw new BadRequestError("Karaoke Sync недоступен для текущего music provider");
-    }
-
-    const result = await musicService.getTimestampedLyrics({
-      taskId: track.musicGeneration.providerTaskId,
-      audioId: track.providerTrackId,
-    });
-
-    await prisma.musicGenerationTrack.update({
-      where: { id: trackId },
-      data: {
-        timedLyricsJson: result.lines as unknown as Prisma.InputJsonValue,
-      },
-    });
-
-    return { lines: result.lines, cached: false };
-  } catch (error) {
-    await refundCredits(
-      userId,
-      OPERATION_COST_UNITS.karaokeLyrics,
-      `karaoke_lyrics_failed:${spendReason}`,
-    ).catch(() => undefined);
 
     throw error;
   }

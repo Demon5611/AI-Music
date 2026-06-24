@@ -65,6 +65,7 @@ export function TrackKaraokeSection({
           <KaraokeLyricsView
             currentTimeSec={currentTimeSec}
             lines={timedLyricsQuery.data.lines}
+            words={timedLyricsQuery.data.words}
           />
         ) : (
           <p className={karaokeUi.status}>Текст с таймкодами пока недоступен.</p>

@@ -133,7 +133,13 @@ export type {
   MusicStatusResponseDto,
 } from "./music-generation.js";
 
-export type { TimedLyricsLine, TimedLyricsResponseDto } from "./timed-lyrics.js";
+export type {
+  TimedLyricsDisplayLine,
+  TimedLyricsLine,
+  TimedLyricsPayload,
+  TimedLyricsResponseDto,
+  TimedLyricsWord,
+} from "./timed-lyrics.js";
 
 export type {
   ApplyOperationBody,

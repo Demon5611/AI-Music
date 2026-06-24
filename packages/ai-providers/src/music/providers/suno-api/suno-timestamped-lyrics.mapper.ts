@@ -1,4 +1,4 @@
-import { groupAlignedWordsToLines } from "@ai-music/shared";
+import { groupAlignedWordsToLines, mapAlignedWordsToTimedWords } from "@ai-music/shared";
 import type { TimestampedLyricsResult } from "../../domain/music.types.js";
 import type { SunoTimestampedLyricsDataRaw } from "./suno-api.types.js";
 
@@ -13,7 +13,10 @@ export function mapSunoTimestampedLyricsData(
       endS: item.endS,
     }));
 
+  const words = mapAlignedWordsToTimedWords(alignedWords);
+
   return {
     lines: groupAlignedWordsToLines(alignedWords),
+    words,
   };
 }

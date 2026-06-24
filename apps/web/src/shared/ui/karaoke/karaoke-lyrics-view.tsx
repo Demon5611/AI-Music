@@ -1,16 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import type { TimedLyricsLine } from "@ai-music/shared";
+import { useMemo } from "react";
+import type { TimedLyricsLine, TimedLyricsWord } from "@ai-music/shared";
+import {
+  groupWordsToDisplayLines,
+  resolveTimedWordState,
+} from "@ai-music/shared";
 import { karaokeUi } from "@/shared/ui/karaoke/karaoke-classes";
 import { cn } from "@/lib/utils";
 
 interface KaraokeLyricsViewProps {
   lines: TimedLyricsLine[];
+  words?: TimedLyricsWord[];
   currentTimeSec: number;
 }
 
-export function KaraokeLyricsView({ lines, currentTimeSec }: KaraokeLyricsViewProps) {
+function KaraokeLineLyricsView({
+  lines,
+  currentTimeSec,
+}: {
+  lines: TimedLyricsLine[];
+  currentTimeSec: number;
+}) {
   return (
     <div className={karaokeUi.lines}>
       {lines.map((line, index) => {
@@ -31,6 +43,63 @@ export function KaraokeLyricsView({ lines, currentTimeSec }: KaraokeLyricsViewPr
       })}
     </div>
   );
+}
+
+function KaraokeWordLyricsView({
+  words,
+  currentTimeSec,
+}: {
+  words: TimedLyricsWord[];
+  currentTimeSec: number;
+}) {
+  const displayLines = useMemo(() => groupWordsToDisplayLines(words), [words]);
+
+  return (
+    <div className={karaokeUi.lines}>
+      {displayLines.map((line) => {
+        const isLineActive =
+          currentTimeSec >= line.startSec && currentTimeSec < line.endSec + 0.05;
+
+        return (
+          <p
+            key={`${line.startSec}-${line.endSec}-${line.words.map((word) => word.text).join("-")}`}
+            className={cn(
+              karaokeUi.wordLine,
+              isLineActive ? karaokeUi.wordLineActive : undefined,
+            )}
+          >
+            {line.words.map((word, wordIndex) => {
+              const state = resolveTimedWordState(word, currentTimeSec);
+
+              return (
+                <span
+                  key={`${word.startSec}-${word.endSec}-${word.text}-${wordIndex}`}
+                  className={cn(
+                    karaokeUi.word,
+                    state === "past"
+                      ? karaokeUi.wordPast
+                      : state === "active"
+                        ? karaokeUi.wordActive
+                        : karaokeUi.wordUpcoming,
+                  )}
+                >
+                  {word.text}
+                </span>
+              );
+            })}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+export function KaraokeLyricsView({ lines, words, currentTimeSec }: KaraokeLyricsViewProps) {
+  if (words && words.length > 0) {
+    return <KaraokeWordLyricsView currentTimeSec={currentTimeSec} words={words} />;
+  }
+
+  return <KaraokeLineLyricsView currentTimeSec={currentTimeSec} lines={lines} />;
 }
 
 interface KaraokeToggleProps {

@@ -5,7 +5,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useApi } from "@/shared/providers/api-provider";
 import { useInvalidateCreditsBalance } from "@/features/billing/hooks/invalidate-credits-balance";
 
-export const timedLyricsQueryKey = (trackId: string) => ["timed-lyrics", trackId] as const;
+export const timedLyricsQueryKey = (trackId: string) => ["timed-lyrics", "v2", trackId] as const;
+
+function hasWordLevelTimedLyrics(
+  data: { words?: Array<{ text: string }> } | undefined,
+): boolean {
+  return Boolean(data?.words?.length);
+}
 
 function getApiErrorStatus(error: unknown): number | undefined {
   if (error instanceof ApiError) {
@@ -36,18 +42,22 @@ export function useTimedLyrics(trackId: string | undefined, karaokeEnabled: bool
       }
 
       try {
-        return await api.music.getTimedLyrics(trackId);
-      } catch (error) {
-        if (getApiErrorStatus(error) === 404) {
-          const fetched = await api.music.fetchTimedLyrics(trackId);
-          if (!fetched.cached) {
-            await invalidateCreditsBalance();
-          }
-          return fetched;
-        }
+        const cached = await api.music.getTimedLyrics(trackId);
 
-        throw error;
+        if (hasWordLevelTimedLyrics(cached)) {
+          return cached;
+        }
+      } catch (error) {
+        if (getApiErrorStatus(error) !== 404) {
+          throw error;
+        }
       }
+
+      const fetched = await api.music.fetchTimedLyrics(trackId);
+      if (!fetched.cached) {
+        await invalidateCreditsBalance();
+      }
+      return fetched;
     },
   });
 }
