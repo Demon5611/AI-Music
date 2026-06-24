@@ -1,12 +1,7 @@
 "use client";
 
 import { SignInButton } from "@clerk/nextjs";
-import {
-  PAID_PLAN_IDS,
-  PLANS,
-  type PaidPlanId,
-  type PlanId,
-} from "@ai-music/shared";
+import { PAID_PLAN_IDS, PLANS, type PaidPlanId, type PlanId } from "@ai-music/shared";
 import { parseApiError } from "@/shared/lib/parse-api-error";
 import { useApi } from "@/shared/providers/api-provider";
 import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
@@ -17,34 +12,43 @@ import { useAuthSession } from "@/shared/hooks/use-auth-ready";
 
 const PLAN_FEATURES: Record<PlanId, string[]> = {
   free: [
-    "AI Music Generation",
-    "Свой голос в генерации",
-    "До 60 сек трек",
-    "Music Editor Lite",
-    "WAV Export",
+    "🎵 Создавай AI-треки по текстовому описанию",
+    "🎤 Замени голос на свой",
+    "✍️ AI поможет написать текст песни",
+    "⏱️ Треки до 60 секунд",
+    "🎚️ Отделяй голос от музыки",
+    "🎧 Создавай минусовки и акапеллы",
+    "🎼 Базовый музыкальный редактор",
+    "📤 Экспорт готового трека",
+    "🕒 Сохраняй разные версии трека",
   ],
   pro: [
-    "До 3 минут трек",
-    "Music Editor Advanced",
-    "Karaoke Sync — текст в такт музыке",
-    "Album Cover — варианты обложки",
-    "Stem Separation",
-    "WAV Export",
-    "Version History",
-    "Priority Queue — приоритет в нашей очереди",
+    "Всё из Free +",
+    "🎵 Треки до 3 минут",
+    "🎚️ Полный музыкальный редактор",
+    "🎤 Больше замен голоса",
+    "🎤 Караоке-режим с синхронным текстом",
+    "🕒 История последних 10 проектов",
+    "⚡ Получай результат быстрее (быстрее, чем Free, но меленне, чем Creator)",
+    "🎨 Генерация обложки для трека",
+    "🔥 Около 18 полностью готовых треков в месяц",
   ],
   studio: [
-    "Всё из Pro",
-    "Fastest Queue — самый высокий приоритет в нашей очереди",
-    "Extended Version History",
-    "More Stem Processing",
-    "Early Access",
+    "Всё из Pro +",
+    "🚀 Самая быстрая очередь",
+    "💾 История до 100 проектов",
+    "🎬 Экспорт видео для TikTok, Shorts и Reels",
+    "🎵 AI Remix одним кликом",
+    "🎤 Набор голосовых пресетов",
+    "📀 Экспорт в максимальном качестве",
+    "🔥 До 73 полностью готовых треков в месяц",
   ],
 };
 
 const PLAN_TAGLINES: Partial<Record<PlanId, string>> = {
-  pro: "For creators editing tracks every week",
-  studio: "For musicians, producers and heavy users",
+  free: "Попробуй AI Music бесплатно",
+  pro: "Для тех, кто регулярно делает музыку",
+  studio: "Для музыкантов, блогеров и продюсеров",
 };
 
 function formatDurationLimit(seconds: number): string {
@@ -141,10 +145,7 @@ export function PricingPanel() {
 
               <ul className={pricing.featureList}>
                 {PLAN_FEATURES[planId].map((feature) => (
-                  <li key={feature} className={pricing.featureItem}>
-                    <span aria-hidden="true" className={pricing.featureBullet} />
-                    <span>{feature}</span>
-                  </li>
+                  <li key={feature}>{feature}</li>
                 ))}
               </ul>
 

@@ -187,8 +187,7 @@ export function GenerationAlbumCoverSection({
               {generateMutation.isPending ? "Генерируем обложку..." : "Новые варианты обложки"}
             </button>
             <p className={mtk.coverHint}>
-              AI Music создаёт 2 варианта по стилю трека. Свой промпт задать нельзя — один раз на
-              трек.
+              AI Music создаёт 2 варианта по стилю трека.
             </p>
           </>
         ) : null}

@@ -20,9 +20,8 @@ export const pricing = {
   planPrice: "mt-1 text-2xl font-semibold text-[var(--app-text)]",
   planPriceHint: "text-sm font-normal text-[var(--app-text-muted)]",
   credits: "mt-2 text-sm text-[var(--app-text-muted)]",
-  featureList: "mt-4 flex flex-1 flex-col gap-2 text-sm text-[var(--app-text-muted)]",
-  featureItem: "flex items-start gap-2",
-  featureBullet: "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500",
+  featureList:
+    "mt-4 flex flex-1 list-none flex-col gap-2 p-0 text-sm text-[var(--app-text-muted)]",
   actionWrap: "mt-6",
   primaryButton: appShell.formSubmit,
   secondaryButton: appShell.btnSecondary,
