@@ -1,6 +1,8 @@
 import type {
   ApplyOperationBody,
   EditorStateDto,
+  ExportWavBody,
+  ExportWavResponseDto,
   InitEditorResponse,
   RenderSongResponse,
 } from "@ai-music/shared";
@@ -29,6 +31,8 @@ export function createMusicEditorApi(client: ApiClient) {
         body,
       ),
     render: (songId: string) => client.post<RenderSongResponse>(`/api/music/${songId}/render`, {}),
+    exportWav: (songId: string, body: ExportWavBody = {}) =>
+      client.post<ExportWavResponseDto>(`/api/music/${songId}/export-wav`, body),
     getRenderJob: (songId: string, jobId: string) =>
       client.get<{
         id: string;

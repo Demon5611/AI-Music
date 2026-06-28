@@ -10,6 +10,7 @@ import {
   undoLastOperation,
 } from "./operation.service.js";
 import { renderSongVersion, getRenderJob } from "./render.service.js";
+import { exportSongWav, getSongVersionWav } from "./wav-export.service.js";
 import {
   ensureSongForTrack,
   getCurrentVersion,
@@ -234,6 +235,43 @@ export async function registerMusicEditorRoutes(app: FastifyInstance) {
       try {
         const result = await renderSongVersion(request.userId!, request.params.songId);
         return reply.send(result);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.post<{ Params: { songId: string }; Body: { versionId?: string } }>(
+    "/api/music/:songId/export-wav",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const result = await exportSongWav(
+          request.userId!,
+          request.params.songId,
+          request.body?.versionId?.trim() || undefined,
+        );
+        return reply.send(result);
+      } catch (error) {
+        return sendAppError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: { songId: string; versionId: string } }>(
+    "/api/music/songs/:songId/versions/:versionId/wav",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      try {
+        const { buffer, contentType } = await getSongVersionWav(
+          request.userId!,
+          request.params.songId,
+          request.params.versionId,
+        );
+        return reply
+          .header("Content-Type", contentType)
+          .header("Cache-Control", "private, max-age=3600")
+          .send(buffer);
       } catch (error) {
         return sendAppError(reply, error);
       }

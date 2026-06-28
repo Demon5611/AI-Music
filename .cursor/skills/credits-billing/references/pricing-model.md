@@ -36,6 +36,19 @@ Free tier: `FREE_DEMO_CREDITS = 50` on first auth sync (`sync-auth-user.ts`).
 
 Store per-job cost in `GenerationJob.creditsCostUnits` for accurate refunds.
 
+## Editor export formats (Studio WAV)
+
+WAV export is a **format option**, not a quality upgrade:
+
+| Step | Format | Plan | Credits | Notes |
+| --- | --- | --- | ---: | --- |
+| Render version | MP3 | all | 0 | Default export after editor render |
+| Export WAV | WAV (PCM 44.1 kHz) | Studio (`wavExport`) | 0.4 | Same render mix, different container for DAW / NLE import |
+
+Implementation: ffmpeg converts the completed render MP3 to WAV. Audio content is identical to the MP3 render; WAV does not restore loss from earlier compression. Re-export of the same version is free (cached file, idempotent ledger key `wav_export:{songId}:v{n}`).
+
+UI copy must not promise «максимальное качество» — use «дополнительный формат экспорта» / «экспорт в WAV».
+
 ## Billing principles
 
 1. **Fixed cost per operation** in units — predictable UX on pricing page.

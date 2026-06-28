@@ -66,8 +66,8 @@ Project limits (`maxProjects`): Free 3, Pro 10, Studio 100. WAV export: Studio o
 | First stem separation on editor open | `OPERATION_COST_UNITS.stemSeparation` |
 | Stem separation retry | no double charge; refund failure once |
 | Split, move, fade, undo, redo | free, entitlement-only |
-| Render version MP3 | free local ffmpeg operation |
-| WAV Export | reserved Suno cost, bill when implemented |
+| Render version MP3 | free local ffmpeg operation — default export format |
+| WAV Export (Studio) | `OPERATION_COST_UNITS.wavExport`; same mix as render MP3, exported as WAV for DAW import; not a quality tier; cached re-download free per version |
 
 ## Agent checklist
 

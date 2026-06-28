@@ -19,6 +19,9 @@ export interface PlanFeatures {
   editor: EditorLevel;
   stemSeparation: boolean;
   wavExport: boolean;
+  aiRemix: boolean;
+  lyricsVideoExport: boolean;
+  voicePresets: boolean;
   priorityQueue: boolean;
   versionHistory: VersionHistoryLevel;
   maxProjects: number | null;
@@ -95,6 +98,9 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       editor: "lite",
       stemSeparation: false,
       wavExport: false,
+      aiRemix: false,
+      lyricsVideoExport: false,
+      voicePresets: false,
       priorityQueue: false,
       versionHistory: false,
       maxProjects: 3,
@@ -118,6 +124,9 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       editor: "advanced",
       stemSeparation: true,
       wavExport: false,
+      aiRemix: false,
+      lyricsVideoExport: false,
+      voicePresets: false,
       priorityQueue: true,
       versionHistory: "standard",
       maxProjects: 10,
@@ -141,6 +150,9 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       editor: "advanced",
       stemSeparation: true,
       wavExport: true,
+      aiRemix: true,
+      lyricsVideoExport: true,
+      voicePresets: true,
       priorityQueue: true,
       versionHistory: "extended",
       maxProjects: 100,

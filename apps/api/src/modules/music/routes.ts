@@ -16,6 +16,7 @@ import {
   removeMusicGenerationTrack,
   removeMusicGenerations,
 } from "./service.js";
+import { assertFeature } from "../billing/entitlements.service.js";
 import {
   fetchTimedLyricsForTrack,
   getTimedLyricsForTrack,
@@ -370,6 +371,8 @@ export async function registerMusicRoutes(app: FastifyInstance) {
       }
 
       try {
+        await assertFeature(request.userId!, "aiRemix");
+
         const result = await extendMusic({
           audioId: audioId.trim(),
           prompt: prompt.trim(),

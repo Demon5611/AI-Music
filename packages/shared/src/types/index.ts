@@ -151,6 +151,8 @@ export type {
   EditOperation,
   EditorStateDto,
   EditorTrackId,
+  ExportWavBody,
+  ExportWavResponseDto,
   FadeOperation,
   InitEditorResponse,
   PreviewOperationBody,

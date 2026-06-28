@@ -177,6 +177,17 @@ export interface RenderSongResponse {
   status: string;
 }
 
+export interface ExportWavResponseDto {
+  wavAudioUrl: string;
+  versionId: string;
+  versionNumber: number;
+  cached: boolean;
+}
+
+export interface ExportWavBody {
+  versionId?: string;
+}
+
 export interface InitEditorResponse {
   songId: string;
   status: SongEditorStatus;

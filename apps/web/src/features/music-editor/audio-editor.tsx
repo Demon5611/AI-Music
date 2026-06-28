@@ -389,6 +389,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
             disabled={controlsDisabled}
             isRendering={isRendering}
             renderError={renderError}
+            songId={songId}
             songTitle={title || "track"}
             sourceLyricsText={sourceLyricsText}
             sourceTrackId={sourceTrackId}
