@@ -46,9 +46,10 @@ MVP margin math uses the conservative Small package price: `$0.005 / credit`.
 | Plan | Price | Display credits | Grant units | Full flows | Suno COGS | Gross margin |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Free | $0 | 50 | 50000 | ~1.8 | $0.25 | - |
-| Starter | $9 | 150 | 150000 | ~5.47, display 5 | $0.75 | ~$8.25 |
 | Pro | $19 | 500 | 500000 | ~18.24, display 18 | $2.50 | ~$16.50 |
-| Creator | $39 | 1500 | 1500000 | ~54.74, display 54 | $7.50 | ~$31.50 |
+| Studio | $49 | 2000 | 2000000 | ~73, display 73 | $10.00 | ~$39.00 |
+
+Project limits (`maxProjects`): Free 3, Pro 10, Studio 100. WAV export: Studio only (not yet implemented).
 
 ## Spend and refund rules
 

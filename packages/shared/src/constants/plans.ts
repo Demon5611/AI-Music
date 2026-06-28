@@ -94,7 +94,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       albumCover: false,
       editor: "lite",
       stemSeparation: false,
-      wavExport: true,
+      wavExport: false,
       priorityQueue: false,
       versionHistory: false,
       maxProjects: 3,
@@ -117,10 +117,10 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       albumCover: true,
       editor: "advanced",
       stemSeparation: true,
-      wavExport: true,
+      wavExport: false,
       priorityQueue: true,
       versionHistory: "standard",
-      maxProjects: 20,
+      maxProjects: 10,
       earlyAccess: false,
       apiAccess: false,
     },
@@ -143,7 +143,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       wavExport: true,
       priorityQueue: true,
       versionHistory: "extended",
-      maxProjects: null,
+      maxProjects: 100,
       earlyAccess: true,
       apiAccess: false,
     },
@@ -213,4 +213,15 @@ export function resolveCreditsBalancePercent(balance: number, planId: PlanId): n
 export function getPlanFeatureTooltip(feature: keyof PlanFeatures): string {
   const requiredPlan = getMinimumPlanForFeature(feature);
   return `Доступно на тарифе ${getPlanLabel(requiredPlan)}`;
+}
+
+/** Unified limit for /history visibility and editor Song creation. */
+export function resolveMaxProjects(planId: PlanId): number {
+  const maxProjects = PLANS[planId].features.maxProjects;
+
+  if (maxProjects === null) {
+    throw new Error(`Plan ${planId} is missing maxProjects`);
+  }
+
+  return maxProjects;
 }

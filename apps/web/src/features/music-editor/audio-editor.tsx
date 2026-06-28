@@ -277,7 +277,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
   const trackMixControlsDisabled = !editorReady || !stemsReady;
   useEditorTransportShortcuts(controlsDisabled);
   useEditorVolumeShortcuts(controlsDisabled || trackMixControlsDisabled, adjustVolume);
-  useEditorRegionShortcuts(controlsDisabled, deleteRegion);
+  useEditorRegionShortcuts(controlsDisabled || lockedAdvancedOps, deleteRegion);
 
   const statusMessage = (() => {
     if (songStatus === "separating_stems" || songStatus === "pending_stems") {
@@ -325,6 +325,7 @@ function AudioEditorContent({ songId }: AudioEditorProps) {
       <DeferredWaveformTimeline
         disabled={controlsDisabled}
         instrumentalPlaybackUrl={playbackUrls.instrumental}
+        lockedAdvancedOps={lockedAdvancedOps}
         onMoveRegion={moveRegionToIndex}
         onMoveTrackRegion={moveTrackRegionToIndex}
         onResizeRegion={resizeRegion}

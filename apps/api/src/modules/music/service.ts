@@ -269,7 +269,8 @@ async function findMusicGenerationRecord(id: string, userId?: string) {
 }
 
 export async function getMusicHistory(userId: string) {
-  return listMusicGenerationHistory(userId);
+  const entitlements = await getUserEntitlements(userId);
+  return listMusicGenerationHistory(userId, entitlements.maxProjects);
 }
 
 export async function removeMusicGenerations(userId: string, ids: string[]) {

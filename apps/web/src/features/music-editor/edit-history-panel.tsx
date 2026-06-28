@@ -1,8 +1,10 @@
 "use client";
 
 import type { EditOperation } from "@ai-music/shared";
+import { VERSION_HISTORY_OPERATION_LIMIT } from "@ai-music/shared";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { PlanGatedWrap, usePlanGate } from "@/shared/ui/plan-gated";
+import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
 import {
   selectRegionLabel,
   useAudioEditorStore,
@@ -63,12 +65,22 @@ export function EditHistoryPanel({
   const regions = useAudioEditorStore((state) => state.regions);
   const undoneOperations = useAudioEditorStore((state) => state.undoneOperations);
   const setSelectedRegion = useAudioEditorStore((state) => state.setSelectedRegion);
+  const subscriptionQuery = useSubscriptionQuery();
   const historyGate = usePlanGate("versionHistory");
   const historyLocked = !historyGate.allowed;
+  const versionHistoryLevel = subscriptionQuery.data?.entitlements.features.versionHistory;
+  const operationLimit =
+    versionHistoryLevel === "standard" ? VERSION_HISTORY_OPERATION_LIMIT.standard : null;
 
   return (
     <div className={me.panel}>
       <h3 className={me.panelTitle}>Edit history</h3>
+
+      {operationLimit !== null ? (
+        <p className={me.panelHint}>
+          Операций: {operations.length} / {operationLimit}
+        </p>
+      ) : null}
 
       {operations.length === 0 ? (
         <p className={me.panelHint}>Операции появятся здесь после первого изменения</p>

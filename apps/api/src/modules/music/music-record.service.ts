@@ -43,12 +43,12 @@ export async function createMusicGenerationRecord(input: CreateRecordInput) {
   });
 }
 
-export async function listMusicGenerationHistory(userId: string) {
+export async function listMusicGenerationHistory(userId: string, limit: number) {
   const records = await prisma.musicGeneration.findMany({
     where: { userId },
     include: { tracks: true },
     orderBy: { createdAt: "desc" },
-    take: 50,
+    take: limit,
   });
 
   const apiBaseUrl = resolveApiBaseUrl();

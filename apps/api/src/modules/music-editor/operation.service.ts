@@ -1,7 +1,7 @@
 import type { EditOperation, EditorTrackId } from "@ai-music/shared";
 import { prisma, Prisma } from "@ai-music/db";
 import { BadRequestError, NotFoundError } from "../../common/errors.js";
-import { assertEditorOperation, assertVersionHistory } from "../billing/entitlements.service.js";
+import { assertEditorOperation, assertVersionHistory, assertVersionHistoryOperationLimit } from "../billing/entitlements.service.js";
 import {
   countActiveOperations,
   findLastActiveOperation,
@@ -556,6 +556,15 @@ export async function applyOperation(
   const version = await getCurrentVersion(songId);
 
   await prisma.$transaction(async (tx) => {
+    const activeOperationCount = await tx.editOperation.count({
+      where: {
+        songVersionId: version.id,
+        undoneAt: null,
+      },
+    });
+
+    await assertVersionHistoryOperationLimit(userId, activeOperationCount);
+
     const undoMeta = isRegionMutation(operation)
       ? await applyRegionMutation(songId, operation, tx)
       : undefined;

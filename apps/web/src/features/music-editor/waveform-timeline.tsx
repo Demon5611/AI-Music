@@ -62,6 +62,7 @@ interface WaveformTimelineProps {
   ) => void;
   onMoveTrackRegion: (trackId: EditorTrackId, regionId: string, targetIndex: number) => void;
   disabled?: boolean;
+  lockedAdvancedOps?: boolean;
 }
 
 const TRACK_COLORS: Record<EditorTrackId, string> = {
@@ -325,6 +326,7 @@ export function WaveformTimeline({
   onResizeTrackRegion,
   onMoveTrackRegion,
   disabled,
+  lockedAdvancedOps = false,
 }: WaveformTimelineProps) {
   const linkedTracks = useAudioEditorStore((state) => state.linkedTracks);
   const setLinkedTracks = useAudioEditorStore((state) => state.setLinkedTracks);
@@ -501,6 +503,12 @@ export function WaveformTimeline({
       return;
     }
 
+    if (operation.type === "resize" && lockedAdvancedOps) {
+      suppressTracksChangeRef.current = true;
+      setPlaylistTracks(tracks);
+      return;
+    }
+
     const operationKey = buildPendingTimelineOperationKey(operation);
     lastPersistedOperationKeyRef.current = operationKey;
 
@@ -524,7 +532,15 @@ export function WaveformTimeline({
     }
 
     onMoveRegion(operation.regionId, operation.targetIndex);
-  }, [disabled, onMoveRegion, onMoveTrackRegion, onResizeRegion, onResizeTrackRegion]);
+  }, [
+    disabled,
+    lockedAdvancedOps,
+    onMoveRegion,
+    onMoveTrackRegion,
+    onResizeRegion,
+    onResizeTrackRegion,
+    tracks,
+  ]);
 
   const handleTracksChange = useCallback(
     (nextTracks: ClipTrack[]) => {
@@ -553,6 +569,12 @@ export function WaveformTimeline({
         return;
       }
 
+      if (operation.type === "resize" && lockedAdvancedOps) {
+        suppressTracksChangeRef.current = true;
+        setPlaylistTracks(tracks);
+        return;
+      }
+
       const operationKey = buildPendingTimelineOperationKey(operation);
 
       if (operationKey === lastPersistedOperationKeyRef.current) {
@@ -567,7 +589,7 @@ export function WaveformTimeline({
 
       persistTimerRef.current = window.setTimeout(persistTimelineOperation, PERSIST_DEBOUNCE_MS);
     },
-    [disabled, isStructuralSync, linkedTracks, operations, persistTimelineOperation, regions],
+    [disabled, isStructuralSync, linkedTracks, lockedAdvancedOps, operations, persistTimelineOperation, regions, tracks],
   );
 
   return (

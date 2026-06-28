@@ -5,6 +5,7 @@ import {
   checkMusicGenerationMode,
   checkProjectLimit,
   checkVersionHistory,
+  checkVersionHistoryOperationLimit,
   resolveEntitlements,
   type EntitlementCheckResult,
   type FeatureKey,
@@ -33,6 +34,10 @@ function throwIfViolation(result: EntitlementCheckResult): void {
   }
 
   if (result.code === "PROJECT_LIMIT_EXCEEDED") {
+    throw new FeatureNotAvailableError(result.message, result.requiredPlan);
+  }
+
+  if (result.code === "VERSION_HISTORY_LIMIT_EXCEEDED") {
     throw new FeatureNotAvailableError(result.message, result.requiredPlan);
   }
 
@@ -105,6 +110,15 @@ export async function assertProjectLimit(userId: string, projectCount: number): 
   const subscription = await getOrCreateSubscription(userId);
   const planId = resolveSubscriptionPlanId(subscription.planId);
   throwIfViolation(checkProjectLimit(planId, projectCount));
+}
+
+export async function assertVersionHistoryOperationLimit(
+  userId: string,
+  activeOperationCount: number,
+): Promise<void> {
+  const subscription = await getOrCreateSubscription(userId);
+  const planId = resolveSubscriptionPlanId(subscription.planId);
+  throwIfViolation(checkVersionHistoryOperationLimit(planId, activeOperationCount));
 }
 
 export async function getQueuePriorityForUser(userId: string): Promise<number> {

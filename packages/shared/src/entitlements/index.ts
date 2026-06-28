@@ -11,6 +11,8 @@ import {
   ADVANCED_EDITOR_OPERATIONS,
   LITE_EDITOR_OPERATIONS,
   PLANS,
+  VERSION_HISTORY_OPERATION_LIMIT,
+  resolveMaxProjects,
   type EditorLevel,
   type EditorOperationType,
   type PlanFeatures,
@@ -25,6 +27,7 @@ export interface ResolvedEntitlements {
   planLabel: string;
   monthlyCredits: number;
   maxTrackDurationSec: number;
+  maxProjects: number;
   estimatedFlows: number | null;
   features: PlanFeatures;
   queuePriority: number;
@@ -35,7 +38,8 @@ export type EntitlementViolationCode =
   | "DURATION_LIMIT_EXCEEDED"
   | "EDITOR_OPERATION_NOT_ALLOWED"
   | "SIMPLIFIED_GENERATION_ONLY"
-  | "PROJECT_LIMIT_EXCEEDED";
+  | "PROJECT_LIMIT_EXCEEDED"
+  | "VERSION_HISTORY_LIMIT_EXCEEDED";
 
 export interface EntitlementViolation {
   ok: false;
@@ -66,6 +70,7 @@ export function resolveEntitlements(planId: PlanId): ResolvedEntitlements {
     planLabel: plan.label,
     monthlyCredits: plan.monthlyCredits,
     maxTrackDurationSec: plan.maxTrackDurationSec,
+    maxProjects: resolveMaxProjects(plan.id),
     estimatedFlows: plan.estimatedFlows,
     features: plan.features,
     queuePriority: QUEUE_PRIORITY_BY_PLAN[plan.id],
@@ -143,13 +148,13 @@ export function checkProjectLimit(
   planId: PlanId,
   projectCount: number,
 ): EntitlementCheckResult {
-  const maxProjects = PLANS[planId].features.maxProjects;
+  const maxProjects = resolveMaxProjects(planId);
 
-  if (maxProjects === null || projectCount < maxProjects) {
+  if (projectCount < maxProjects) {
     return { ok: true };
   }
 
-  const requiredPlan = maxProjects === PLANS.free.features.maxProjects ? "pro" : "studio";
+  const requiredPlan = planId === "free" ? "pro" : "studio";
 
   return {
     ok: false,
@@ -163,6 +168,43 @@ export function checkProjectLimit(
 export function checkVersionHistory(planId: PlanId): EntitlementCheckResult {
   return checkFeature(planId, "versionHistory");
 }
+
+export function checkVersionHistoryOperationLimit(
+  planId: PlanId,
+  activeOperationCount: number,
+): EntitlementCheckResult {
+  const level = resolveVersionHistoryLevel(planId);
+
+  if (level === false) {
+    return { ok: true };
+  }
+
+  const limit = VERSION_HISTORY_OPERATION_LIMIT[level];
+
+  if (limit === null || activeOperationCount < limit) {
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    code: "VERSION_HISTORY_LIMIT_EXCEEDED",
+    message: `Достигнут лимит операций истории (${limit}). Обновите тариф для продолжения.`,
+    requiredPlan: "studio",
+    limit,
+  };
+}
+
+export function resolveVersionHistoryOperationLimit(planId: PlanId): number | null {
+  const level = resolveVersionHistoryLevel(planId);
+
+  if (level === false) {
+    return null;
+  }
+
+  return VERSION_HISTORY_OPERATION_LIMIT[level];
+}
+
+export { resolveMaxProjects } from "../constants/plans.js";
 
 export {
   formatAutoDurationLabel,

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { OPERATION_COST_UNITS, formatCreditsFromUnits } from "@ai-music/shared";
 import { mtk } from "@/shared/theme/music-track-classes";
 import { TrackCoverImage } from "@/shared/ui/track-cover/track-cover-image";
 import { TrackCoverLightbox } from "@/shared/ui/track-cover/track-cover-lightbox";
@@ -184,7 +185,9 @@ export function GenerationAlbumCoverSection({
               type="button"
               onClick={() => generateMutation.mutate()}
             >
-              {generateMutation.isPending ? "Генерируем обложку..." : "Новые варианты обложки"}
+              {generateMutation.isPending
+                ? "Генерируем обложку..."
+                : `Новые варианты обложки (${formatCreditsFromUnits(OPERATION_COST_UNITS.albumCover)} credits)`}
             </button>
             <p className={mtk.coverHint}>
               AI Music создаёт 2 варианта по стилю трека.

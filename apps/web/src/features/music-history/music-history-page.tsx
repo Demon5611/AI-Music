@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MusicHistoryPanel } from "@/features/music-history/music-history-panel";
+import { useSubscriptionQuery } from "@/features/billing/hooks/use-subscription-query";
 import { mp } from "@/shared/theme/music-page-classes";
 import { useAuthReady } from "@/shared/hooks/use-auth-ready";
 import { useApi } from "@/shared/providers/api-provider";
@@ -46,6 +47,7 @@ function MusicHistoryPageContent() {
   const authReady = useAuthReady();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const subscriptionQuery = useSubscriptionQuery();
 
   const [error, setError] = useState<string | null>(null);
   const [isDeletingHistory, setIsDeletingHistory] = useState(false);
@@ -57,6 +59,11 @@ function MusicHistoryPageContent() {
     queryFn: () => api.music.history(),
     enabled: authReady,
   });
+
+  const maxProjects = subscriptionQuery.data?.entitlements.maxProjects;
+  const historyItems = historyQuery.data ?? [];
+  const historyAtLimit =
+    maxProjects !== undefined && historyItems.length >= maxProjects && maxProjects > 0;
 
   async function refreshHistory() {
     await queryClient.invalidateQueries({ queryKey: ["music-history"] });
@@ -133,11 +140,21 @@ function MusicHistoryPageContent() {
           </div>
         ) : null}
 
+        {historyAtLimit ? (
+          <div className={mp.alertWarning} role="status">
+            Показаны последние {maxProjects} проектов.{" "}
+            <Link className="underline underline-offset-2" href="/pricing">
+              Обновите тариф
+            </Link>
+            , чтобы хранить больше.
+          </div>
+        ) : null}
+
         <section className={mp.sectionCard}>
           <MusicHistoryPanel
             isDeleting={isDeletingHistory || isDeletingTrack}
             isLoading={historyQuery.isLoading}
-            items={historyQuery.data ?? []}
+            items={historyItems}
             openingEditorTrackId={openingEditorTrackId}
             onDelete={handleDeleteHistory}
             onDeleteTrack={handleDeleteTrack}
